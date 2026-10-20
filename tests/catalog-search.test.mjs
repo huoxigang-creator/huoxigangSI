@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
+import {runInNewContext} from 'node:vm';
+import test from 'node:test';
+import ts from 'typescript';
+const require=createRequire(import.meta.url);
+test('search button and Enter reveal matching category results, choose a result and clear without saving a form',()=>{
+ const slots=[];let cursor=0,chosen=null;
+ const module={exports:{}};
+ const code=ts.transpileModule(readFileSync('app/catalog-search.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText;
+ runInNewContext(code,{module,exports:module.exports,require:name=>name==='react'?{useState:initial=>{const i=cursor++;if(!(i in slots))slots[i]=initial;return[slots[i],v=>slots[i]=v];}}:name==='../lib/catalog-types'?{materialExpenseCategory:m=>m.expense_category}:require(name)});
+ const materials=[{id:'a',name:'斜阳胡桃',brand:'固美格',model:'18mm',code:'A01',unit:'张',expense_category:'材料费用'},{id:'b',name:'斜阳胡桃拉手',expense_category:'五金费用'},{id:'c',name:'斜阳胡桃',expense_category:'材料费用',deleted:true}];
+ const render=()=>{cursor=0;return module.exports.default({materials,category:'材料费用',onSelect:m=>chosen=m});};
+ const nodes=node=>{if(!node||typeof node!=='object')return[];return[node,...[].concat(node.props?.children||[]).flat(Infinity).flatMap(nodes)];};
+ const find=(tree,label)=>nodes(tree).find(n=>n.props?.['aria-label']===label);
+ let tree=render();assert.equal(find(tree,'材料费用搜索结果'),undefined);
+ find(tree,'材料费用搜索').props.onChange({target:{value:'斜阳胡桃 18mm'}});tree=render();find(tree,'搜索材料费用').props.onClick();tree=render();
+ const result=nodes(tree).find(n=>n.key==='a');assert.ok(result);assert.ok(!nodes(tree).find(n=>n.key==='b'||n.key==='c'));result.props.onClick();assert.equal(chosen.id,'a');
+ nodes(tree).find(n=>n.type==='button'&&n.props.children==='清除').props.onClick();tree=render();assert.equal(find(tree,'材料费用搜索结果'),undefined);
+ let prevented=false;find(tree,'材料费用搜索').props.onKeyDown({key:'Enter',preventDefault(){prevented=true;}});assert.ok(prevented);assert.ok(find(render(),'材料费用搜索结果'));
+});

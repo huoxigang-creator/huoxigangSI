@@ -1,0 +1,456 @@
+.quoteWorkspace{font-size:13px;color:#24405f}.qwOverview{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:3px 23px 22px}.qwOverview h2{font-size:17px}.qwOverview p{font-size:12px;color:#8497ac;line-height:1.9;margin-top:8px}.qwOverview>div:last-child{text-align:right;flex-shrink:0}.qwOverview>div:last-child span{display:block;font-size:11px;color:#8598ad;margin-bottom:8px}.qwOverview strong{color:#245c9c;font-size:27px;font-variant-numeric:tabular-nums}.qwFeedback{margin:0 23px 18px;line-height:1.8;font-size:12px;color:#3e7891}.qwCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:16px;padding:0 23px 25px}.qwCard{border:1px solid #dce5ef;border-radius:8px;background:#f8fafc;overflow:hidden;transition:border-color .15s,background .15s}.qwCard.current{border-color:#2c639f;box-shadow:0 0 0 1px #2c639f}.qwCard.adopted{background:#f5faff}.qwCardTop{display:flex;align-items:center;gap:9px;padding:14px 15px 0}.qwCardTop small{margin-left:auto;color:#8a9bb0;font-size:10px}.qwCardOpen{display:flex;width:100%;flex-direction:column;justify-content:flex-start;align-items:flex-start;gap:12px;padding:17px 17px 20px;background:transparent;border:0;border-radius:0;text-align:left;min-height:126px}.qwCardOpen h3{font-size:14px;overflow-wrap:anywhere;line-height:1.6}.qwCardOpen strong{color:#245c9c;font-size:24px;font-variant-numeric:tabular-nums}.qwCardOpen>span{font-size:10px;color:#8a9cb2}.qwCardOpen:hover{background:#edf5ff}.qwEmpty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:50px 23px;color:#91a6be}.qwEmpty h3{color:#526e8d}.qwEmpty p{font-size:12px}.qwDetail{display:grid;grid-template-columns:225px minmax(0,1fr);border-top:1px solid #e2e8f0;min-height:310px}.qwSidebar{padding:24px 16px;background:#f8fafc;border-right:1px solid #e4ebf3}.qwCaption{font-size:10px;color:#8297ae;letter-spacing:1px}.qwSidebar>h3{font-size:15px;line-height:1.7;margin:10px 0;overflow-wrap:anywhere}.qwSidebar>strong{display:block;color:#245c9c;font-size:26px;margin:14px 0;font-variant-numeric:tabular-nums}.qwSidebar>p{font-size:11px;color:#8297ae;border-top:1px solid #e0e8f1;padding-top:22px;margin:22px 0 10px}.qwVersions{display:flex;flex-direction:column;gap:7px}.qwVersions>div{display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px}.qwVersions>div.current{background:#e5eef9}.qwVersions button{display:block;text-align:left;padding:0;border:0;background:transparent;min-width:0;flex:1}.qwVersions b{display:block;font-size:11px;font-weight:500;overflow-wrap:anywhere}.qwVersions small{display:block;color:#8399b1;font-size:10px;margin-top:7px;line-height:1.7}.qwMain{min-width:0}.qwDetailHead{display:flex;flex-direction:column;gap:17px;padding:22px}.qwDetailHead h3{font-size:16px;overflow-wrap:anywhere}.qwDetailHead p{font-size:11px;color:#8a9db2;margin-top:7px}.qwActions{display:flex;gap:8px;flex-wrap:wrap}.qwActions button{font-size:11px;padding:8px 10px}.qwCategoryTabs{display:flex;align-items:center;gap:7px;border-bottom:1px solid #e4ebf3;padding:0 20px 13px;overflow-x:auto}.qwCategoryTabs button{white-space:nowrap;border:0;border-radius:18px;padding:8px 16px;font-size:12px;background:#f0f4f8;color:#6984a1}.qwCategoryTabs button.selected{background:#245c9c;color:#fff}.qwCategoryTabs button span{background:#ffffff26;border-radius:8px;padding:1px 5px;margin-left:6px;font-size:10px}.qwTableWrap{width:100%;overflow-x:auto}.qwTable{font-size:12px;min-width:780px;border-collapse:collapse}.qwTable th{padding:13px 14px;background:#f1f5f9;color:#6d849d;border-bottom:1px solid #e0e8f1}.qwTable td{padding:14px;border-right:1px solid #f0f3f7;white-space:normal;overflow-wrap:anywhere;line-height:1.7}.qwTable th:first-child,.qwTable td:first-child{width:48px;text-align:center}.qwTable td:nth-child(2){min-width:150px}.qwTable td:nth-child(3){min-width:110px}.qwTable td:last-child{min-width:115px}.qwTable .qwNumeric{white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}.qwAmount{font-weight:600;color:#245c9c}.qwTableEmpty{font-size:12px;color:#8b9fb6;text-align:center;padding:38px 18px}.qwTotals{display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:25px;padding:20px;font-size:12px;color:#8b9fb6;border-top:1px solid #e9eef5}.qwTotals b,.qwTotals strong{color:#245c9c;margin-left:11px;font-variant-numeric:tabular-nums}.qwTotals strong{font-size:21px}.qwQuoteNote{font-size:12px;color:#6d849d;line-height:1.9;padding:0 20px 20px;white-space:pre-wrap}.qwQuoteNote>span{display:block;font-size:11px;color:#93a4b7;margin-bottom:6px}.qwOverlay{position:fixed;inset:0;z-index:110;background:#10294080;backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:22px}.qwDialog{width:1140px;max-width:100%;max-height:90vh;background:#fff;border-radius:12px;box-shadow:0 20px 90px #10294050;overflow:auto}.qwDialogHead{position:sticky;top:0;background:#fff;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:1px solid #e1e9f3;padding:23px 27px}.qwDialogHead h2{font-size:20px}.qwDialogHead>button{padding:5px;border:0}.qwDialogHead p{font-size:11px;color:#8096af;margin-top:8px;overflow-wrap:anywhere}.qwEditorBody{padding:23px 27px}.qwFormGrid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.qwEditorBody label,.qwPriceChoice>label{font-size:12px;color:#758da8;display:block}.qwEditorBody label>input,.qwEditorBody label>textarea,.qwPriceChoice select{display:block;margin-top:8px;font-size:13px}.qwEditorBody label>input:disabled{background:#f4f7fb;cursor:default}.qwEditorHeading{display:flex;align-items:center;justify-content:space-between;gap:15px;margin:27px 0 17px}.qwEditorHeading h3{font-size:14px}.qwEditorHeading button{font-size:11px;padding:7px 11px}.qwEditorBody .qwCategoryTabs{padding-left:0;padding-right:0;margin-bottom:17px}.qwEditorTable{min-width:990px}.qwEditorTable td{padding:9px 7px}.qwEditorTable td:first-child{width:40px;min-width:40px}.qwEditorTable td:nth-child(2){width:180px;min-width:180px}.qwEditorTable td:nth-child(3){width:145px;min-width:145px}.qwEditorTable td:nth-child(4){width:84px;min-width:84px}.qwEditorTable td:nth-child(5){width:65px;min-width:65px}.qwEditorTable td:nth-child(6){width:95px;min-width:95px}.qwEditorTable td:nth-child(8){width:165px;min-width:165px}.qwEditorTable td:last-child{width:34px;min-width:34px}.qwEditorTable input{padding:9px 7px;font-size:12px}.qwEditorTable td:last-child button{padding:4px;border:0;background:transparent;color:#8ca1b8}.qwDraftTotals{display:flex;justify-content:flex-end;gap:22px;flex-wrap:wrap;padding:23px 0;font-size:11px;color:#859cb5;border-top:1px solid #e8eef6}.qwDraftTotals span{display:flex;flex-direction:column;gap:8px;text-align:right}.qwDraftTotals b{color:#4b719a;font-size:14px;font-weight:500;font-variant-numeric:tabular-nums}.qwDraftTotals strong{color:#245c9c;font-size:22px;font-variant-numeric:tabular-nums}.qwNoteLabel{margin-top:5px}.qwNoteLabel textarea{min-height:65px}.qwHint{font-size:11px;line-height:1.9;color:#8a9eb5;margin:12px 0}.qwError{font-size:12px;padding:12px 16px;line-height:1.8;color:#b4533c;background:#fff4ef;border:1px solid #f3d7ca;border-radius:6px;margin:16px 0 0}.qwDialogFoot{position:sticky;bottom:0;background:#f8fbff;border-top:1px solid #e2eaf4;padding:18px 27px;display:flex;align-items:center;justify-content:flex-end;gap:10px;z-index:2}.qwDialogFoot p{font-size:11px;color:#8c9fb5;margin-right:auto;line-height:1.8}.qwDialogFoot button{font-size:12px}.qwImportActions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 16px}.qwImportActions button{font-size:11px}.qwImportActions p{font-size:11px;color:#859bb4}.qwFileInput{display:none}.qwImportOverlay{z-index:120;background:#10294085}.qwImportDialog{width:1360px}.qwImportBody{padding:22px 26px}.qwPriceChoice{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-bottom:17px}.qwPriceChoice>label:first-child{width:205px}.qwCheckLabel{display:flex!important;align-items:center;gap:8px;color:#6a83a0;font-size:11px;line-height:1.7}.qwCheckLabel input{width:16px;min-width:16px;height:16px;margin:0;accent-color:#245c9c}.qwWarnings{border-left:3px solid #dfaa70;background:#fff8ef;padding:13px 16px;color:#956c3d;font-size:11px;line-height:1.9;margin-bottom:12px}.qwWarnings b{font-weight:600}.qwWarnings ul{margin:7px 0 0;padding-left:18px}.qwImportTable{min-width:1160px}.qwImportTable td{padding:9px 7px}.qwImportTable td:first-child,.qwImportTable th:first-child{width:40px;min-width:40px}.qwImportTable td:nth-child(2){min-width:45px;width:45px}.qwImportTable td:nth-child(3){min-width:170px;width:170px}.qwImportTable td:nth-child(4){min-width:135px;width:135px}.qwImportTable td:nth-child(5){min-width:75px;width:75px}.qwImportTable td:nth-child(6){min-width:60px;width:60px}.qwImportTable td:nth-child(7){min-width:90px;width:90px}.qwImportTable td:last-child{min-width:230px;width:230px}.qwImportTable input{font-size:11px;padding:8px 7px}.qwImportIssue{background:#fffaf5}.qwSourceIssue,.qwLiveIssue{display:block;line-height:1.8;font-size:10px;margin-bottom:5px}.qwSourceIssue{color:#8598af}.qwLiveIssue{color:#b5643b}.qwImportTable .qwCheckLabel{margin:5px 0 8px}.qwImportSummary{display:flex;align-items:center;justify-content:flex-end;gap:25px;flex-wrap:wrap;border-top:1px solid #e6edf5;padding:20px 0 0;font-size:12px;color:#8298b2}.qwImportSummary b{color:#4b719a;margin-left:8px}.qwImportSummary strong{color:#245c9c;font-size:22px;margin-left:8px;font-variant-numeric:tabular-nums}
+@media(max-width:1000px){.qwDetail{grid-template-columns:190px minmax(0,1fr)}.qwSidebar{padding:20px 12px}.qwActions button{font-size:10px;padding:7px 9px}.qwCards{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}.qwDialogFoot p{max-width:45%}}
+@media(max-width:760px){.qwOverview{padding:0 16px 20px;gap:15px;flex-wrap:wrap}.qwOverview>div:last-child{text-align:left}.qwOverview strong{font-size:24px}.qwCards{padding:0 16px 20px;gap:12px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}.qwCardTop{padding:12px 12px 0;gap:6px}.qwCardOpen{padding:13px;min-height:125px}.qwCardOpen strong{font-size:21px}.qwDetail{grid-template-columns:1fr}.qwSidebar{border-right:0;border-bottom:1px solid #e3ebf4;padding:20px 16px}.qwSidebar>p{padding-top:15px;margin-top:15px}.qwVersions{flex-direction:row;overflow-x:auto}.qwVersions>div{min-width:190px;max-width:230px;flex-shrink:0}.qwSidebar>strong{font-size:23px}.qwDetailHead{padding:20px 16px}.qwCategoryTabs{padding-left:16px;padding-right:16px}.qwTotals{padding:18px 16px;gap:15px}.qwTotals strong{font-size:19px}.qwFeedback{margin-left:16px;margin-right:16px}.qwOverlay{padding:10px}.qwDialog{max-height:94vh}.qwDialogHead,.qwEditorBody,.qwImportBody{padding:20px 16px}.qwDialogHead h2{font-size:18px}.qwFormGrid{grid-template-columns:1fr;gap:16px}.qwDialogFoot{padding:16px;flex-wrap:wrap;gap:8px}.qwDialogFoot p{max-width:none;flex-basis:100%;font-size:10px;margin:0 0 5px}.qwDraftTotals{gap:16px;justify-content:space-between}.qwPriceChoice{gap:12px}.qwImportSummary{gap:14px;justify-content:flex-start}.qwImportActions p{flex-basis:100%}}
+.quoteWorkspace .qwTable .managedTableControls{width:64px;min-width:64px;max-width:90px;text-align:center;padding:8px!important}.quoteWorkspace .qwEditorTable td:has(>button[aria-label^="移除"]){width:34px;min-width:34px}.quoteWorkspace .qwImportTable td:has(>.qwSourceIssue),.quoteWorkspace .qwImportTable td:has(>.qwLiveIssue){min-width:230px}.quoteWorkspace .qwTable .managedTableControls button{margin:0}.quoteWorkspace .managedColumnsOverlay{z-index:140}.quoteWorkspace .qwTable td[data-column-key="备注"]{white-space:normal}
+@media(prefers-reduced-motion:reduce){.qwCard{transition:none}}
+
+.qwEditorTable select{width:100%;min-width:170px;margin-bottom:6px;padding:7px;border:1px solid #d5dfed;border-radius:6px;background:white;color:#24446b}.qwLaborBasis{display:block;max-width:230px;min-width:140px;white-space:normal;color:#6981a0;font-size:11px;line-height:1.5;margin-top:5px}
+
+.qwEditorTable td:has(.qwLaborOptions){position:relative}.qwLaborOptions{min-width:220px;max-height:210px;overflow:auto;border:1px solid #d5dfed;background:white;border-radius:6px;padding:4px;box-shadow:0 3px 12px #1233}.qwLaborOptions button{display:block;width:100%;text-align:left;border:0;padding:9px;border-radius:4px;background:white}.qwLaborOptions button:hover{background:#edf5ff}.qwFormGrid select{padding:11px;border:1px solid #d5dfed;border-radius:6px;background:white}
+
+.qwProfitOverlay{z-index:180}.qwProfitDialog{width:575px;max-width:100%;background:#fff;border-radius:7px;overflow:hidden;box-shadow:0 12px 40px #152b4933}.qwProfitDialog header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;background:#24558e;color:white}.qwProfitDialog h2{font-size:16px}.qwProfitDialog header button{color:white;background:transparent;border:0;padding:0}.qwProfitBody{padding:24px}.qwProfitBody dl{background:#f0f1f3;padding:16px 20px;border-radius:3px}.qwProfitBody dl>div{display:grid;grid-template-columns:100px minmax(0,1fr);gap:0 12px;margin:12px 0;font-size:13px}.qwProfitBody dd{margin:0;overflow-wrap:anywhere}.qwProfitBody>p{font-size:11px;color:#8192a7;margin-top:12px}
+
+.qwCustomerWorkspace .qwDetail{grid-template-columns:265px minmax(0,1fr);min-height:560px}
+.qwCustomerWorkspace .qwSidebar{padding:15px 12px;background:#f6f6f6}
+.qwCustomerWorkspace .qwSidebar>.badge{margin:18px 10px 0}
+.qwCustomerWorkspace .qwSidebar>p{margin:18px 10px 8px;padding-top:15px}
+.qwCustomerWorkspace .qwTable{border-left:7px solid #25558d;background:#f5f6f8}
+.qwCustomerWorkspace .qwTable th{background:#edeff1;color:#213f5f}
+.qwCustomerWorkspace .qwTable td{border-bottom:1px solid #fff;border-right:1px solid #fff}
+.qwCustomerWorkspace .qwAmount,.qwCustomerWorkspace .qwOverview strong,.qwCustomerWorkspace .qwTotals strong{color:#ff5722}
+.qwCustomerDialog{width:1450px}
+.qwCustomerFullscreen{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;width:100%;height:100vh;height:100dvh;background:#fff;overflow:hidden}
+.qwFullscreenHead{display:flex;align-items:center;gap:24px;flex-shrink:0;min-height:58px;padding:10px 20px;border-bottom:1px solid #dce5ef;background:#fff}
+.qwFullscreenHead>button{font-size:12px;flex-shrink:0}
+.qwFullscreenHead>div{display:flex;align-items:center;gap:16px;min-width:0;font-size:13px}
+.qwFullscreenHead strong,.qwFullscreenHead span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qwFullscreenHead span{color:#8196ab}
+.qwCustomerFullscreen>.qwOverview{display:none}
+.qwCustomerFullscreen>.selectionToolbar{flex-shrink:0;padding:10px 20px}
+.qwCustomerFullscreen>.qwFeedback{flex-shrink:0;margin:10px 20px}
+.qwCustomerFullscreen>.qwEmpty{flex:1;justify-content:center;overflow:auto}
+.qwCustomerFullscreen>.qwDetail{flex:1;min-height:0;overflow:hidden;border-top:0}
+.qwCustomerFullscreen .qwSidebar,.qwCustomerFullscreen .qwMain{min-height:0;overflow:auto;overscroll-behavior:contain}
+.qwCustomerFullscreen .qwSidebar{display:flex;flex-direction:column}
+.qwCustomerFullscreen .qwSidebar>.qwRoomPanel{flex:1;display:flex;flex-direction:column}
+.qwCustomerFullscreen .qwRoomList{flex:1}
+.qwCustomerFullscreen .qwDetailHead{flex-direction:row;justify-content:space-between;align-items:flex-start;gap:16px;padding:16px 20px}
+.qwCustomerFullscreen .qwDetailHead>div:first-child{min-width:130px;max-width:35%}
+.qwCustomerFullscreen .qwDetailHead .qwActions{justify-content:flex-end}
+.qwCustomerEditorOverlay{padding:0;background:#fff;backdrop-filter:none}
+.qwCustomerEditorOverlay>.qwCustomerDialog{display:flex;flex-direction:column;width:100%;height:100vh;height:100dvh;max-width:none;max-height:none;border-radius:0;box-shadow:none;overflow:hidden}
+.qwCustomerDialog>form>.qwDialogHead{position:static;flex-shrink:0;padding:14px 22px}
+.qwCustomerDialog>form>.qwDialogHead h2{font-size:18px}
+.qwCustomerDialog>form{display:flex;flex-direction:column;flex:1;min-height:0}
+.qwCustomerDialog .qwEditorBody{display:flex;flex-direction:column;flex:1;min-height:0;padding:12px 22px;overflow:hidden}
+.qwCustomerDialog .qwEditorBody>.qwActions,.qwCustomerDialog .qwFormGrid,.qwCustomerDialog .qwNoteLabel,.qwCustomerDialog .qwError{flex-shrink:0}
+.qwCustomerDialog .qwFormGrid{gap:12px 20px}
+.qwCustomerDialog .qwEditorBody>.qwActions{margin-bottom:8px}
+.qwCustomerDialog .qwRoomEditorLayout{flex:1;min-height:0;overflow:hidden;margin:16px -22px 12px}
+.qwCustomerDialog .qwEditorSidebar,.qwCustomerDialog .qwRoomEditorMain{min-height:0;overflow:auto;overscroll-behavior:contain}
+.qwCustomerDialog .qwEditorSidebar>.qwRoomPanel{min-height:100%;display:flex;flex-direction:column}
+.qwCustomerDialog .qwRoomList{flex:1}
+.qwCustomerDialog .qwNoteLabel{margin-top:0}
+.qwCustomerDialog .qwNoteLabel textarea{height:44px;min-height:44px;max-height:100px;margin-top:6px}
+.qwCustomerDialog .qwError{max-height:70px;overflow:auto;margin-top:8px;padding:8px 12px}
+.qwCustomerDialog .qwDialogFoot{position:static;flex-shrink:0;padding:12px 22px calc(12px + env(safe-area-inset-bottom));gap:10px}
+@media(max-width:1000px){.qwCustomerFullscreen .qwDetailHead{flex-direction:column}.qwCustomerFullscreen .qwDetailHead>div:first-child{max-width:none}.qwCustomerFullscreen .qwDetailHead .qwActions{justify-content:flex-start}}
+@media(max-width:760px){
+  .qwFullscreenHead{gap:10px;padding:9px 12px;min-height:50px}
+  .qwFullscreenHead>button{font-size:11px;padding:7px}
+  .qwFullscreenHead>div{flex-direction:column;align-items:flex-start;gap:4px;font-size:11px}
+  .qwCustomerFullscreen>.selectionToolbar{padding:8px 12px}
+  .qwCustomerFullscreen>.qwDetail{display:flex;flex-direction:column}
+  .qwCustomerFullscreen .qwSidebar{flex-shrink:0;max-height:32dvh;padding:10px 12px}
+  .qwCustomerFullscreen .qwMain{flex:1}
+  .qwCustomerFullscreen .qwDetailHead{padding:12px}
+  .qwCustomerDialog>form>.qwDialogHead{padding:10px 12px}
+  .qwCustomerDialog>form>.qwDialogHead h2{font-size:16px}
+  .qwCustomerDialog .qwEditorBody{padding:8px 12px}
+  .qwCustomerDialog .qwFormGrid{grid-template-columns:1fr 1fr;gap:10px}
+  .qwCustomerDialog .qwFormGrid label>input{padding:8px;margin-top:5px;font-size:12px}
+  .qwCustomerDialog .qwRoomEditorLayout{display:flex;flex-direction:column;margin:10px -12px}
+  .qwCustomerDialog .qwEditorSidebar{flex-shrink:0;max-height:28dvh;padding:10px 12px}
+  .qwCustomerDialog .qwRoomEditorMain{flex:1;padding:0 12px}
+  .qwCustomerDialog .qwEditorSidebar>.qwRoomPanel{min-height:0}
+  .qwCustomerDialog .qwRoomList{min-height:0}
+  .qwCustomerDialog .qwRoomEditorMain .qwEditorHeading{margin-top:12px}
+  .qwCustomerDialog .qwDialogFoot{padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+  .qwCustomerDialog .qwDialogFoot p{display:none}
+}
+@media(max-height:650px){
+  .qwCustomerDialog .qwEditorBody{display:block;overflow:auto}
+  .qwCustomerDialog .qwRoomEditorLayout{min-height:350px;overflow:visible}
+  .qwCustomerDialog .qwEditorSidebar,.qwCustomerDialog .qwRoomEditorMain{overflow:visible}
+}
+.qwRoomEditorLayout{display:grid;grid-template-columns:260px minmax(0,1fr);margin:23px -27px 15px;border-top:1px solid #e4eaf0;border-bottom:1px solid #e4eaf0}
+.qwEditorSidebar{background:#f6f6f6;border-right:1px solid #e4eaf0;padding:15px 12px}
+.qwRoomEditorMain{min-width:0;padding:0 22px}
+.qwRoomEditorMain .qwEditorHeading{margin-top:21px;flex-wrap:wrap}
+.qwRoomEditorMain .qwEditorTable{min-width:1080px}
+.qwRoomPanel{color:#24405f}
+.qwRoomSummary{display:flex;align-items:center;gap:13px;background:#efefef;padding:20px 13px;margin-bottom:16px;min-height:107px}
+.qwRoomIcon{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:50%;background:#24558e;color:#fff;font-size:23px}
+.qwRoomSummary>div{min-width:0}
+.qwRoomSummary>div>span,.qwRoomCount>div>span{display:block;font-size:11px;color:#7188a0;margin-bottom:10px}
+.qwRoomSummary strong{display:block;font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;color:#ff5722;overflow-wrap:anywhere;line-height:1.35}
+.qwRoomCount{background:#efefef;padding:17px 13px 13px}
+.qwRoomCount strong{display:block;font-size:21px;font-weight:500}
+.qwRoomCount strong small{font-size:11px;color:#7c91a9;font-weight:400;margin-left:5px}
+.qwRoomAdd{display:flex;align-items:center;gap:5px;font-size:11px!important;padding:6px 9px!important;margin-top:15px;background:#fff}
+.qwRoomList{background:#efefef;min-height:200px;border-bottom:1px dashed #cbd6e2;padding:0 0 12px}
+.qwRoomRow{position:relative;display:flex;flex-wrap:wrap;align-items:center;padding:0 8px;min-height:49px}
+.qwRoomRow.selected{background:#cfdae0}
+.qwRoomSelect{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:0!important;border-radius:0!important;background:transparent!important;padding:14px 3px!important;text-align:left;min-height:49px;font-size:12px!important}
+.qwRoomSelect>span{overflow-wrap:anywhere;min-width:0;font-weight:500}
+.qwRoomSelect>b{font-size:11px;font-weight:400;flex-shrink:0;font-variant-numeric:tabular-nums;color:#27578d}
+.qwRoomSelect:hover{color:#245c9c}
+.qwRoomTools{display:flex;width:100%;justify-content:flex-end;gap:4px;margin-top:-6px;margin-bottom:6px}
+.qwRoomTools>button{padding:4px!important;background:transparent!important;border:0!important;color:#70879c}
+.qwRoomTools>button:hover{color:#2c639f}
+.qwCopyRoomTargets{display:flex;flex-direction:column;gap:8px;padding:0 24px 8px}
+.qwCopyRoomTargets>button{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border:1px solid #dce5ef;border-radius:7px;background:#f8fafc;text-align:left}
+.qwCopyRoomTargets>button:hover{background:#edf5ff;border-color:#2c639f}
+.qwCopyRoomTargets>button span{font-size:11px;color:#8497ac}
+.qwRoomTools>button.qwRoomDelete:hover{color:#b34e41}
+.qwRoomRow>.qwRoomMove{position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:4px;border:0;background:transparent;color:#24558e;cursor:grab}
+.qwRoomRow:has(>.qwRoomMove)>.qwRoomSelect{padding-right:26px!important}
+.qwRoomRow:has(>.qwRoomTools)>.qwRoomMove{top:auto;bottom:6px;transform:none}
+.qwRoomRow:has(>.qwRoomMove)>.qwRoomTools{padding-right:26px}
+.qwRoomRow>.qwRoomMove:active{cursor:grabbing}
+.qwRoomRow>.qwRoomMove:hover{color:#24558e;background:#e2eaf2}
+.qwRoomRow>.qwRoomMove:disabled{cursor:default}
+.qwRoomMoveMenu{position:absolute;right:10px;top:100%;z-index:4;display:flex;flex-direction:column;gap:3px;padding:5px;background:#fff;border:1px solid #cfdbe7;border-radius:5px;box-shadow:0 4px 12px #17385820}
+.qwRoomMoveMenu>button{justify-content:flex-start;font-size:11px;padding:7px 12px;white-space:nowrap;border:0}
+.qwRoomRow:last-child>.qwRoomMoveMenu{top:auto;bottom:100%}
+.qwRoomRow.qwRoomDragTarget{box-shadow:inset 0 3px #24558e;background:#e3edf6}
+.qwRoomForm{padding:12px;background:#e9eef3;border-top:1px solid #d5dfe9}
+.qwRoomForm label{display:block;font-size:11px;margin-bottom:9px;color:#70849c}
+.qwRoomForm label>select,.qwRoomForm label>input{display:block;width:100%;border:1px solid #ccd8e4;background:#fff;border-radius:4px;font-size:12px;margin-top:6px;padding:7px}
+.qwRoomForm>div{display:flex;justify-content:flex-end;gap:6px}
+.qwRoomForm button{font-size:11px;padding:6px 9px}
+.qwRoomRename{display:flex;align-items:center;gap:3px;width:100%;padding:8px 0}
+.qwRoomRename input{width:100%;min-width:0;padding:7px;font-size:12px}
+.qwRoomRename button{padding:5px;border:0;background:transparent}
+.qwRoomEmpty{font-size:11px;line-height:1.8;color:#7b91a8;padding:13px 10px}
+.qwRoomError{font-size:11px;line-height:1.7;color:#b34e41;padding:9px 10px;background:#fff0e9}
+.qwItemPhotos{min-width:120px;max-width:150px}
+.qwItemPhotoList{display:flex;flex-wrap:wrap;gap:4px}
+.qwItemPhoto{position:relative;display:inline-flex}
+.qwItemPhoto img{width:38px;height:38px;object-fit:cover;border:1px solid #d7e1ee;border-radius:5px;background:#f4f8fc}
+.qwItemPhoto button{position:absolute;top:-5px;right:-5px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0;border:1px solid #e3b3ab;border-radius:50%;background:#fff;color:#b34e41;cursor:pointer}
+.qwItemPhotoAdd{display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:4px 7px;border:1px dashed #a8c4e2;border-radius:5px;color:#3d6aa8;font-size:11px;cursor:pointer;background:#fbfdff}
+.qwItemPhotoAdd:hover{background:transparent;color:#1d4ed8}
+.qwItemPhotoAdd input{display:none}
+.qwItemPhotoAdd input[type=file]{display:none!important}
+.qwItemPhotosReadonly .qwItemPhoto img{width:52px;height:52px}
+.qwItemPhotoImgButton{position:relative;display:inline-flex;padding:0;border:0;background:transparent;cursor:zoom-in}
+.qwItemPhotoImgButton img{cursor:zoom-in}
+.qwItemPhotosReadonly .qwItemPhoto .qwItemPhotoZoom{top:-6px;right:-6px;width:17px;height:17px;opacity:1;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#fff;color:#b34e41;box-shadow:0 1px 4px #17385833}
+.qwItemPhotosReadonly .qwItemPhoto .qwItemPhotoZoom:hover{background:#2563eb;color:#fff}
+.qwCabinetNamePicker{min-width:175px}
+.qwCabinetNameControl{display:flex;align-items:center;position:relative}
+.qwCabinetNameControl input{width:100%;padding-right:28px}
+.qwCabinetNameControl>button{position:absolute;right:4px;padding:4px;border:0;background:transparent;color:#6c87a3}
+.qwCabinetNameOptions{display:flex;flex-direction:column;max-height:230px;overflow:auto;margin-top:5px;padding:4px;background:#fff;border:1px solid #cbd9e8;border-radius:5px;box-shadow:0 4px 12px #17385815}
+.qwCabinetNameOptions>button{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;flex-shrink:0;border:0;background:#fff;padding:8px;text-align:left;font-size:12px;color:#24405f}
+.qwCabinetNameOptions>button>small{font-size:10px;font-weight:400;color:#8096ad}
+.qwCabinetNameOptions>button:hover,.qwCabinetNameOptions>button.focused{background:#eef4fc;color:#245c9c}
+.qwCabinetNameOptions>button[aria-selected="true"]{background:#e5eef9;font-weight:600}
+.qwCabinetNameOptions>p{padding:7px 8px;font-size:11px;color:#8198b1;line-height:1.7}
+.qwCabinetNameOptions>.qwCabinetConfigHint{border-top:1px solid #e5ebf3;margin-top:4px}
+.qwCabinetNameHint>span{font-size:11px;color:#7c93ae}
+.qwLineSelectionTable th.qwSelectColumn,.qwLineSelectionTable td.qwSelectColumn{width:38px;min-width:38px;padding:8px;text-align:center}
+.qwLineSelectionTable .selectionCheckbox{justify-content:center;margin:0}
+.qwLineSelectionTable th:nth-child(2),.qwLineSelectionTable td:nth-child(2){width:48px;min-width:48px;text-align:center}
+.qwLineSelectionTable td:nth-child(3){min-width:150px}
+.qwLineSelectionTable td:nth-child(4){min-width:110px}
+.qwLineSelectionTable.qwEditorTable td:nth-child(2){width:40px;min-width:40px}
+.qwLineSelectionTable.qwEditorTable td:nth-child(3){width:180px;min-width:180px}
+.qwLineSelectionTable.qwEditorTable td:nth-child(4){width:145px;min-width:145px}
+.qwLineSelectionTable.qwEditorTable td:nth-child(5){width:84px;min-width:84px}
+.qwLineSelectionTable.qwEditorTable td:nth-child(6){width:65px;min-width:65px}
+.qwLineSelectionTable.qwEditorTable td:nth-child(7){width:95px;min-width:95px}
+.qwLineSelectionTable.qwEditorTable td:nth-child(8){width:110px;min-width:110px}
+.qwLineSelectionTable.qwEditorTable td:nth-child(9){width:165px;min-width:165px}
+.qwLineSelected{background:#edf5ff}
+.qwLineName{width:100%;padding:0;border:0;border-radius:0;background:transparent;text-align:left;justify-content:flex-start;font:inherit;line-height:inherit;color:inherit;white-space:normal}
+.qwLineName:disabled{opacity:1;cursor:default;color:inherit}
+.qwLineName:not(:disabled):hover{color:#245c9c;text-decoration:underline}
+.qwEditorLineActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.qwLineSelectionCount{font-size:11px;color:#839ab3;align-self:center}
+.qwCustomerDialog .qwCustomerEditorHead{align-items:center;gap:16px}
+.qwCustomerEditorTitleBlock{flex:1;min-width:0}
+.qwCustomerTitleBar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.qwCustomerTitleBar>h2{margin:0;flex-shrink:0}
+.qwHeaderVersion{display:flex;align-items:center;gap:8px;flex:0 1 440px;min-width:200px;max-width:540px;font-size:12px;color:#506984;margin:0}
+.qwHeaderVersion>span{flex-shrink:0;white-space:nowrap}
+.qwHeaderVersion>input{flex:1;min-width:0;width:auto;margin:0;padding:8px 10px;font-size:13px;border:1px solid #d5dfed;border-radius:6px;background:#fff}
+.qwCustomerTitleBar>button{flex-shrink:0;white-space:nowrap;font-size:12px;padding:8px 12px}
+.qwCustomerQuoteEditor .qwEditorBody{padding-top:0;padding-bottom:0}
+.qwCustomerQuoteEditor .qwRoomEditorLayout{margin-top:0;margin-bottom:0;border-top:0;border-bottom:0}
+.qwCustomerQuoteEditor .qwRoomEditorMain .qwEditorHeading{margin-top:12px}
+@media(max-width:760px){.qwCustomerDialog .qwCustomerEditorHead{align-items:flex-start;gap:10px}.qwCustomerTitleBar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 10px}.qwCustomerTitleBar>h2{grid-column:1;grid-row:1}.qwHeaderVersion{grid-column:1/-1;grid-row:2;min-width:0;max-width:none}.qwHeaderVersion>span{font-size:11px}.qwHeaderVersion>input{font-size:12px;padding:7px 8px}.qwCustomerTitleBar>button{grid-column:2;grid-row:1;font-size:11px;padding:7px 9px}.qwCustomerQuoteEditor .qwEditorBody{padding-top:0;padding-bottom:0}.qwCustomerQuoteEditor .qwRoomEditorLayout{margin-top:0;margin-bottom:0}}
+.qwCategoryImportBar{display:flex;align-items:center;gap:14px;min-width:0;margin-bottom:17px;flex-shrink:0}
+.qwEditorBody .qwCategoryImportBar>.qwCategoryTabs{flex:1;min-width:0;margin-bottom:0;padding-bottom:0}
+.qwCategoryImportBar>button{flex-shrink:0;white-space:nowrap}
+.qwCardToolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding:0 0 12px;margin-bottom:12px;border-bottom:1px solid #e2e8f0}.qwCardToolbar button{font-size:12px;padding:8px 13px}
+.qwCardSubmitPay{display:block;text-align:right;font-style:normal;font-size:12px;color:#ff5722;margin-top:4px}
+.qwCustomerDialog .qwCategoryImportBar{position:sticky;top:0;z-index:4;background:#fff;padding-top:6px;padding-bottom:2px}
+.qwCustomerDialog .managedTable>thead>tr>th{top:46px}
+.qwDocumentImportNotice{font-size:12px;line-height:1.8;color:#355d85;background:#eef5fd;border:1px solid #d9e6f4;border-radius:5px;padding:9px 12px;margin:0 0 12px;flex-shrink:0;max-height:86px;overflow:auto}
+.qwProjectDialog .qwProjectEditorLayout{display:flex;flex:1;min-height:0;margin:10px 0 12px}
+.qwProjectDialog .qwRoomEditorLayout{flex:1;min-height:0;margin:10px 0 12px}
+.qwProjectDialog .qwProjectEditorMain,.qwProjectDialog .qwRoomEditorMain{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:hidden}
+.qwProjectEditorMain>.qwEditorHeading,.qwProjectEditorMain>.qwImportActions,.qwProjectEditorMain>.catalogSearchPanel,.qwProjectEditorMain>.qwDraftTotals,.qwProjectDialog .qwRoomEditorMain>.qwEditorHeading,.qwProjectDialog .qwRoomEditorMain>.qwImportActions,.qwProjectDialog .qwRoomEditorMain>.catalogSearchPanel,.qwProjectDialog .qwRoomEditorMain>.qwDraftTotals{flex-shrink:0}
+.qwProjectDialog .qwProjectEditorMain>.qwTableWrap,.qwProjectDialog .qwRoomEditorMain>.qwTableWrap{flex:1;min-height:100px;overflow:auto;overscroll-behavior:contain}
+.qwProjectDialog .qwDraftTotals{margin-top:12px}
+@media(max-width:760px){.qwCategoryImportBar{gap:8px}.qwCategoryImportBar>button{font-size:11px;padding:8px}.qwProjectDialog .qwProjectEditorLayout,.qwProjectDialog .qwRoomEditorLayout{margin-top:8px}.qwProjectDialog .qwDraftTotals{gap:8px;font-size:11px}}
+@media(max-height:650px){.qwProjectDialog .qwProjectEditorLayout,.qwProjectDialog .qwRoomEditorLayout{min-height:350px}.qwProjectDialog .qwProjectEditorMain,.qwProjectDialog .qwRoomEditorMain{overflow:visible}.qwProjectDialog .qwProjectEditorMain>.qwTableWrap,.qwProjectDialog .qwRoomEditorMain>.qwTableWrap{flex:none;max-height:45dvh}}
+.qwCustomerPrint{display:none}
+.qwCopyOverlay{z-index:115}
+.qwCreateDialog{width:660px}
+.qwCreateChoices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;padding:27px}
+.qwCreateChoice{display:flex;flex-direction:column;align-items:center;gap:14px;min-height:215px;text-align:center;padding:24px 18px;border:1px solid #dce6f0;border-radius:8px;background:#f8fbff;color:#264b75}
+.qwCreateChoice:hover{background:#edf4fc;border-color:#2b5c94}
+.qwCreateChoice b{font-size:16px}
+.qwCreateChoice>span:last-child{font-size:12px;line-height:1.8;color:#8296ab}
+.qwCreateIcon{display:flex;align-items:center;justify-content:center;width:58px;height:58px;border-radius:50%;color:#245c9c;background:#e5eef9}
+.qwCopyDialog{width:1080px}
+.qwCopyBody{padding:25px 27px}
+.qwCopyForm{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.qwCopyForm label{font-size:12px;color:#7189a4}
+.qwCopyForm label>input,.qwCopyForm label>select{display:block;width:100%;margin-top:9px;padding:10px 12px;font-size:13px;border:1px solid #d6e1ed;border-radius:5px;background:#fff;color:#24405f}
+.qwCopyForm small{display:block;margin-top:8px;font-size:11px;line-height:1.7;color:#8a9caf}
+.qwCopySearch{display:flex;align-items:center;border:1px solid #d6e1ed;border-radius:5px;margin-top:9px;background:#fff;overflow:hidden}
+.qwCopySearch svg{margin-left:11px;flex-shrink:0;color:#91a3b5}
+.qwCopySearch input{border:0!important;box-shadow:none!important;margin:0!important;width:100%;padding:10px!important;font-size:12px}
+.qwCopyForm label>select{margin-top:7px}
+.qwCopyListHead{display:flex;align-items:center;justify-content:space-between;margin:26px 0 16px}
+.qwCopyListHead h3{font-size:14px}
+.qwCopyListHead>span{font-size:11px;color:#8499ad}
+.qwCopyCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:15px;max-height:390px;overflow:auto;padding:1px 1px 6px}
+.qwCopyCard{display:flex;align-items:flex-start;flex-direction:column;gap:12px;min-height:190px;text-align:left;background:#f8fafc;border:1px solid #d9e3ee;border-radius:7px;padding:15px 17px;color:#24405f}
+.qwCopyCard:hover{border-color:#7294b9;background:#f4f8fd}
+.qwCopyCard.selected{border-color:#255c9a;box-shadow:0 0 0 1px #255c9a;background:#eef5fe}
+.qwCopyCardTop{width:100%;display:flex;align-items:center;justify-content:space-between;gap:9px}
+.qwCopyCheck{display:flex;align-items:center;justify-content:center;width:21px;height:21px;border:1px solid #c3d2e2;border-radius:50%;color:#fff}
+.qwCopyCard.selected .qwCopyCheck{background:#245c9c;border-color:#245c9c}
+.qwCopyCard h4{font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.qwCopyCard strong{font-size:24px;line-height:1.5;color:#ff5722;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.qwCopyCard small,.qwCopySubproject{font-size:10px;color:#8195ab;line-height:1.8}
+.qwCopyCard small{margin-top:auto}
+.qwCopySubproject{margin-top:-7px}
+.qwCopyEmpty{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:15px;min-height:200px;padding:25px;background:#f8fafc;border:1px dashed #d5e0eb;color:#8ca0b6;text-align:center}
+.qwCopyEmpty p{font-size:12px;line-height:1.9}
+.qwCopyHint{font-size:11px;line-height:1.9;color:#8498ae;margin:19px 0 0}
+.qwCopyBack{margin-right:auto}
+@media(max-width:760px){.qwCreateChoices{padding:20px 16px;gap:12px}.qwCreateChoice{padding:20px 12px;min-height:210px}.qwCreateChoice b{font-size:14px}.qwCreateChoice>span:last-child{font-size:11px}.qwCopyBody{padding:20px 16px}.qwCopyForm{grid-template-columns:1fr;gap:17px}.qwCopyCards{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));max-height:340px;gap:12px}.qwCopyCard{padding:13px;min-height:175px}.qwCopyCard strong{font-size:21px}.qwCopyBack{flex-basis:100%;justify-content:flex-start!important;margin:0 0 4px}}
+@media(max-width:1000px){.qwCustomerWorkspace .qwDetail{grid-template-columns:230px minmax(0,1fr)}.qwRoomEditorLayout{grid-template-columns:225px minmax(0,1fr)}.qwRoomEditorMain{padding:0 16px}.qwRoomSummary strong{font-size:20px}}
+@media(max-width:760px){.qwCustomerWorkspace .qwDetail,.qwRoomEditorLayout{grid-template-columns:1fr}.qwRoomEditorLayout{margin:20px -16px 15px}.qwEditorSidebar{border-right:0;border-bottom:1px solid #e4eaf0;padding:12px 16px}.qwCustomerWorkspace .qwSidebar{padding:12px 16px}.qwRoomSummary{min-height:85px;padding:14px;margin-bottom:10px}.qwRoomCount{padding:13px}.qwRoomList{min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px}.qwRoomRow{min-width:0}.qwRoomSelect{gap:5px;flex-wrap:wrap}.qwRoomTools{margin-top:-4px}.qwRoomEditorMain{padding:0 16px}.qwRoomSummary strong{font-size:21px}}
+@media print{
+  @page{size:A4 portrait;margin:12mm}
+  body:has(>.qwCustomerPrint){overflow:visible!important;height:auto!important}
+  body:has(>.qwCustomerPrint)>:not(.qwCustomerPrint){display:none!important}
+  /* 整户报价打印 = 下载 Excel 同版式：蓝底标题、灰底分类段、黄底费用项、红字金额、黑框表体、合计后落款区浅灰 */
+  .qwCustomerPrint{display:block!important;background:#fff;color:#000;font:12px/1.6 SimSun,'Microsoft YaHei',sans-serif}
+  .qwCustomerPrint h1{text-align:center;font-size:20px;margin:0 0 12px}
+  .qwCustomerPrint>p{text-align:center;margin:4px 0}
+  .qwCustomerPrint>p[role=alert]{color:#c00;padding:20px 0}
+  .qwCustomerPrint table{border-collapse:collapse;width:100%;table-layout:fixed;margin:0 auto}
+  .qwCustomerPrint .c0{width:6%}.qwCustomerPrint .c1{width:13%}.qwCustomerPrint .c2{width:34%}.qwCustomerPrint .c3{width:6%}.qwCustomerPrint .c4{width:8%}.qwCustomerPrint .c5{width:11%}.qwCustomerPrint .c6{width:12%}.qwCustomerPrint .c7{width:10%}
+  .qwCustomerPrint td{border:1px solid #000;padding:6px 5px;text-align:center;vertical-align:middle;height:auto;word-break:break-all;overflow-wrap:anywhere;white-space:normal}
+  .qwCustomerPrint tr{break-inside:avoid}
+  .qwCustomerPrint .qwXlsTitle td{background:#99CCFF;font-weight:700;font-size:18px;padding:12px}
+  .qwCustomerPrint .qwXlsCustomer td{font-size:12px;text-align:left}
+  .qwCustomerPrint .qwXlsHead td{font-weight:700}
+  .qwCustomerPrint .qwXlsLeft{text-align:left}
+  .qwCustomerPrint .qwXlsMoney{text-align:right;color:#FF5722;font-variant-numeric:tabular-nums}
+  .qwCustomerPrint .qwXlsSection td{background:#C0C0C0;font-weight:700}
+  .qwCustomerPrint .qwXlsSubtotal .qwXlsMoney,.qwCustomerPrint .qwXlsSection .qwXlsMoney{font-weight:700}
+  .qwCustomerPrint .qwXlsYellow td{background:#FFFF00;font-weight:700;text-align:left}
+  .qwCustomerPrint .qwXlsNote td{text-align:left}
+  .qwCustomerPrint .qwXlsSign td{text-align:left;height:34px}
+  .qwCustomerPrint .qwXlsTail td{border-color:#D9D9D9}
+  .qwCustomerPrint .qwXlsPhotos img{display:inline-block;width:48px;height:48px;object-fit:cover;margin:1px;border:1px solid #eee}
+}
+
+
+/* QwenWork 20261015 v4 —— 新建项目报价弹窗：压缩上下留白、放大输入框（字号一律不改） */
+.qwCustomerDialog.qwProjectDialog .qwDialogHead{padding:8px 18px}
+.qwCustomerDialog.qwProjectDialog .qwDialogHead p{margin-top:2px}
+.qwCustomerDialog.qwProjectDialog .qwEditorBody{padding:6px 18px}
+.qwCustomerDialog.qwProjectDialog .qwFormGrid{gap:6px}
+.qwCustomerDialog.qwProjectDialog .qwEditorBody label>input,
+.qwCustomerDialog.qwProjectDialog .qwEditorBody label>textarea,
+.qwCustomerDialog.qwProjectDialog .qwPriceChoice select{margin-top:4px}
+.qwCustomerDialog.qwProjectDialog .qwFormGrid select{padding:13px 11px}
+.qwCustomerDialog.qwProjectDialog .qwEditorHeading{margin:6px 0}
+.qwCustomerDialog.qwProjectDialog .qwEditorBody .qwCategoryTabs{margin-bottom:6px;padding-bottom:6px}
+.qwCustomerDialog.qwProjectDialog .qwProjectEditorLayout{margin:4px 0}
+.qwCustomerDialog.qwProjectDialog .catalogSearchPanel{margin:4px 0}
+.qwCustomerDialog.qwProjectDialog .qwImportActions{margin:0 0 4px}
+.qwCustomerDialog.qwProjectDialog .qwTable th{padding:5px 8px}
+.qwCustomerDialog.qwProjectDialog .qwEditorTable td{padding:2px 5px}
+.qwCustomerDialog.qwProjectDialog .qwEditorTable input{padding:11px 7px}
+.qwCustomerDialog.qwProjectDialog .qwEditorTable select{margin-bottom:3px;padding:10px 7px}
+.qwCustomerDialog.qwProjectDialog .qwDraftTotals{margin-top:2px;padding:6px 0;gap:16px}
+.qwCustomerDialog.qwProjectDialog .qwDraftTotals span{gap:2px}
+.qwCustomerDialog.qwProjectDialog .qwNoteLabel{margin-top:0}
+.qwCustomerDialog.qwProjectDialog .qwNoteLabel textarea{min-height:48px}
+.qwCustomerDialog.qwProjectDialog .qwDialogFoot{padding:8px 18px}
+
+/* QwenWork 20261015 v5 —— 报价编辑弹窗（项目报价 + 客户整户报价通用）
+   1) 上下留白继续压缩  2) 输入框加高、行间距收紧  3) 斑马纹改为「浅蓝 / 纯白」交替
+   4) 表头与左侧空间面板的浅灰粉底色改浅蓝  5) 隐藏表头「三条线」图标，改为按住表头文字即可左右拖动换列
+   字号一律不变。 */
+
+/* —— 上下留白 —— */
+.qwDialog.qwCustomerDialog .qwDialogHead{padding:8px 18px}
+.qwDialog.qwCustomerDialog .qwDialogHead p{margin-top:2px}
+.qwDialog.qwCustomerDialog .qwEditorBody{padding:6px 16px}
+.qwDialog.qwCustomerDialog .qwFormGrid{gap:6px}
+.qwDialog.qwCustomerDialog .qwEditorBody label>input,
+.qwDialog.qwCustomerDialog .qwEditorBody label>textarea,
+.qwDialog.qwCustomerDialog .qwPriceChoice select{margin-top:4px}
+.qwDialog.qwCustomerDialog .qwFormGrid select{padding:13px 11px}
+.qwDialog.qwCustomerDialog .qwEditorHeading{margin:6px 0}
+.qwDialog.qwCustomerDialog .qwEditorBody .qwCategoryTabs{margin-bottom:6px;padding-bottom:6px}
+.qwDialog.qwCustomerDialog .qwProjectEditorLayout,
+.qwDialog.qwCustomerDialog .qwRoomEditorLayout{margin:4px 0}
+.qwDialog.qwCustomerDialog .catalogSearchPanel{margin:4px 0}
+.qwDialog.qwCustomerDialog .qwImportActions{margin:0 0 4px}
+.qwDialog.qwCustomerDialog .qwDraftTotals{margin-top:2px;padding:6px 0;gap:16px}
+.qwDialog.qwCustomerDialog .qwDraftTotals span{gap:2px}
+.qwDialog.qwCustomerDialog .qwNoteLabel{margin-top:0}
+.qwDialog.qwCustomerDialog .qwNoteLabel textarea{min-height:48px}
+.qwDialog.qwCustomerDialog .qwDialogFoot{padding:8px 18px}
+
+/* —— 输入框加高 + 行与行贴紧 —— */
+.qwDialog.qwCustomerDialog .qwTable th{padding:5px 10px}
+.qwDialog.qwCustomerDialog .qwEditorTable>tbody>tr>td{padding:1px 5px}
+.qwDialog.qwCustomerDialog .qwEditorTable input{padding:12px 7px;line-height:1.35}
+.qwDialog.qwCustomerDialog .qwEditorTable select{padding:11px 7px;margin-bottom:2px}
+.qwDialog.qwCustomerDialog .qwEditorTable td:last-child button{padding:2px}
+
+/* —— 斑马纹：浅蓝 / 纯白 —— */
+.qwDialog.qwCustomerDialog .qwCustomerWorkspace .qwTable,
+.qwDialog.qwCustomerDialog .qwTable{background:#fff}
+.qwDialog.qwCustomerDialog .qwTable>tbody>tr:nth-child(odd),
+.qwDialog.qwCustomerDialog .qwTable>tbody>tr:nth-child(odd)>td{background-color:#fff}
+.qwDialog.qwCustomerDialog .qwTable>tbody>tr:nth-child(even),
+.qwDialog.qwCustomerDialog .qwTable>tbody>tr:nth-child(even)>td{background-color:#d6e6f7}
+.qwDialog.qwCustomerDialog .qwTable>tbody>tr:hover,
+.qwDialog.qwCustomerDialog .qwTable>tbody>tr:hover>td,
+.qwDialog.qwCustomerDialog .managedTable tr.selectionRowSelected,
+.qwDialog.qwCustomerDialog .managedTable tr.selectionRowSelected>td{background-color:#c3dcf4}
+.qwDialog.qwCustomerDialog .managedTable .managedTableControls,
+.qwDialog.qwCustomerDialog .managedTable .managedTableHeader{background-color:#dfeaf7}
+.qwDialog.qwCustomerDialog .managedTable tr:hover .managedTableControls{background-color:#c3dcf4}
+
+/* —— 表头与左侧面板：浅粉灰 → 浅蓝 —— */
+.qwDialog.qwCustomerDialog .qwCustomerWorkspace .qwTable th,
+.qwDialog.qwCustomerDialog .qwTable th{background:#c9ddf3;color:#213f5f}
+.qwDialog.qwCustomerDialog .qwCustomerWorkspace .qwSidebar,
+.qwDialog.qwCustomerDialog .qwEditorSidebar{background:#e9f1f9}
+.qwDialog.qwCustomerDialog .qwRoomSummary,
+.qwDialog.qwCustomerDialog .qwRoomCount,
+.qwDialog.qwCustomerDialog .qwRoomList{background:#e9f1f9}
+.qwDialog.qwCustomerDialog .qwRoomForm{background:#dfeaf7}
+.qwDialog.qwCustomerDialog .qwRoomRow.selected{background:#c9ddf3}
+.qwDialog.qwCustomerDialog .qwRoomRow>.qwRoomMove:hover{background:#cfe0f2}
+.qwDialog.qwCustomerDialog .qwRoomRow.qwRoomDragTarget{background:#dfeaf7}
+
+/* —— 去掉表头三条线图标，整列表头文字都可拖动换列；行右侧三条线保留 —— */
+.qwDialog.qwCustomerDialog .managedTable .managedReorderHeader{padding-right:18px}
+.qwDialog.qwCustomerDialog .managedTable .managedColumnOrderHandle{left:0;right:0;top:0;bottom:0;width:auto;min-width:0;height:auto;transform:none;display:block;padding:0;border-radius:0;background:transparent;cursor:grab}
+.qwDialog.qwCustomerDialog .managedTable .managedColumnOrderHandle svg{display:none}
+.qwDialog.qwCustomerDialog .managedTable .managedColumnOrderHandle:hover,
+.qwDialog.qwCustomerDialog .managedTable .managedColumnOrderHandle:focus-visible{background:#bcd6f0;outline:0}
+.qwDialog.qwCustomerDialog .managedTable .managedColumnOrderHandle[aria-pressed="true"]{background:#a9c9ea}
+
+/* QwenWork 20261015 v6 —— 修正：右侧固定操作列跟随斑马纹，不再是一整条深蓝 */
+.qwDialog.qwCustomerDialog .managedTable>tbody>tr:nth-child(odd)>td.managedTableControls{background-color:#fff}
+.qwDialog.qwCustomerDialog .managedTable>tbody>tr:nth-child(even)>td.managedTableControls{background-color:#d6e6f7}
+.qwDialog.qwCustomerDialog .managedTable>tbody>tr:hover>td.managedTableControls,
+.qwDialog.qwCustomerDialog .managedTable>tbody>tr.selectionRowSelected>td.managedTableControls{background-color:#c3dcf4}
+.qwDialog.qwCustomerDialog .managedTable thead th.managedTableControls,
+.qwDialog.qwCustomerDialog .managedTable .managedTableHeader{background-color:#c9ddf3}
+
+/* 以上 v4/v5/v6 块回灌自服务器 dist 补丁 release.AWbVcg5l_qw4~qw6 */
+
+/* QwenWork 20261015 v1412 —— 报价弹窗跟随全站统一节奏：框 28px、行 40px */
+.qwDialog.qwCustomerDialog .qwEditorTable>tbody>tr>td{padding:6px 5px;height:40px}
+.qwDialog.qwCustomerDialog .qwEditorTable input{padding:5px 7px;line-height:1.35}
+.qwDialog.qwCustomerDialog .qwEditorTable select{padding:5px 7px;line-height:1.35}
+.qwDialog.qwCustomerDialog .qwTable>thead>tr>th{height:40px}
+
+/* QwenWork 20261015 v1413 —— 报价弹窗格间缝同步：行高 32 */
+.qwDialog.qwCustomerDialog .qwEditorTable>tbody>tr>td{padding:2px 5px;height:32px}
+
+/* QwenWork 20261015 v1414 —— 整户报价总额与空间类型之间加一道虚线分隔 */
+.qwRoomCount{border-top:1px dashed #cbd6e2}
+
+/* QwenWork 20261015 v1415 —— 报价弹窗斑马纹蓝格调浅为 #e9f1f9（与侧栏/全站其余表格同色） */
+.qwDialog.qwCustomerDialog .qwTable>tbody>tr:nth-child(2n),
+.qwDialog.qwCustomerDialog .qwTable>tbody>tr:nth-child(2n)>td{background-color:#e9f1f9}
+.qwDialog.qwCustomerDialog .managedTable>tbody>tr:nth-child(2n)>td.managedTableControls{background-color:#e9f1f9}
+
+/* QwenWork 20261015 v1416 —— 头部操作按钮组 + 关联项目名称上移 + 草稿 A4 打印版 */
+.qwHeadActions{display:inline-flex;gap:8px;align-items:center;margin-right:10px;flex-shrink:0}
+.qwHeadActions button{font-size:12px;padding:6px 10px;border:1px solid #d5dfed;border-radius:6px;background:#fff;color:#24558e;display:inline-flex;align-items:center;gap:5px}
+.qwHeadActions button:hover{background:#edf5fc}
+.qwDialog.qwCustomerDialog .qwEditorBody{padding-top:2px}
+.qwDraftPrint{display:none}
+@media print{
+  @page{size:A4 portrait;margin:10mm}
+  body:has(>.qwDraftPrint){overflow:visible!important;height:auto!important}
+  body:has(>.qwDraftPrint)>:not(.qwDraftPrint){display:none!important}
+  .qwDraftPrint{display:block!important;background:#fff}
+  .qwDraftPrint table{border-collapse:collapse;width:100%;font:11px/1.5 '宋体','Microsoft YaHei',sans-serif;color:#173858;table-layout:fixed}
+  .qwDraftPrint td{border:1px solid #bcc9d7;padding:5px 6px;vertical-align:middle;word-break:break-all;overflow-wrap:anywhere;height:auto}
+  .qwDraftPrint tr{break-inside:avoid}
+  .qwDraftPrint .qwPrTitle td{background:#99CCFF;border:1px solid #bcc9d7;text-align:center;font-size:18px;font-weight:700;height:34px;padding:8px 6px}
+  .qwDraftPrint .qwPrCustomer td{background:#99CCFF;text-align:left;padding:7px 10px}
+  .qwDraftPrint .qwPrHead td{background:#f6f8fb;text-align:center;font-weight:600;padding:6px 4px}
+  .qwDraftPrint .qwPrSection td{background:#C0C0C0;font-weight:600;text-align:center;padding:6px 4px}
+  .qwDraftPrint .qwPrSection td:last-child{font-weight:700;color:#FF5722}
+  .qwDraftPrint .qwPrFee td{background:#FFFF00;font-weight:600;text-align:center;padding:6px 4px}
+  .qwDraftPrint .qwPrFeeHead td{background:#f6f8fb;text-align:center;font-weight:600}
+  .qwDraftPrint .qwPrTotal td{font-weight:700;padding:8px 6px}
+  .qwDraftPrint .qwPrTotal td:last-child{color:#FF5722}
+  .qwDraftPrint .qwPrNum,.qwDraftPrint .qwPrQty,.qwDraftPrint .qwPrAmount{text-align:right}
+  .qwDraftPrint .qwPrAmount{color:#FF5722}
+  .qwDraftPrint .qwPrType,.qwDraftPrint .qwPrUnit{text-align:center}
+  .qwDraftPrint .qwPrName,.qwDraftPrint .qwPrModel{text-align:left}
+  .qwDraftPrint .qwPrModel{width:30%}
+  .qwDraftPrint .qwPrNote td{text-align:left;color:#526d8f}
+  .qwDraftPrint .qwPrSign td{border:0;padding:10px 6px;text-align:left}
+  .qwDraftPrint .qwPrSign .qwPrLeft{text-align:left}
+  .qwDraftPrint td:nth-child(1){width:6%}
+  .qwDraftPrint td:nth-child(2){width:9%}
+  .qwDraftPrint td:nth-child(3){width:16%}
+  .qwDraftPrint td:nth-child(4){width:30%}
+  .qwDraftPrint td:nth-child(5){width:7%}
+  .qwDraftPrint td:nth-child(6){width:8%}
+  .qwDraftPrint td:nth-child(7){width:10%}
+  .qwDraftPrint td:nth-child(8){width:14%}
+}
+/* V-1-5-25: 报价明细附件列改造——空位「+」上传、图片放大镜、上传识别移到类别标签后 */
+.qwItemPhotos{display:flex;align-items:center;gap:4px}
+.qwItemPhotos .qwItemPhotoList{display:inline-flex;flex-wrap:wrap;flex:0 0 auto}
+.qwItemPhotoAdd{width:auto;height:auto;margin-top:0;padding:0;gap:0;border:none;border-radius:0;background:transparent;color:#1e3a8a}
+.qwItemPhotoAdd:hover{background:transparent;color:#1d4ed8}
+.qwItemPhoto img{cursor:zoom-in}
+.qwItemPhoto .qwItemPhotoZoom{top:auto;right:2px;bottom:2px;width:18px;height:18px;border:1px solid transparent;border-radius:4px;background:rgba(15,23,42,.72);color:#fff}
+.qwItemPhoto .qwItemPhotoZoom:hover{background:#2563eb}
+.qwPhotoViewerOverlay{position:fixed;inset:0;z-index:1200;background:rgba(15,23,42,.86);display:flex;align-items:center;justify-content:center;padding:32px}
+.qwPhotoViewerBody{display:flex;flex-direction:column;align-items:center;gap:10px;max-width:92vw;max-height:88vh}
+.qwPhotoViewerBody img{max-width:92vw;max-height:80vh;object-fit:contain;border-radius:8px;background:#fff;cursor:zoom-out}
+.qwPhotoViewerName{color:#e2e8f0;font-size:13px}
+.qwPhotoViewerClose{position:fixed;top:18px;right:22px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;padding:0;border:none;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;cursor:pointer}
+.qwTabUploadAction{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:3px 10px;border:1px solid #c9ddf3;border-radius:6px;background:#e9f1f9;color:#1d4ed8;font-size:12px;font-weight:600;cursor:pointer}
+.qwTabUploadAction:hover{background:#c3dcf4}
+.qwTabUploadAction:disabled{opacity:.5;cursor:not-allowed}
+/* V-1-5-66: 报价明细表格恢复「空间」列，标明每条明细所属空间 */
+.qwTable .qwRoomCell{white-space:nowrap;color:#1d4ed8;font-weight:600;font-size:12px}

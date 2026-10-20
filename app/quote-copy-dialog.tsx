@@ -1,0 +1,32 @@
+'use client';
+
+import {useEffect,useState,type FormEvent} from 'react';
+import {ArrowLeft,Check,Copy,FileSpreadsheet,Plus,Search,X} from 'lucide-react';
+import type {QuoteItem,QuoteCabinet} from '../lib/quotes';
+import type {QuoteRoom} from './quote-rooms';
+import {useWorkspaceActive} from './workspace-active';
+
+export type QuoteCopyRecord={id:string;title:string;items:Partial<QuoteItem>[];rooms?:QuoteRoom[];cabinets?:QuoteCabinet[];note?:string;total:number;adopted?:boolean;created?:string;deleted?:boolean;subproject_name?:string};
+export type QuoteCopySource={id:string;name:string;customer?:string;quotes:QuoteCopyRecord[]};
+const money=(amount:number)=>new Intl.NumberFormat('zh-CN',{style:'currency',currency:'CNY'}).format(amount/100);
+
+export function QuoteCreateDialog({customerName,disabled,onNew,onCopy,onClose}:{customerName:string;disabled:boolean;onNew:()=>void;onCopy:()=>void;onClose:()=>void}) {
+  const active=useWorkspaceActive();
+  useEffect(()=>{if(!active)return;function escape(event:KeyboardEvent){if(event.key==='Escape'&&!disabled)onClose();}window.addEventListener('keydown',escape);return()=>window.removeEventListener('keydown',escape);},[active,disabled,onClose]);
+  return <div className="qwOverlay qwCopyOverlay"><section className="qwDialog qwCreateDialog" role="dialog" aria-modal="true" aria-labelledby="qwCreateTitle"><div className="qwDialogHead"><div><span className="eyebrow">{customerName}</span><h2 id="qwCreateTitle">选择报价类型</h2><p>选择新建报价，或从老客户、合作项目复制预算。</p></div><button type="button" aria-label="关闭报价类型选择" disabled={disabled} onClick={onClose}><X size={20}/></button></div><div className="qwCreateChoices"><button type="button" className="qwCreateChoice" disabled={disabled} onClick={onNew}><span className="qwCreateIcon"><Plus size={25}/></span><b>新建报价</b><span>添加项目，填写新的整户报价。</span></button><button type="button" className="qwCreateChoice" disabled={disabled} onClick={onCopy}><span className="qwCreateIcon"><Copy size={25}/></span><b>复制预算</b><span>选择已有报价，复制后为当前客户修改。</span></button></div><div className="qwDialogFoot"><button type="button" disabled={disabled} onClick={onClose}>取消</button></div></section></div>;
+}
+
+export default function QuoteCopyDialog({customerName,sources,disabled,error,onImport,onBack,onClose}:{
+  customerName:string;sources:QuoteCopySource[];disabled:boolean;error:string;onImport:(quote:QuoteCopyRecord,title:string,sourceName:string)=>void;onBack:()=>void;onClose:()=>void;
+}) {
+  const [search,setSearch]=useState(''),[sourceId,setSourceId]=useState(''),[quoteId,setQuoteId]=useState(''),[title,setTitle]=useState(customerName+'报价');
+  const active=useWorkspaceActive();
+  const available=sources.filter(source=>source.quotes.some(quote=>!quote.deleted));
+  const source=available.find(source=>source.id===sourceId),query=search.trim().toLocaleLowerCase();
+  const matching=available.filter(source=>[source.name,source.customer||''].some(value=>value.toLocaleLowerCase().includes(query)));
+  const options=source&&!matching.some(option=>option.id===source.id)?[source,...matching]:matching;
+  const quotes=source?.quotes.filter(quote=>!quote.deleted)||[],selected=quotes.find(quote=>quote.id===quoteId);
+  useEffect(()=>{if(!active)return;function escape(event:KeyboardEvent){if(event.key==='Escape'&&!disabled)onClose();}window.addEventListener('keydown',escape);return()=>window.removeEventListener('keydown',escape);},[active,disabled,onClose]);
+  function submit(event:FormEvent){event.preventDefault();if(disabled||!selected||!title.trim()||!source)return;onImport(selected,title.trim(),source.name);}
+  return <div className="qwOverlay qwCopyOverlay"><section className="qwDialog qwCopyDialog" role="dialog" aria-modal="true" aria-labelledby="qwCopyTitle"><div className="qwDialogHead"><div><span className="eyebrow">{customerName}</span><h2 id="qwCopyTitle">复制预算</h2><p>选择来源报价，导入为“{customerName}”的可编辑草稿。</p></div><button type="button" aria-label="关闭复制预算" disabled={disabled} onClick={onClose}><X size={20}/></button></div><form onSubmit={submit}><div className="qwCopyBody"><div className="qwCopyForm"><label>来源客户 / 项目 *<div className="qwCopySearch"><Search size={15}/><input aria-label="搜索来源客户或项目" value={search} maxLength={100} disabled={disabled} placeholder="搜索客户或项目名称" onChange={event=>setSearch(event.target.value)}/></div><select aria-label="来源客户或项目" value={sourceId} disabled={disabled} required onChange={event=>{setSourceId(event.target.value);setQuoteId('');}}><option value="" disabled>请选择来源客户或项目</option>{options.map(option=><option key={option.id} value={option.id}>{option.name}{option.customer&&option.customer!==option.name?' · '+option.customer:''}</option>)}</select>{query&&!matching.length&&<small>没有匹配的来源客户或项目。</small>}</label><label>新报价名称 *<input aria-label="复制后的报价名称" value={title} maxLength={100} disabled={disabled} required onChange={event=>setTitle(event.target.value)}/><small>报价保存在当前客户“{customerName}”下。</small></label></div><div className="qwCopyListHead"><h3>选择来源报价</h3><span>{quotes.length} 份报价</span></div>{quotes.length?<div className="qwCopyCards" role="radiogroup" aria-label="来源报价">{quotes.map(quote=><button type="button" key={quote.id} role="radio" aria-checked={quoteId===quote.id} className={'qwCopyCard '+(quoteId===quote.id?'selected':'')} disabled={disabled} onClick={()=>setQuoteId(quote.id)}><div className="qwCopyCardTop"><span className={'badge '+(quote.adopted?'green':'blue')}>{quote.adopted?'已采纳':'草稿'}</span><span className="qwCopyCheck">{quoteId===quote.id?<Check size={15}/>:null}</span></div><h4>{quote.title}</h4>{quote.subproject_name&&quote.subproject_name!==quote.title&&<span className="qwCopySubproject">{quote.subproject_name}</span>}<strong>{money(quote.total)}</strong><small>{quote.rooms?.length||1} 个空间 · {quote.items.length} 条明细{quote.created?' · '+quote.created.slice(0,10):''}</small></button>)}</div>:<div className="qwCopyEmpty"><FileSpreadsheet size={29}/><p>{!available.length?'暂无可复制的报价，可返回选择“新建报价”。':source?'该来源暂无有效报价。':'先选择来源客户或项目，再选择报价卡。'}</p></div>}<p className="qwCopyHint">房间、明细、旧单数量和单价、备注会一起复制；导入后可以修改，保存时生成新草稿。</p>{error&&<p className="qwError" role="alert">{error}</p>}</div><div className="qwDialogFoot"><button type="button" className="qwCopyBack" disabled={disabled} onClick={onBack}><ArrowLeft size={14}/>返回选择报价类型</button><button type="button" disabled={disabled} onClick={onClose}>取消</button><button type="submit" className="primary" disabled={disabled||!selected||!title.trim()}><Copy size={15}/>导入报价</button></div></form></section></div>;
+}

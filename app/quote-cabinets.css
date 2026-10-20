@@ -1,0 +1,39 @@
+.qwCategoryTabs .qwCabinetToggle{display:flex;align-items:center;gap:6px;background:#eef2f7;border:1px solid #d7e2ed;border-radius:6px;margin-right:8px;padding:7px 12px;color:#24558e}
+.qwCategoryTabs .qwCabinetToggle.expanded{background:#e3edf9;border-color:#97b4d6}
+.qwCategoryTabs .qwCabinetToggle b{font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.qwCategoryTabs .qwCabinetToggle span{background:#fff;margin-left:0;color:#6b85a3}
+.qwCabinetPanel{padding:17px 20px 19px;margin:0 20px 17px;background:#f5f8fc;border:1px solid #dbe5f0;border-radius:7px;color:#24405f}
+.qwRoomEditorMain .qwCabinetPanel{margin-left:0;margin-right:0}
+.qwCabinetPanel>header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:15px}
+.qwCabinetPanel h4{font-size:13px}
+.qwCabinetPanel header p{font-size:11px;color:#8297af;line-height:1.8;margin:6px 0 0}
+.qwCabinetPanel header>div:last-child{display:flex;align-items:center;gap:7px}
+.qwCabinetPanel header button{font-size:11px;padding:7px 9px;white-space:nowrap;background:#fff}
+.qwCabinetPanel header button[aria-label]{border:0;background:transparent;padding:4px;color:#8297af}
+.qwCabinetList{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:11px}
+.qwCabinetCard{position:relative;border:1px solid #dbe4ee;border-radius:5px;overflow:hidden;background:#fff}
+.qwCabinetCard.selected{border-color:#2e639f;box-shadow:0 0 0 1px #2e639f;background:#eaf2fc}
+.qwCabinetSelect{display:flex;align-items:flex-start;flex-direction:column;gap:7px;width:100%;border:0!important;border-radius:0;background:transparent!important;padding:12px 13px!important;text-align:left;min-height:95px}
+.qwCabinetSelect strong{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.qwCabinetSelect span{font-size:10px;color:#8599af}
+.qwCabinetSelect b{font-size:15px;color:#ff5722;font-weight:600;font-variant-numeric:tabular-nums}
+.qwCabinetTools{display:flex;align-items:center;justify-content:flex-end;gap:2px;padding:0 9px 7px;margin-top:-3px}
+.qwCabinetTools button{background:transparent;border:0;padding:4px!important;color:#7b92a8}
+.qwCabinetTools button:last-child:hover{color:#b75543}
+.qwCabinetAddForm{display:flex;align-items:flex-end;flex-wrap:wrap;gap:12px;padding:13px;margin-bottom:15px;background:#e9f0f8;border:1px solid #d7e2ef;border-radius:5px}
+.qwCabinetAddForm label{display:block;min-width:140px;color:#7189a3;font-size:11px}
+.qwCabinetAddForm label input,.qwCabinetAddForm label select{display:block;width:100%;margin-top:6px;border:1px solid #cad8e7;border-radius:4px;background:#fff;padding:8px;font-size:12px;color:#24405f}
+.qwCabinetAddForm>div{display:flex;gap:7px}
+.qwCabinetAddForm button{font-size:11px;padding:8px 11px}
+.qwCabinetRename{display:flex;align-items:center;gap:3px;padding:13px 8px;min-height:95px}
+.qwCabinetRename input{width:100%;min-width:0;padding:7px!important;font-size:12px}
+.qwCabinetRename button{padding:4px!important;border:0;background:transparent}
+.qwCabinetHint{font-size:11px;color:#8297af;line-height:1.8;margin-top:14px}
+.qwCabinetError{padding:10px;font-size:11px;line-height:1.8;margin-top:13px;background:#fff1e9;color:#a8573f;border-radius:4px}
+.qwCabinetScope{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:#f9fbfd;border-bottom:1px solid #e7eef6;font-size:12px;color:#456588}
+.qwCabinetScope button{font-size:10px;padding:5px 8px}
+.qwRoomEditorMain .qwCabinetScope{padding:9px 0;background:transparent}
+.qwCabinetAssignment{min-width:160px!important;width:160px}
+.qwEditorTable .qwCabinetAssignment select{width:100%;min-width:150px;font-size:11px;padding:8px 5px;margin:0}
+.qwEditorTable:has(.qwCabinetAssignment){min-width:1240px}
+@media(max-width:760px){.qwCabinetPanel{padding:14px;margin:0 16px 15px}.qwCabinetPanel>header{gap:9px}.qwCabinetPanel header p{font-size:10px}.qwCabinetList{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.qwCabinetAddForm{gap:10px;padding:10px}.qwCabinetAddForm label{min-width:120px;flex:1}.qwCabinetAddForm>div{flex-basis:100%;justify-content:flex-end}.qwCabinetSelect{padding:11px!important}.qwCabinetSelect b{font-size:14px}.qwCabinetScope{padding:11px 16px;font-size:11px}}

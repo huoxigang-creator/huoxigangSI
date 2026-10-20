@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import test from 'node:test';
+import ts from 'typescript';
+const compile=s=>ts.transpileModule(s,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+const url=s=>'data:text/javascript;base64,'+Buffer.from(s).toString('base64');
+const access=url(compile(readFileSync('lib/management-access.ts','utf8')));
+const {MANAGEMENT_OWNER_ID}=await import(access);
+const code=compile(readFileSync('build/sites-worker.ts','utf8')).replace('import handler from "vinext/server/fetch-handler";','const handler={fetch:()=>new Response("reached application")};').replace('import { runWithConnectorBinding } from "../lib/connector-context";','const runWithConnectorBinding=(_binding,callback)=>callback();').replace("from '../lib/management-access'",`from '${access}'`).replaceAll('import.meta.env.DEV','false');
+const worker=(await import(url(code))).default;
+const request=(path,method='GET',user)=>new Request('https://site.test'+path,{method,headers:user?{'oai-authenticated-user-id':user}:{}});
+test('生产管理路由拒绝匿名和其他账号，原站点owner仍可使用后台和MCP',async()=>{for(const path of ['/api/manage','/api/catalog','/api/contracts','/api/quote-shares','/api/payment-codes','/api/trash']){for(const method of ['GET','POST']){assert.equal(worker.fetch(request(path,method),{},{}).status,401,path);assert.equal(worker.fetch(request(path,method,'other'),{},{}).status,403,path);assert.equal(worker.fetch(request(path,method,MANAGEMENT_OWNER_ID),{},{}).status,200,path);}}const root=worker.fetch(request('/'),{},{});assert.equal(root.status,302);assert.equal(new URL(root.headers.get('location')).pathname,'/signin-with-chatgpt');assert.equal(worker.fetch(request('/','GET','other'),{},{}).status,403);assert.equal(worker.fetch(request('/mcp','POST','other'),{},{}).status,403);assert.equal(worker.fetch(request('/mcp','POST',MANAGEMENT_OWNER_ID),{},{}).status,200);});
+test('生产公开边界仅允许客户报价与经应用验签的付款端点',async()=>{for(const [path,method] of [['/s/q/'+'a'.repeat(64),'GET'],['/api/shared-quote?token=test','GET'],['/api/quote-payments','POST'],['/api/wechat-pay/notify','POST'],['/api/wechat-pay/oauth','GET']])assert.equal(worker.fetch(request(path,method),{},{}).status,200,path);assert.equal(worker.fetch(request('/api/shared-quote','POST'),{},{}).status,401);assert.equal(worker.fetch(request('/api/wechat-pay/notify','GET'),{},{}).status,401);});

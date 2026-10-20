@@ -1,0 +1,54 @@
+﻿
+  vinext build  (Vite 8.0.13)
+
+[34m[1/5] analyze client references...[39m
+[2K
+transforming...✓ 468 modules transformed.
+rendering chunks...
+[32m✓ built in 2.52s[39m
+[34m[2/5] analyze server references...[39m
+[2K
+transforming...✓ 241 modules transformed.
+rendering chunks...
+[32m✓ built in 1.59s[39m
+[34m[3/5] build rsc environment...[39m
+[2K
+transforming...✓ 502 modules transformed.
+rendering chunks...
+computing gzip size...
+[32m✓ built in 1.88s[39m
+[34m[4/5] build client environment...[39m
+[2K
+transforming...✓ 2170 modules transformed.
+rendering chunks...
+computing gzip size...
+node : [33m[plugin builtin:vite-reporter] 
+所在位置 行:1 字符: 44
++ ... V-1-5-21_20261017'; node scripts/run-framework.mjs build 2>&1 | Out-F ...
++                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([33m[plugin builtin:vite-reporter] :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeS
+plitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[33m[33m[PLUGIN_TIMINGS] [0mYour build spent significant time in plugins. Here is a breakdown:
+  - vinext:middleware-server-only (16%)
+  - vinext:css-data-url (11%)
+  - alias (10%)
+  - vinext:jsx-in-js (10%)
+  - vinext:og-inline-fetch-assets (8%)
+See https://rolldown.rs/options/checks#plugintimings for more details.
+[39m
+[32m✓ built in 3.44s[39m
+[34m[5/5] build ssr environment...[39m
+[2K
+transforming...✓ 330 modules transformed.
+rendering chunks...
+computing gzip size...
+[32m✓ built in 1.14s[39m
+  Generated standalone output in dist/standalone/
+  Start it with: node dist/standalone/server.js
+

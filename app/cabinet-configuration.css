@@ -1,0 +1,4 @@
+.cabinetNameDefaults{margin:0 23px 20px;padding:16px;background:#f4f8fc;border:1px solid #dfE8f2;border-radius:8px}
+.cabinetNameDefaults p{font-size:12px;line-height:1.8;color:#7f93ad;margin:0 0 10px}.cabinetNameDefaults>div{display:flex;gap:8px;flex-wrap:wrap}
+.cabinetNameDefaults button{font-size:12px;min-height:30px;padding:6px 12px}
+@media(max-width:760px){.cabinetNameDefaults{margin-left:16px;margin-right:16px}}

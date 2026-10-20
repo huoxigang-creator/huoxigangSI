@@ -1,0 +1,17 @@
+[Unit]
+Description=Back up Gugemei SQLite database and local attachments
+After=gugemei.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+Environment=GUGEMEI_DATA_DIR=/var/lib/gugemei
+ExecStart=/opt/gugemei/runtime/node-v24.20.0-linux-x64/bin/node /opt/gugemei/tools/backup-local.mjs
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/gugemei/backups
+

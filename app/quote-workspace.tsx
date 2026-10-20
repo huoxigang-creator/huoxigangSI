@@ -1,0 +1,399 @@
+'use client';
+
+import {Fragment, useEffect, useRef, useState, type FormEvent} from 'react';
+import {createPortal} from 'react-dom';
+import {ArrowLeft, Check, Copy, Download, FileCheck2, FileSpreadsheet, FolderOpen, Image, Maximize2, Plus, Printer, Settings2, Trash2, Upload, X} from 'lucide-react';
+import {QUOTE_CATEGORIES, groupQuotes, normalizeQuoteItem, quoteGroupKey, type QuoteCategory, type QuoteItem, type QuoteCabinet} from '../lib/quotes';
+import {hardwareCatalogPreview, hardwareCatalogRow, finalizeQuoteImport, parseQuoteImport, quoteImportRowIssues, hardwareImportSort, mergeQuoteImportRows, HARDWARE_NAME_BLOCKLIST, type QuoteImportPreview, type QuoteImportRow} from '../lib/quote-import';
+import {runBulkActions} from '../lib/bulk-actions';
+import {trashRequest} from '../lib/trash-client';
+import {SelectionCheckbox, SelectionToolbar, useListSelection} from './list-selection';
+import CatalogSearch from './catalog-search';
+import ManagedTable from './managed-table';
+import {mergeVisibleOrder} from '../lib/table-preferences';
+import {downloadQuoteExcel,downloadDraftQuoteExcel} from '../lib/quote-export';
+import {materialExpenseCategory, type CatalogData, type MaterialRecord, type PurchaseOrderRecord} from '../lib/catalog-types';
+import {laborQuantity} from '../lib/labor-quantity';
+import './quote-workspace.css';
+import './table-editor-dialog.css';
+import QuoteProfit from './quote-profit';
+import {QuoteRooms, type QuoteRoom} from './quote-rooms';
+import CustomerQuotePrint from './customer-quote-print';
+import QuoteCopyDialog,{QuoteCreateDialog,type QuoteCopyRecord,type QuoteCopySource} from './quote-copy-dialog';
+import {copyQuoteBudget} from '../lib/quote-copy';
+import QuoteCabinetNamePicker from './quote-cabinet-name-picker';
+import {getCabinetOptions,isBuiltinCabinetOption} from '../lib/cabinet-catalog';
+import QuoteShare from './quote-confirm-share';
+import DocumentImport from './document-import';
+import {documentImportNumber,type DocumentImportRow} from '../lib/document-import';
+
+type QuoteRecord = {id:string; title:string; items:any[]; total:number; adopted:boolean; created:string; subproject_id?:string; subproject_name?:string; note?:string;rooms?:QuoteRoom[];cabinets?:QuoteCabinet[]; [key:string]:any};
+type DraftItem = Omit<QuoteItem, 'quantity'|'price'> & {key:string;auto?:boolean; quantity:number|''; price:number|'';room_id?:string;cabinet_id?:string};
+type QuoteDraft = {targetProjectId?:string;mode:'create'|'update'; id?:string; subproject_id?:string; subproject_name:string; title:string; note:string; items:DraftItem[];rooms:QuoteRoom[];cabinets:QuoteCabinet[];copyOrigin?:string};
+type ProfitSnapshot={name:string;budget:number;items:(Omit<Partial<QuoteItem>,'quantity'|'price'>&{quantity?:number|'';price?:number|''})[];rooms:QuoteRoom[];catalog:MaterialRecord[]|null;loading:boolean;error?:string;draft:boolean};
+export type QuoteWorkspaceProps = {employeeMode?:boolean;focusGroupId?:string;focusGroupRevision?:number;onSettlement?:()=>void;onConfirmSheet?:()=>void;copySources?:QuoteCopySource[];customerMode?:boolean;initialNew?:boolean;projectOptions?:{id:string;name:string}[];onSavedProject?:(id:string)=>void;projectId:string; projectName:string; companyName?:string; project?:{id:string;name:string;customer?:string;phone?:string;address?:string;discount_amount?:number;rounding_amount?:number;receivable?:number}; items:QuoteRecord[]; busy:boolean; mutate:(action:string,args:any)=>Promise<boolean>; onDeleted:(ids:string[])=>Promise<void>};
+const money = (amount = 0) => <span className="moneyValue">{new Intl.NumberFormat('zh-CN',{style:'currency',currency:'CNY'}).format(amount / 100)}</span>;
+const amountOf = (item:{quantity:number|''|null; price:number|''|null}) => Number.isFinite(item.quantity) && Number.isFinite(item.price) ? Math.round(Number(item.quantity) * Math.round(Number(item.price) * 100)) : 0;
+const sumItems = (items:{quantity:number|''|null;price:number|''|null}[]) => items.reduce((sum,item)=>sum+amountOf(item),0);
+const cleanFilename = (name:string) => name.replace(/[\\/:*?"<>|]/g,'_').slice(0,100);
+const csvCell = (value:unknown) => {let text=String(value??'');if(/^[\s]*[=+@\-]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';};
+function downloadCsv(filename:string,content:string) {
+  const blob=new Blob([content.startsWith('\uFEFF')?content:'\uFEFF'+content],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob);
+  const anchor=document.createElement('a');anchor.href=url;anchor.download=cleanFilename(filename);document.body.appendChild(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function emptyItem(category:QuoteCategory,room_id?:string):DraftItem {return {key:crypto.randomUUID(),name:'',category,model:'',unit:category==='人工费用'?'项':category==='柜体'?'㎡':'个',quantity:'',price:0,note:'',photos:[],...(room_id?{room_id}:{})};}
+function recordItems(quote:QuoteRecord):DraftItem[] {return quote.items.map(item=>({...normalizeQuoteItem(item),...(typeof item.room_id==='string'?{room_id:item.room_id}:{}),...(typeof item.cabinet_id==='string'?{cabinet_id:item.cabinet_id}:{}),key:crypto.randomUUID()}));}
+function recordRooms(quote:QuoteRecord|null):QuoteRoom[] {return Array.isArray(quote?.rooms)?quote.rooms.filter(room=>typeof room?.id==='string'&&typeof room.name==='string').map(room=>({id:room.id,name:room.name})):[];}
+function recordCabinets(quote:QuoteRecord|null):QuoteCabinet[] {return Array.isArray(quote?.cabinets)?quote.cabinets.filter(cabinet=>typeof cabinet?.id==='string'&&typeof cabinet.room_id==='string'&&typeof cabinet.name==='string').map(cabinet=>({id:cabinet.id,room_id:cabinet.room_id,name:cabinet.name})):[];}
+function untouchedAuto(item:DraftItem):boolean {return item.auto===true&&!item.name.trim()&&!item.model.trim()&&!item.note.trim()&&(item.quantity===''||item.quantity===1)&&item.price===0&&item.unit===(item.category==='人工费用'?'项':item.category==='柜体'?'㎡':'个');}
+function importPlaceholder(item:DraftItem):boolean {return !item.cabinet_id&&!item.name.trim()&&!item.model.trim()&&!item.note.trim()&&(item.quantity===''||item.quantity===1)&&item.price===0&&item.unit===(item.category==='人工费用'?'项':item.category==='柜体'?'㎡':'个');}
+function numeric(value:string):number|'' {return value===''?'':Number(value);}
+function importIssues(row:QuoteImportRow):string[] {
+  const issues=quoteImportRowIssues(row);
+  if(!row.unit.trim())issues.push('填写单位');
+  return issues;
+}
+
+export default function QuoteWorkspace({active=true,employeeMode=false,focusGroupId,focusGroupRevision,onSettlement,onConfirmSheet,copySources=[],customerMode=false,initialNew=false,projectId,projectName,companyName='',project,items,busy,mutate,onDeleted,projectOptions,onSavedProject}:QuoteWorkspaceProps&{active?:boolean}) {
+  const customerPriceType=(project as any)?.price_type||'sale';
+  function customerPriceOf(material:any){if(customerPriceType==='internal')return material.internal_price||material.sale_price;if(customerPriceType==='contract')return material.contract_price||material.sale_price;return material.sale_price;}
+  const groups=groupQuotes(customerMode?items.map(quote=>({...quote,subproject_id:undefined,subproject_name:projectName})):items),selection=useListSelection(items,projectId+'|报价版本');
+  const [chosen,setChosen]=useState<{project:string;group:string;quote:string}>({project:projectId,group:'',quote:''});
+  const [category,setCategory]=useState<QuoteCategory>('人工费用');
+  const [viewAll,setViewAll]=useState(false);
+  const [draft,setDraft]=useState<QuoteDraft|null>(null),[editorCategory,setEditorCategory]=useState<QuoteCategory>('人工费用');
+  const [editorAll,setEditorAll]=useState(false),[draftPrint,setDraftPrint]=useState(false);
+  const [fullscreen,setFullscreen]=useState(false);
+  const [createDialog,setCreateDialog]=useState<'type'|'copy'|null>(null),[copyError,setCopyError]=useState('');
+  const [roomChoice,setRoomChoice]=useState<{quote:string;id:string}>({quote:'',id:''}),[editorRoom,setEditorRoom]=useState(''),[startAddingRoom,setStartAddingRoom]=useState(false),[copyRoomSource,setCopyRoomSource]=useState('');
+  const [preview,setPreview]=useState<QuoteImportPreview|null>(null),[priceBasis,setPriceBasis]=useState<'sales'|'cost'|''>(''),[costConfirmed,setCostConfirmed]=useState(false);
+  const [working,setWorking]=useState(false),[importing,setImporting]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState(''),[importError,setImportError]=useState('');
+  const [docImportBusy,setDocImportBusy]=useState(false),[docImportNotice,setDocImportNotice]=useState(''),[docImportOpenRequest,setDocImportOpenRequest]=useState(0),[photoViewer,setPhotoViewer]=useState<{src:string;name:string}|null>(null);
+  const docImportTarget=useRef<{token:number;projectId:string;targetProjectId:string;room:string;category:QuoteCategory}|null>(null);
+  const [laborCatalog,setLaborCatalog]=useState<MaterialRecord[]>([]),[purchaseOrders,setPurchaseOrders]=useState<PurchaseOrderRecord[]>([]),[laborLoading,setLaborLoading]=useState(false),[laborError,setLaborError]=useState(''),[laborNotes,setLaborNotes]=useState<Record<string,string>>({});
+  const [searchCatalog,setSearchCatalog]=useState<MaterialRecord[]>([]);
+  const [overviewOrders,setOverviewOrders]=useState<PurchaseOrderRecord[]>([]);
+  useEffect(()=>{let cancelled=false;void (async()=>{try{const response=await fetch('/api/catalog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_catalog',args:{}})});const data=await response.json() as {ok?:boolean;result?:{purchase_orders?:PurchaseOrderRecord[]}};if(!cancelled&&data?.ok)setOverviewOrders((data.result?.purchase_orders||[]).filter(order=>!order.deleted));}catch{/* 采购标记读取失败不阻塞报价页 */}})();return()=>{cancelled=true;};},[projectId]);
+  const cabinetOptions=getCabinetOptions(searchCatalog);
+  const [hardwareCatalog,setHardwareCatalog]=useState<MaterialRecord[]>([]);
+  const [profit,setProfit]=useState<ProfitSnapshot|null>(null),profitRequest=useRef(0);
+  const [sharingQuote,setSharingQuote]=useState<{id:string;title:string;total:number;receivable:number}|null>(null);
+  async function loadProfitCatalog(snapshot:ProfitSnapshot){const request=++profitRequest.current;setProfit({...snapshot,catalog:null,loading:true,error:undefined});try{const response=await fetch('/api/catalog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_catalog',args:{}})});const data=await response.json() as {ok?:boolean;error?:string;result?:{materials:MaterialRecord[]}};if(!response.ok||!data.ok||!Array.isArray(data.result?.materials))throw Error(data.error||'成本配置读取失败');if(request!==profitRequest.current)return;setProfit(previous=>previous?{...previous,catalog:data.result!.materials,loading:false,error:undefined}:null);}catch(reason){if(request===profitRequest.current)setProfit(previous=>previous?{...previous,catalog:null,loading:false,error:reason instanceof Error?reason.message:'成本读取失败'}:null);}}
+  function showProfit(){const lines=draft?draft.items.filter(item=>!untouchedAuto(item)).map(({key,auto,...item})=>({...item})):activeQuote?.items.map(item=>({...item}))||[],rooms=(draft?draft.rooms:activeRooms).map(room=>({...room})),name=(customerMode?draft?.title:draft?.subproject_name)||activeQuote?.title||projectName;void loadProfitCatalog({name,budget:draft?sumItems(draft.items.filter(item=>!untouchedAuto(item))):activeQuote?.total||0,items:lines,rooms,catalog:null,loading:true,draft:Boolean(draft)});}
+  function closeProfit(){profitRequest.current++;setProfit(null);}
+  const [activeLaborKey,setActiveLaborKey]=useState('');
+  const laborRequest=useRef(0);
+  const mutationLock=useRef(false),fileInput=useRef<HTMLInputElement>(null),allFilesInput=useRef<HTMLInputElement>(null),draftToken=useRef(0),continuedRows=useRef(new Set<string>()),focusedOnce=useRef('');
+  const [focusItemKey,setFocusItemKey]=useState('');
+  const disabled=busy||working||importing||docImportBusy;
+  const selectedGroup=groups.find(group=>chosen.project===projectId&&group.id===chosen.group)||groups[0]||null;
+  const activeQuote:QuoteRecord|null=selectedGroup?(selectedGroup.quotes.find(quote=>quote.id===chosen.quote)||selectedGroup.adopted||selectedGroup.quotes[0]):null;
+  const activeRooms=recordRooms(activeQuote);
+  const activeRoom=activeQuote&&roomChoice.quote===activeQuote.id&&(roomChoice.id===''||activeRooms.some(room=>room.id===roomChoice.id))?roomChoice.id:activeRooms[0]?.id||'';
+  const activeCabinets=recordCabinets(activeQuote);
+  const activeItems=activeQuote?.items.map((item,index)=>({...normalizeQuoteItem(item),...(typeof item.room_id==='string'?{room_id:item.room_id}:{}),...(typeof item.cabinet_id==='string'?{cabinet_id:item.cabinet_id}:{}),sourceIndex:index,rowId:activeQuote.id+'|'+index}))||[];
+  const roomItems=activeItems;
+  const categoryItems=roomItems.filter(item=>item.category===category);
+  const detailAllItems=[...roomItems].sort((a,b)=>QUOTE_CATEGORIES.indexOf(a.category)-QUOTE_CATEGORIES.indexOf(b.category));
+  const draftRoomItems=draft?draft.items:[];
+  const draftCategoryItems=draftRoomItems.filter(item=>item.category===editorCategory);
+  const draftAllItems=[...draftRoomItems].sort((a,b)=>QUOTE_CATEGORIES.indexOf(a.category)-QUOTE_CATEGORIES.indexOf(b.category));
+  const docPlaceholder=draft?.items.find(item=>importPlaceholder(item));
+  const docItemCount=(draft?.items.length||0)-(docPlaceholder?1:0);
+  const lineSelection=useListSelection((viewAll?detailAllItems:categoryItems).map(item=>({...item,id:item.rowId})),projectId+'|报价明细|'+(activeQuote?.id||'')+'|'+(activeQuote?.updated||activeQuote?.created||'')+'|'+activeRoom+'|'+(viewAll?'all':category)+'|'+JSON.stringify(activeQuote?.items||[]));
+  const draftSelection=useListSelection((editorAll?draftAllItems:draftCategoryItems).map(item=>({...item,id:item.key})),projectId+'|草稿明细|'+draftToken.current+'|'+editorRoom+'|'+(editorAll?'all':editorCategory));
+  const selectedImportRows=preview?.rows.filter(row=>row.selected)||[];
+  const importProblems=selectedImportRows.reduce((count,row)=>count+importIssues(row).length,0);
+  const eligibleImportRows=selectedImportRows.filter(row=>!importIssues(row).length);
+  const costConfirmationRequired=preview?.priceKind==='cost'||priceBasis==='cost';
+
+  useEffect(()=>{profitRequest.current++;setProfit(null);setSharingQuote(null);laborRequest.current++;setLaborLoading(false);setLaborCatalog([]);setPurchaseOrders([]);setLaborNotes({});draftToken.current++;docImportTarget.current=null;setDocImportBusy(false);setDocImportNotice('');setDocImportOpenRequest(0);setDraft(null);setPreview(null);setCreateDialog(null);setCopyError('');setMessage('');setError('');setCategory('人工费用');setFullscreen(false);},[projectId,customerMode]);
+  useEffect(()=>{
+    if(!active||(!draft&&(!customerMode||!fullscreen)))return;
+    const previous=document.body.style.overflow;document.body.style.overflow='hidden';
+    return()=>{document.body.style.overflow=previous;};
+  },[active,customerMode,fullscreen,Boolean(draft)]);
+  useEffect(()=>{
+    if(!active||!customerMode||!fullscreen||draft||createDialog||profit||disabled)return;
+    function escape(event:KeyboardEvent){if(event.key==='Escape'&&!Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]')).some(dialog=>dialog.getClientRects().length))setFullscreen(false);}
+    window.addEventListener('keydown',escape);return()=>window.removeEventListener('keydown',escape);
+  },[active,customerMode,fullscreen,draft,createDialog,profit,disabled]);
+  useEffect(()=>{
+    if(!active||!draft)return;
+    function escape(event:KeyboardEvent){if(event.key==='Escape'&&!disabled&&!docImportTarget.current&&!Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]:not([aria-labelledby="qwEditorTitle"]):not([aria-labelledby="qwImportTitle"])')).some(dialog=>dialog.getClientRects().length)){if(preview){setPreview(null);setImportError('');}else setDraft(null);}}
+    window.addEventListener('keydown',escape);return()=>window.removeEventListener('keydown',escape);
+  },[active,draft,preview,disabled]);
+
+  useEffect(()=>{if(!active||!draft||!focusItemKey||focusedOnce.current===focusItemKey)return;const input=document.querySelector<HTMLInputElement>('[data-quote-item-key="'+focusItemKey+'"] input[aria-label$="行名称"]');if(input){focusedOnce.current=focusItemKey;input.focus();input.select();input.scrollIntoView({block:'nearest',inline:'nearest'});}},[active,focusItemKey,draft,editorRoom,editorCategory]);
+
+  useEffect(()=>{if(initialNew){if(customerMode)setCreateDialog('type');else openDraft('new');}},[projectId,initialNew]);
+  useEffect(()=>{if(focusGroupId&&!customerMode)setChosen({project:projectId,group:focusGroupId,quote:''});},[projectId,focusGroupId,focusGroupRevision,customerMode]);
+  async function loadLabor(){
+    const request=++laborRequest.current;setLaborLoading(true);setLaborError('');setLaborCatalog([]);setPurchaseOrders([]);
+    try{const response=await fetch('/api/catalog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_catalog',args:{}})});const data=await response.json() as {ok?:boolean;error?:string;result:CatalogData};if(!response.ok||!data.ok)throw new Error(data.error||'人工配置读取失败');if(request!==laborRequest.current)return;setSearchCatalog(data.result.materials);setLaborCatalog(data.result.materials.filter((material:MaterialRecord)=>!material.deleted&&materialExpenseCategory(material)==='人工费用'));setPurchaseOrders(data.result.purchase_orders.filter((order:PurchaseOrderRecord)=>!order.deleted));}
+    catch(reason){if(request===laborRequest.current)setLaborError(reason instanceof Error?reason.message:'人工配置读取失败，请重试。');}
+    finally{if(request===laborRequest.current)setLaborLoading(false);}
+  }
+  function selectLabor(key:string,id:string){
+    const material=laborCatalog.find(row=>row.id===id);if(!material)return;
+    const result=laborQuantity(material,purchaseOrders,draft?.targetProjectId||projectId);
+    changeItem(key,{name:material.name,model:material.model,unit:material.unit,price:customerPriceOf(material)/100,...(!customerMode&&result.quantity!==null?{quantity:result.quantity}:{quantity:''})});
+    setLaborNotes(previous=>({...previous,[key]:customerMode?'请填写当前空间数量。整户采购参考：'+result.notice:result.notice}));
+  }
+  function selectCabinetName(key:string,option:MaterialRecord){changeItem(key,{name:option.name,...(!isBuiltinCabinetOption(option)?{model:option.model,unit:option.unit,price:customerPriceOf(option)/100}:{})});}
+  function choose(quote:QuoteRecord){setChosen({project:projectId,group:customerMode?'legacy':quoteGroupKey(quote),quote:quote.id});setMessage('');}
+  function selectRoom(id:string){if(activeQuote)setRoomChoice({quote:activeQuote.id,id});}
+  function selectEditorRoom(id:string){setEditorRoom(id);setActiveLaborKey('');}
+  function documentImportBusyChange(value:boolean){
+    if(value){if(!draft||busy||working||importing||customerMode&&!editorRoom)return;docImportTarget.current={token:draftToken.current,projectId,targetProjectId:draft.targetProjectId??projectId,room:editorRoom,category:editorCategory};setDocImportNotice('');}
+    else docImportTarget.current=null;
+    setDocImportBusy(value);
+  }
+  function applyDocumentImport(rows:DocumentImportRow[]){
+    const target=docImportTarget.current;
+    if(!draft||!target||target.token!==draftToken.current||target.projectId!==projectId||target.targetProjectId!==(draft.targetProjectId??projectId)||busy||working||importing)return;
+    if(customerMode&&!draft.rooms.some(room=>room.id===target.room)){setError('原房间已不可用，请重新选择房间后上传识别。');return;}
+    const selected=rows.filter(row=>row.selected);
+    if(!selected.length)return;
+    const imported=selected.map(row=>({key:crypto.randomUUID(),category:row.category,name:row.name.trim(),model:row.model,unit:row.unit.trim(),quantity:documentImportNumber(row.quantity),price:row.price.trim()===''?'' as const:documentImportNumber(row.price,true),note:row.note.slice(0,500),...(customerMode||target.room?{room_id:target.room}:{})}));
+    if(imported.some(item=>!QUOTE_CATEGORIES.includes(item.category)||!item.name||!item.unit||item.quantity===null||item.quantity<=0||item.price!==''&&(item.price===null||item.price<0))){setError('请在识别预览中核对名称、单位、数量和已填写的单价。');return;}
+    const placeholder=draft.items.find(item=>importPlaceholder(item)&&(!customerMode||item.room_id===target.room));
+    if(draft.items.length-(placeholder?1:0)+imported.length>500){setError('复制后将超过每份报价 500 条明细，请减少选择。');return;}
+    const nextItems=draft.items.filter(item=>item.key!==placeholder?.key);
+    setDraft({...draft,items:[...nextItems,...imported as DraftItem[]]});
+    const categories=QUOTE_CATEGORIES.filter(value=>imported.some(item=>item.category===value));
+    setEditorCategory(categories.includes(target.category)?target.category:imported[0].category);
+    const unknownCabinets=imported.filter(item=>item.category==='柜体'&&!cabinetOptions.some(option=>option.name.trim()===item.name)).length;
+    setError('');setDocImportNotice(`已复制 ${imported.length} 条到${customerMode?'“'+draft.rooms.find(room=>room.id===target.room)?.name+'”':'当前报价草稿'}${categories.length>1?'，分布在'+categories.join('、')+'，可切换分类核对':''}。请核对后保存。${unknownCabinets?'其中 '+unknownCabinets+' 个柜体名称未匹配配置，已保留原名称，可从配置中选择并核对。':''}`);
+  }
+  function toggleGroup(quoteRows:QuoteRecord[]) {
+    const all=quoteRows.every(row=>selection.selectedIds.includes(row.id));
+    quoteRows.forEach(row=>{if(selection.selectedIds.includes(row.id)===all)selection.toggle(row.id);});
+  }
+  function openDraft(mode:'new'|'edit'|'version'|'copy',quote?:QuoteRecord,addRoom=false,focus?:{index:number;category:QuoteCategory;room?:string}) {
+    if(disabled)return;
+    if(mode==='edit'&&quote?.adopted)return;draftToken.current++;continuedRows.current.clear();setFocusItemKey('');
+    docImportTarget.current=null;setDocImportNotice('');setDocImportOpenRequest(0);setError('');setImportError('');setPreview(null);setEditorCategory('人工费用');setEditorAll(false);setLaborNotes({});setStartAddingRoom(addRoom||customerMode&&mode==='new');void loadLabor();
+    if(mode==='new'||!quote){setEditorRoom('');setDraft({mode:'create',...(!customerMode?{subproject_id:crypto.randomUUID()}:{}),targetProjectId:projectOptions&&!projectOptions.some(p=>p.id===projectId)?'':projectId,subproject_name:customerMode?projectName:projectOptions?(projectOptions.some(p=>p.id===projectId)?projectName:''):'',title:customerMode?projectName+'报价':'',note:'',items:customerMode?[]:[emptyItem('人工费用')],rooms:[],cabinets:[]});return;}
+    if(mode==='edit'&&quote.adopted)return;
+    const newGroup=mode==='copy'&&!customerMode,name=quote.subproject_name||quote.title,rooms=recordRooms(quote),cabinets=recordCabinets(quote),rows=recordItems(quote);
+    setEditorRoom(customerMode&&quote.id===activeQuote?.id?activeRoom:rooms[0]?.id||'');
+    setDraft({mode:mode==='edit'?'update':'create',...(mode==='edit'?{id:quote.id}:{}),targetProjectId:quote.project||projectId,...(!customerMode?(newGroup?{subproject_id:crypto.randomUUID()}:quote.subproject_id?{subproject_id:quote.subproject_id}:{}):{}),subproject_name:newGroup?name+'（副本）':name,title:mode==='version'?quote.title+'（新版）':newGroup?quote.title+'（副本）':quote.title,note:quote.note||'',items:rows,rooms,cabinets});
+    const first=quote.items[0];if(first)setEditorCategory(normalizeQuoteItem(first).category);
+    if(focus&&rows[focus.index]){setEditorCategory(focus.category);if(customerMode)setEditorRoom(focus.room||'');setFocusItemKey(rows[focus.index].key);}
+  }
+  function openDocumentImport(){
+    if(disabled)return;
+    openDraft('new');
+    setEditorCategory(category);setDocImportOpenRequest(value=>value+1);
+    setDocImportNotice((customerMode?'请先添加项目。':'')+'请选择图片或文件识别，核对后复制到当前草稿。');
+  }
+  function importBudget(quote:QuoteCopyRecord,title:string,sourceName:string){
+    if(!customerMode||disabled)return;
+    try{
+      const copied=copyQuoteBudget(quote),room=copied.rooms[0],cabinets=copied.cabinets||[];
+      draftToken.current++;continuedRows.current.clear();setFocusItemKey('');setDocImportOpenRequest(0);setError('');setImportError('');setPreview(null);setLaborNotes({});setStartAddingRoom(false);setEditorRoom(room?.id||'');setCopyError('');
+      setEditorCategory(copied.items.find(item=>item.room_id===room?.id)?.category||'人工费用');
+      setDraft({mode:'create',targetProjectId:projectId,subproject_name:projectName,title,note:copied.note,rooms:copied.rooms,cabinets,items:copied.items.map(item=>({...item,key:crypto.randomUUID()})),copyOrigin:sourceName+' · '+quote.title});
+      setCreateDialog(null);void loadLabor();
+    }catch(reason){setCopyError(reason instanceof Error?reason.message:'复制报价失败，请选择其他报价重试。');}
+  }
+  function changeItem(key:string,patch:Partial<DraftItem>){if('quantity' in patch)continuedRows.current.delete(key);if('quantity' in patch||'name' in patch||'model' in patch||'unit' in patch)setLaborNotes(previous=>{const next={...previous};delete next[key];return next;});setDraft(previous=>previous?{...previous,items:previous.items.map(item=>{if(item.key!==key)return item;const next={...item,...patch};delete next.auto;if('room_id' in patch&&patch.room_id!==item.room_id)delete next.cabinet_id;return next;})}:null);}
+  async function uploadItemPhotos(key:string,files:FileList|null){if(!draft||!files||!files.length||disabled)return;const row=draft.items.find(item=>item.key===key);if(!row)return;const current=row.photos||[];if(current.length>=10){setError('每行明细最多添加 10 张图片。');return;}const list=[...files].slice(0,10-current.length);if(!list.length)return;setWorking(true);setError('');try{const uploaded=[];for(const file of list){const body=new FormData();body.append('file',file);const response=await fetch('/api/quote-item-photos',{method:'POST',body});const data=await response.json() as {ok?:boolean;error?:string;file?:{key:string;name:string;mime:string;size:number}};if(!response.ok||!data.ok)throw new Error(data.error||'图片上传失败，请重试。');uploaded.push(data.file!);}setDraft(previous=>previous?{...previous,items:previous.items.map(item=>item.key===key?{...item,photos:[...(item.photos||[]),...uploaded]}:item)}:null);}catch(reason){setError(reason instanceof Error?reason.message:'图片上传失败，请重试');}finally{setWorking(false);}}
+  function completeQuantity(key:string,focusNext=false){
+    if(disabled||continuedRows.current.has(key))return;const source=draft?.items.find(item=>item.key===key);if(!source||!source.name.trim()||source.quantity===''||!Number.isFinite(source.quantity)||source.quantity<=0)return;
+    continuedRows.current.add(key);const byRoom=(item:DraftItem)=>!draft!.rooms.length||item.room_id===source.room_id;const scope=draft!.items.filter(item=>item.category===source.category&&byRoom(item)),blank=scope.find(item=>item.key!==key&&!item.name.trim()&&!item.model.trim()&&!item.note.trim()&&(item.quantity===''||item.quantity===1)&&item.price===0);
+    if(blank){if(focusNext)setFocusItemKey(blank.key);return;}if(draft!.items.length>=500)return;const next={...emptyItem(source.category,source.room_id||undefined),auto:true};
+    setDraft(previous=>{if(!previous||previous.items.length>=500||!previous.items.some(item=>item.key===key))return previous;if(previous.items.some(item=>item.key!==key&&item.category===source.category&&byRoom(item)&&untouchedAuto(item)))return previous;return {...previous,items:[...previous.items,next]};});if(focusNext)setFocusItemKey(next.key);
+  }
+  function editLine(index:number){if(!activeQuote||disabled)return;if(activeQuote.adopted){setMessage('已采纳报价不可直接编辑，请先复制为新版。');return;}const item=activeItems.find(item=>item.sourceIndex===index);if(item)openDraft('edit',activeQuote,false,{index,category:item.category,room:item.room_id});}
+  function deleteDraftLines(){if(!draft||disabled||!draftSelection.selectedIds.length)return;const selected=new Set(draftSelection.selectedIds);setDraft(previous=>previous?{...previous,items:previous.items.filter(item=>!selected.has(item.key))}:null);draftSelection.clear();}
+  async function deleteSavedLines(){
+    if(!activeQuote||activeQuote.adopted||disabled||mutationLock.current||!lineSelection.selectedRows.length)return;const indexes=lineSelection.selectedRows.map(item=>item.sourceIndex).sort((a,b)=>a-b);
+    if(!window.confirm('删除所选 '+indexes.length+' 条报价明细？原报价副本将保留在回收站，可恢复。'))return;mutationLock.current=true;setWorking(true);setMessage('');
+    try{if(await mutate('delete_quote_items',{id:activeQuote.id,item_indexes:indexes,expected_updated:activeQuote.updated||activeQuote.created,expected_items:activeQuote.items})){lineSelection.clear();setMessage('已删除所选明细，原报价副本保留在回收站，可恢复。');}else setMessage('删除未完成，已保留所选明细，请重试。');}
+    catch(reason){setMessage(reason instanceof Error?reason.message:'删除失败，已保留所选明细，请重试。');}finally{mutationLock.current=false;setWorking(false);}
+  }
+  function reorderDraft(ids:string[]){setDraft(previous=>{if(!previous)return null;const rows=new Map(previous.items.map(item=>[item.key,item]));return {...previous,items:mergeVisibleOrder(previous.items.map(item=>item.key),ids).map(id=>rows.get(id)!)};});}
+  function reorderImport(ids:string[]){setPreview(previous=>{if(!previous)return null;const rows=new Map(previous.rows.map(row=>[row.id,row]));return {...previous,rows:mergeVisibleOrder(previous.rows.map(row=>row.id),ids).map(id=>rows.get(id)!)};});}
+  function addItem(){if(customerMode&&!editorRoom)return;setDraft(previous=>previous?{...previous,items:[...previous.items,emptyItem(editorCategory,editorRoom||undefined)]}:null);}
+  function switchEditorCategory(value:QuoteCategory){setEditorAll(false);setEditorCategory(value);if(!draft)return;if(customerMode&&!editorRoom)return;const hasBlank=draft.items.some(item=>item.category===value&&!item.name.trim()&&(!customerMode||item.room_id===editorRoom));if(!hasBlank&&draft.items.length<500)setDraft({...draft,items:[...draft.items,emptyItem(value,editorRoom||undefined)]});}
+  function addRoom(name:string){if(!draft||draft.rooms.some(room=>room.name.trim()===name))return false;const room={id:crypto.randomUUID(),name};setDraft({...draft,rooms:[...draft.rooms,room]});selectEditorRoom(room.id);setError('');return true;}
+  function renameRoom(id:string,name:string){if(!draft||draft.rooms.some(room=>room.id!==id&&room.name.trim()===name))return false;setDraft({...draft,rooms:draft.rooms.map(room=>room.id===id?{...room,name}:room)});return true;}
+  function reorderRooms(ids:string[]){setDraft(previous=>{if(!previous||ids.length!==previous.rooms.length||new Set(ids).size!==ids.length)return previous;const rooms=new Map(previous.rooms.map(room=>[room.id,room]));if(ids.some(id=>!rooms.has(id)))return previous;return {...previous,rooms:ids.map(id=>rooms.get(id)!)};});}
+  function removeRoom(id:string){if(!draft)return;const room=draft.rooms.find(room=>room.id===id),count=draft.items.filter(item=>item.room_id===id).length,cabinetCount=draft.cabinets.filter(cabinet=>cabinet.room_id===id).length;if((count||cabinetCount)&&!window.confirm(`删除“${room?.name}”会同时移除其中 ${cabinetCount} 个柜体和 ${count} 条报价明细。此操作仅影响当前草稿，保存后生效。确定删除？`))return;const rooms=draft.rooms.filter(room=>room.id!==id);setDraft({...draft,rooms,cabinets:draft.cabinets.filter(cabinet=>cabinet.room_id!==id),items:draft.items.filter(item=>item.room_id!==id)});if(editorRoom===id)selectEditorRoom(rooms[0]?.id||'');}
+  function copyRoomTo(sourceId:string,targetId:string){if(!draft||sourceId===targetId)return;const cabinetMap=new Map<string,string>();const newCabinets=draft.cabinets.filter(cabinet=>cabinet.room_id===sourceId).map(cabinet=>{const id=crypto.randomUUID();cabinetMap.set(cabinet.id,id);return {id,room_id:targetId,name:cabinet.name};});const newItems=draft.items.filter(item=>item.room_id===sourceId).map(item=>{const copy:DraftItem={...item,key:crypto.randomUUID()};if(item.cabinet_id&&cabinetMap.has(item.cabinet_id))copy.cabinet_id=cabinetMap.get(item.cabinet_id);return copy;});setDraft({...draft,cabinets:[...draft.cabinets,...newCabinets],items:[...draft.items,...newItems]});setCopyRoomSource('');setError('');selectEditorRoom(targetId);}
+  async function saveDraft(event:FormEvent) {
+    event.preventDefault();if(!draft||disabled||docImportTarget.current||mutationLock.current)return;
+    const saveItems=draft.items.filter(item=>!untouchedAuto(item)&&!(!item.name.trim()&&!item.model.trim()&&!item.note.trim()&&item.quantity===''&&item.price===0));
+    const name=customerMode?projectName:draft.subproject_name.trim(),title=customerMode?draft.title.trim():draft.id?draft.title.trim()||name:name;
+    if(!name||!title){setError(customerMode?'请填写报价版本名称。':'请选择关联项目名称。');return;}
+    if(customerMode&&!draft.rooms.length){setError('请先添加至少一个项目。');return;}
+    if(!customerMode&&!saveItems.length){setError('至少添加一条报价明细。');return;}
+    if((customerMode||draft.rooms.length)&&saveItems.some(item=>!item.room_id||!draft.rooms.some(room=>room.id===item.room_id))){setError('请将未分配空间的明细关联到房间后保存。');setEditorRoom('');return;}
+    if(customerMode&&draft.cabinets.some(cabinet=>!cabinet.name.trim()||!draft.rooms.some(room=>room.id===cabinet.room_id))){setError('请核对柜体名称与所属房间后保存。');return;}
+    const invalidCabinetItem=customerMode?saveItems.find(item=>item.cabinet_id&&!draft.cabinets.some(cabinet=>cabinet.id===item.cabinet_id&&cabinet.room_id===item.room_id)):undefined;
+    if(invalidCabinetItem){setError('历史明细的柜体关联与所属房间不一致，请核对后保存。');selectEditorRoom(invalidCabinetItem.room_id||'');setEditorCategory(invalidCabinetItem.category);return;}
+    if(saveItems.length>500){setError('每个报价最多 500 条明细，请拆分项目。');return;}
+    for(const item of saveItems){if(item.quantity===''||!Number.isFinite(item.quantity)||item.quantity<=0){setError('核对各类明细：数量必须大于 0。');setEditorCategory(item.category);if(customerMode)setEditorRoom(item.room_id||'');return;}}
+    const targetProjectId=draft.targetProjectId??projectId;if(!targetProjectId||(targetProjectId!==projectId&&projectOptions&&!projectOptions.some(p=>p.id===targetProjectId))){setError('请选择有效项目。');return;}
+    const args:any={project_id:targetProjectId,title,note:draft.note,items:saveItems.map(({key,auto,...item})=>({...item,name:item.name.trim(),unit:item.unit.trim(),price:typeof item.price==='number'&&Number.isFinite(item.price)&&item.price>=0?item.price:0})),...(customerMode||draft.rooms.length?{rooms:draft.rooms,cabinets:draft.cabinets}:{}),...(!customerMode&&draft.subproject_id?{subproject_id:draft.subproject_id,subproject_name:name}:{})};
+    if(draft.id)args.id=draft.id;
+    mutationLock.current=true;setWorking(true);setError('');
+    try {if(await mutate(draft.mode==='update'?'update_quote':'create_quote',args)){setDraft(null);onSavedProject?.(targetProjectId);setMessage(customerMode?'整户报价草稿已保存。采纳后计入客户报价总额。':'报价草稿已保存。采纳后计入合作项目总额。');}}
+    catch(reason){setError(reason instanceof Error?reason.message:'保存失败，请重试');}
+    finally{mutationLock.current=false;setWorking(false);}
+  }
+  async function unadopt(){if(!activeQuote?.adopted||disabled||mutationLock.current)return;mutationLock.current=true;setWorking(true);try{if(await mutate('unadopt_quote',{id:activeQuote.id}))setMessage('已取消采纳，可以编辑报价。');}finally{mutationLock.current=false;setWorking(false);}}
+  async function adopt() {
+    if(!activeQuote||activeQuote.adopted||disabled||mutationLock.current)return;
+    if(!window.confirm(customerMode?`采纳“${activeQuote.title}”作为整户报价？会替换此客户的原采纳版本。`:`采纳“${activeQuote.title}”？只替换“${selectedGroup?.name}”的原采纳版本，其他项目保留。`))return;
+    mutationLock.current=true;setWorking(true);setMessage('');
+    try{if(await mutate('adopt_quote',{id:activeQuote.id}))setMessage(customerMode?'已采纳整户报价，客户报价总额已更新。':'已采纳此版本，合作项目报价总额已更新。');}
+    catch(reason){setMessage(reason instanceof Error?reason.message:'采纳失败，请重试');}
+    finally{mutationLock.current=false;setWorking(false);}
+  }
+  async function remove() {
+    if(disabled||mutationLock.current||!selection.selectedRows.length)return;
+    const rows=[...selection.selectedRows];
+    if(!window.confirm(`将所选 ${rows.length} 个报价版本移入回收站？删除后可恢复。删除已采纳版本会重新计算${customerMode?'客户报价':'合作项目'}总额。`))return;
+    mutationLock.current=true;setWorking(true);setMessage('');
+    try{const result=await runBulkActions(rows,row=>trashRequest('delete_record',{id:row.id}));selection.retain(result.failedIds);setMessage(`已删除 ${result.successIds.length} 个版本，失败 ${result.failedIds.length} 个。${result.failures.map(f=>f.error).join('；')}${result.failedIds.length?' 失败项仍勾选，可重试。':'可从回收站恢复。'}`);if(result.successIds.length)await onDeleted(result.successIds);}
+    catch(reason){setMessage(reason instanceof Error?reason.message:'刷新失败，请刷新后核对记录。');}
+    finally{mutationLock.current=false;setWorking(false);}
+  }
+  async function importFile(file:File|undefined) {
+    if(!file||!draft||disabled)return;
+    setImporting(true);setImportError('');setError('');
+    try{const parsed=await parseQuoteImport(file,{catalogPrices:true,hardwareSectionsOnly:true});const response=await fetch('/api/catalog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_catalog',args:{}})});const data=await response.json() as {ok?:boolean;error?:string;result:CatalogData};if(!response.ok||!data.ok)throw new Error(data.error||'五金配置读取失败，请重试。');setHardwareCatalog(data.result.materials);setPreview(hardwareCatalogPreview(parsed,data.result.materials));setPriceBasis('sales');setCostConfirmed(false);}
+    catch(reason){setError(reason instanceof Error?reason.message:'无法读取文件，请使用模板列名。');}
+    finally{setImporting(false);if(fileInput.current)fileInput.current.value='';}
+  }
+  function changeImportRow(id:string,patch:Partial<QuoteImportRow>){setPreview(previous=>previous?{...previous,rows:previous.rows.map(row=>row.id===id?('name' in patch||'model' in patch||'unit' in patch?hardwareCatalogRow({...row,...patch},hardwareCatalog):{...row,...patch,...('price' in patch?{issues:['销售单价已手动填写。']}: {})}):row)}:null);setImportError('');}
+  async function importAllFiles(files:FileList|null) {
+    if(!files||!draft||disabled)return;
+    setImporting(true);setImportError('');setError('');
+    try{
+      const list=[...files].filter(file=>/\.(xlsx|xls|csv)$/i.test(file.name));
+      if(!list.length)throw new Error('所选文件夹中没有 .xlsx、.xls 或 .csv 表格文件。');
+      const previews:QuoteImportPreview[]=[];const errors:string[]=[];
+      for(const file of list){try{previews.push(await parseQuoteImport(file,{catalogPrices:true,hardwareSectionsOnly:true}));}catch(reason){errors.push(`${file.name}：${reason instanceof Error?reason.message:'无法解析'}`);}}
+      if(!previews.length)throw new Error(errors[0]||'所选表格中没有可导入的明细。');
+      const allRows=previews.flatMap((preview,fileIndex)=>preview.rows.map(row=>({...row,id:fileIndex+':'+row.id})));
+      const grouped=mergeQuoteImportRows(allRows);
+      const rows=hardwareImportSort(grouped.rows.filter(row=>!HARDWARE_NAME_BLOCKLIST.test(row.name.replace(/\s/g,''))));
+      if(rows.length>500)throw new Error(`已把 ${allRows.length} 条按名称汇总成 ${rows.length} 条，仍超过单份报价 500 条上限，请分批选择导入。`);
+      const warnings=[`已读取 ${list.length} 个文件，共 ${allRows.length} 条明细，相同名称的所有规格已合并汇总为 ${rows.length} 条。`,...grouped.notices,...(errors.length?[`另有 ${errors.length} 个文件未导入：${errors.join('；')}`]:[])];
+      const merged:QuoteImportPreview={fileName:`五金单统计（${list.length} 个文件汇总）`,sheetName:'五金单统计',rows,sourceTotal:null,warnings,priceKind:previews.some(p=>p.priceKind==='sales')?'sales':previews.every(p=>p.priceKind==='cost')?'cost':'unknown'};
+      const response=await fetch('/api/catalog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_catalog',args:{}})});
+      const data=await response.json() as {ok?:boolean;error?:string;result:CatalogData};if(!response.ok||!data.ok)throw new Error(data.error||'五金配置读取失败，请重试。');
+      setHardwareCatalog(data.result.materials);setPreview(hardwareCatalogPreview(merged,data.result.materials));setPriceBasis('sales');setCostConfirmed(false);
+    }
+    catch(reason){setError(reason instanceof Error?reason.message:'无法读取文件，请使用模板列名。');}
+    finally{setImporting(false);if(allFilesInput.current)allFilesInput.current.value='';}
+  }
+  function confirmImport() {
+    if(!preview||!draft||disabled)return;
+    try{
+      if(!priceBasis)throw new Error('先选择导入价格列的含义。');
+      if(costConfirmationRequired&&!costConfirmed)throw new Error('原表使用成本价格，请先确认将所选明细的价格用于本次销售报价。');
+      const selectedCount=preview.rows.filter(row=>row.selected).length;const imported=finalizeQuoteImport(preview.rows,priceBasis,costConfirmed);
+      if(draft.items.length+imported.length>500)throw new Error(`现有 ${draft.items.length} 条，加上导入 ${imported.length} 条将超过 500 条，请减少选择或拆分项目。`);
+      if(customerMode&&!draft.rooms.some(room=>room.id===editorRoom))throw new Error('请先选择要导入的房间。');
+      setDraft({...draft,items:[...draft.items,...imported.map(item=>({...item,key:crypto.randomUUID(),...(customerMode||editorRoom?{room_id:editorRoom}:{})}))]});setPreview(null);setEditorCategory('五金费用');setMessage(`已加入 ${imported.length} 条五金明细到${customerMode||draft.rooms.length?'“'+draft.rooms.find(room=>room.id===editorRoom)?.name+'”':'草稿'}${selectedCount>imported.length?`（跳过 ${selectedCount-imported.length} 行待核对明细）`:''}，请核对后保存报价。`);
+    }catch(reason){setImportError(reason instanceof Error?reason.message:'请核对导入明细。');}
+  }
+  async function exportDraftExcel(){if(!draft||disabled)return;try{await downloadDraftQuoteExcel({title:(customerMode?projectName+' · '+draft.title:(draft.subproject_name||draft.title)||draft.title)+'的清单报价',companyName,customer:customerMode?projectName:undefined,items:draft.items.filter(item=>!untouchedAuto(item)).map(({key,auto,room_id,cabinet_id,...item})=>({name:item.name.trim(),model:item.model.trim(),quantity:typeof item.quantity==='number'?item.quantity:0,price:typeof item.price==='number'?item.price:0,unit:item.unit.trim(),note:item.note.trim(),category:item.category,photos:Array.isArray(item.photos)?item.photos.map(photo=>({key:photo.key,name:photo.name})):[] })),note:draft.note||undefined});}catch(reason){setError(reason instanceof Error?reason.message:'Excel 导出失败，请重试。');}}
+  function exportQuote(){if(!activeQuote)return;const rows=[[...(customerMode?['空间','柜体']:[]),'费用类别','名称','规格型号','数量','单位','销售单价','金额','备注'],...activeItems.map(item=>[...(customerMode?[activeRooms.find(room=>room.id===item.room_id)?.name||'未分配空间',activeCabinets.find(cabinet=>cabinet.id===item.cabinet_id&&cabinet.room_id===item.room_id)?.name||'房间公共明细']:[]),item.category,item.name,item.model,item.quantity,item.unit,item.price,(amountOf(item)/100).toFixed(2),item.note])];downloadCsv(activeQuote.title+'_报价明细.csv',rows.map(row=>row.map(csvCell).join(',')).join('\r\n'));}
+  async function exportExcel(){if(!activeQuote||disabled||mutationLock.current)return;mutationLock.current=true;setWorking(true);setMessage('');try{await downloadQuoteExcel({project:project||{id:projectId,name:projectName},companyName,quote:activeQuote});setMessage('报价 Excel 已生成，请在浏览器下载列表中查看。');}catch(reason){setMessage(reason instanceof Error?reason.message:'Excel 下载失败，请重试。');}finally{mutationLock.current=false;setWorking(false);}}
+
+  const familyProjectIds=new Set([projectId,...(projectOptions||[]).map(option=>option.id)]);
+  const purchasedGroupIds=new Set(groups.filter(group=>overviewOrders.some(order=>group.quotes.some(quote=>quote.id===order.source_quote_id)||!order.source_quote_id&&familyProjectIds.has(order.project_id))).map(group=>group.id));
+  return <div className={'quoteWorkspace '+(customerMode?'qwCustomerWorkspace ':'')+(customerMode&&fullscreen?'qwCustomerFullscreen':'')}>
+    {customerMode&&fullscreen&&<header className="qwFullscreenHead"><button type="button" disabled={disabled} onClick={()=>setFullscreen(false)}><ArrowLeft size={16}/>返回客户页面</button><div><strong>{projectName}</strong><span>{activeQuote?.title||'客户报价'}</span></div></header>}
+    {!(customerMode&&activeQuote)&&<div className="qwOverview"><div><h2>{customerMode?'客户报价':'项目报价'} <span className="count">{customerMode?items.length:groups.length}</span></h2><p>{customerMode?'整户报价按空间填写；一个客户可保留多个版本，采纳一个版本。':`每个项目分别采纳一个报价版本，已采纳金额汇总到"${projectName}"。`}</p></div><div><span>已采纳总额</span><strong>{money(groups.reduce((sum,group)=>sum+group.total,0))}</strong></div></div>}
+    {message&&<p className="qwFeedback" role="status">{message}</p>}
+    {customerMode&&<div className="qwCardToolbar" role="toolbar" aria-label="客户报价操作">
+      <button disabled={disabled} onClick={()=>setCreateDialog('type')}><Plus size={14}/>新建报价</button>
+      <button className="primary" disabled={disabled||!activeQuote||activeQuote.adopted} onClick={()=>void adopt()}><Check size={14}/>采纳</button>
+      <button disabled={disabled||!activeQuote} onClick={()=>{if(activeQuote)openDraft('version',activeQuote);}}><Copy size={14}/>复制新增</button>
+      {!employeeMode&&<button className="dangerLink" disabled={disabled||!selection.selectedIds.length} onClick={()=>void remove()}><Trash2 size={14}/>删除</button>}
+      <button disabled={disabled||!activeQuote} onClick={()=>void exportExcel()}><FileSpreadsheet size={14}/>下载Excel</button>
+      <button disabled={disabled||!activeQuote} onClick={()=>window.print()}><Printer size={14}/>打印整户报价</button>
+      {!employeeMode&&<button disabled={disabled||!activeQuote} onClick={()=>{if(activeQuote)setSharingQuote({id:activeQuote.id,title:activeQuote.title,total:activeQuote.total,receivable:project?.receivable??activeQuote.total});}}><FileCheck2 size={14}/>客户签字确定</button>}
+    </div>}
+    {groups.length?(!customerMode||!chosen.quote)?<div className="qwCards">{customerMode?items.map(quote=>{
+      const selected=quote.id===activeQuote?.id;
+      return <article key={quote.id} className={'qwCard '+(selected?'current ':'')+(quote.adopted?'adopted':'')}>
+        <div className="qwCardTop"><SelectionCheckbox checked={selection.selectedIds.includes(quote.id)} label={'选择报价 '+quote.title} onChange={()=>selection.toggle(quote.id)} disabled={disabled}/><span className={'badge '+(quote.adopted?'green':'blue')}>{quote.adopted?'已采纳':'草稿'}</span><small>{quote.created?.slice(0,10)||''}</small></div>
+        <button className="qwCardOpen" disabled={disabled} onClick={()=>choose(quote)}>
+          <h3>{quote.title||'报价方案'}</h3>
+          <strong>{money(quote.total)}</strong>
+          <span>{quote.adopted?'已采纳金额':'草稿金额'} · 双击查看明细</span>
+          <em className="qwCardSubmitPay" onClick={e=>{e.stopPropagation();onSettlement?.();}}>收款</em>
+        </button>
+      </article>;
+    }):groups.map(group=>{
+      const all=group.quotes.every(quote=>selection.selectedIds.includes(quote.id)),some=group.quotes.some(quote=>selection.selectedIds.includes(quote.id));
+      return <article key={group.id} className={'qwCard '+(group.id===selectedGroup?.id?'current ':'')+(group.adopted?'adopted':'')}>
+        <div className="qwCardTop"><SelectionCheckbox checked={all} mixed={some&&!all} label={'选择项目全部版本 '+group.name} onChange={()=>toggleGroup(group.quotes)} disabled={disabled}/><span className={'badge '+(group.adopted?'green':'blue')}>{group.adopted?'已采纳':'未采纳'}</span><small>{group.quotes.length} 个版本</small></div>
+        <button className="qwCardOpen" disabled={disabled} onClick={()=>choose(group.adopted||group.quotes[0])}><h3>{group.name}</h3><strong>{money(group.adopted?group.total:group.quotes[0]?.total||0)}</strong><span>{group.adopted?'已采纳金额':'最新草稿金额'} · 查看明细</span></button>
+      </article>;
+    })}</div>:null:<div className="qwEmpty"><FileSpreadsheet size={32}/><h3>{customerMode?'还没有客户报价':'还没有项目报价'}</h3><p>{customerMode?'新建整户报价，手动添加空间并分别填写明细。':'新建项目报价，分别填写人工、材料和五金明细。'}</p></div>}
+    {selectedGroup&&activeQuote&&(!customerMode||Boolean(chosen.quote))&&<section className="qwDetail" aria-label={customerMode?'客户空间报价明细':'项目报价明细'}>
+      <aside className="qwSidebar">{customerMode?<QuoteRooms key={activeQuote.id} rooms={activeRooms} lines={activeItems} selected={activeRoom} onSelect={selectRoom} total={activeQuote.total} disabled={disabled} onEdit={!activeQuote.adopted?()=>openDraft('edit',activeQuote,true):undefined} onMove={!activeQuote.adopted?id=>{openDraft('edit',activeQuote);selectEditorRoom(id);}:undefined}/>:<><span className="qwCaption">当前项目</span><h3>{selectedGroup.name}</h3><strong>{money(activeQuote.total)}</strong></>}<span className={'badge '+(activeQuote.adopted?'green':'blue')}>{activeQuote.adopted?'已采纳版本':'草稿版本'}</span></aside>
+      <div className="qwMain"><div className="qwDetailHead"><div><h3>{customerMode?'全部空间 · '+activeQuote.title:activeQuote.title}</h3><p>{roomItems.length} 条明细 · {activeQuote.adopted?'已采纳，取消采纳后可编辑':'草稿，可编辑后采纳'}</p></div><div className="qwActions">{!employeeMode&&<button disabled={disabled} onClick={()=>void showProfit()}>查看利润</button>}<button disabled={disabled||activeQuote.adopted} onClick={()=>openDraft('edit',activeQuote)}><Settings2 size={14}/>编辑草稿</button>{!employeeMode&&<button className="dangerLink" disabled={disabled||activeQuote.adopted||!lineSelection.selectedIds.length} onClick={()=>void deleteSavedLines()}><Trash2 size={14}/>删除</button>}{lineSelection.selectedIds.length>0&&<span className="qwLineSelectionCount">已选 {lineSelection.selectedIds.length} 条</span>}{!customerMode&&<button disabled={disabled} onClick={()=>openDraft('copy',activeQuote)}>复制为新项目</button>}<button className="primary" disabled={disabled||activeQuote.adopted} onClick={()=>void adopt()}><Check size={14}/>{activeQuote.adopted?'已采纳':'采纳报价'}</button><button disabled={disabled||!activeQuote.adopted} onClick={()=>void unadopt()}>取消采纳</button><button disabled={disabled} onClick={()=>void exportExcel()}><FileSpreadsheet size={14}/>下载 Excel</button>{customerMode&&<button disabled={disabled} onClick={()=>window.print()}><Printer size={14}/>打印整户报价</button>}{!employeeMode&&<button disabled={disabled} onClick={()=>setSharingQuote({id:activeQuote.id,title:activeQuote.title,total:activeQuote.total,receivable:project?.receivable??activeQuote.total})}><FileCheck2 size={14}/>客户签字确定</button>}</div></div>
+        <div className="qwCategoryTabs" role="tablist" aria-label="报价费用类别"><button type="button" role="tab" aria-selected={viewAll} className={viewAll?'selected':''} disabled={disabled} onClick={()=>setViewAll(true)}>全部<span>{roomItems.length}</span></button>{QUOTE_CATEGORIES.map(value=><button key={value} role="tab" aria-selected={!viewAll&&category===value} className={!viewAll&&category===value?'selected':''} disabled={disabled} onClick={()=>{setViewAll(false);setCategory(value);}}>{value}<span>{roomItems.filter(item=>item.category===value).length}</span></button>)}</div>
+        <div className="qwTableWrap" role="tabpanel" aria-label={category}><ManagedTable tableKey={"quote-detail|"+activeQuote.id+"|"+(viewAll?"all":category)+(customerMode?'|'+activeRoom:'')} preferenceScope={projectId} disabled={disabled} resizable className="qwTable qwLineSelectionTable"><thead><tr><th className="qwSelectColumn" data-column-key="quote-line-selection" data-column-required><SelectionCheckbox checked={lineSelection.allSelected} mixed={lineSelection.partiallySelected} label={"选择当前"+(viewAll?"全部分类":category)+"全部明细"} disabled={disabled||activeQuote.adopted} onChange={lineSelection.toggleAll}/></th><th>序号</th>{customerMode&&<th>空间</th>}<th>名称</th><th>规格型号</th><th>数量</th><th>单位</th><th>单价（元）</th><th>金额（元）</th><th>上传附件</th><th>备注</th></tr></thead><tbody>{(viewAll?detailAllItems:categoryItems).map((item,index)=><tr key={item.rowId} data-row-id={item.rowId} className={lineSelection.selectedIds.includes(item.rowId)?"qwLineSelected":""}><td className="qwSelectColumn"><SelectionCheckbox checked={lineSelection.selectedIds.includes(item.rowId)} label={"选择报价明细 "+(item.sourceIndex+1)+" "+item.name} disabled={disabled||activeQuote.adopted} onChange={()=>lineSelection.toggle(item.rowId)}/></td><td>{index+1}</td>{customerMode&&<td className="qwRoomCell">{activeRooms.find(room=>room.id===item.room_id)?.name||'未分配'}</td>}<td><button type="button" className="qwLineName" title={activeQuote.adopted?"已采纳报价，请复制为新版后编辑":"单击编辑此明细"} disabled={disabled||activeQuote.adopted} onClick={()=>editLine(item.sourceIndex)} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();editLine(item.sourceIndex);}}}>{item.name}</button></td><td>{item.model||'—'}</td><td>{item.quantity}</td><td>{item.unit}</td><td className="qwNumeric">{money(Math.round(item.price*100))}</td><td className="qwNumeric qwAmount">{money(amountOf(item))}</td><td className="qwItemPhotos qwItemPhotosReadonly">{item.photos&&item.photos.length>0?<div className="qwItemPhotoList">{item.photos.map(photo=><span key={photo.key} className="qwItemPhoto"><button type="button" className="qwItemPhotoImgButton" aria-label={'放大图片 '+photo.name} title="点击放大查看" onClick={()=>setPhotoViewer({src:'/api/quote-item-photos?key='+encodeURIComponent(photo.key),name:photo.name})}><img src={'/api/quote-item-photos?key='+encodeURIComponent(photo.key)} alt={photo.name} loading="lazy"/></button><button type="button" className="qwItemPhotoZoom" aria-label={'放大图片 '+photo.name} title="放大查看" onClick={()=>setPhotoViewer({src:'/api/quote-item-photos?key='+encodeURIComponent(photo.key),name:photo.name})}><Maximize2 size={11}/></button></span>)}</div>:'—'}</td><td>{item.note||'—'}</td></tr>)}</tbody></ManagedTable>{!(viewAll?detailAllItems:categoryItems).length&&<p className="qwTableEmpty">{viewAll?'暂无明细。':'暂无'+category+'明细'+(!activeQuote.adopted?'，点击“编辑草稿”添加。':'。')}</p>}</div>
+        <div className="qwTotals"><span>{viewAll?'全部':category}小计 <b>{money(sumItems(viewAll?detailAllItems:categoryItems))}</b></span><span>{customerMode?'整户':'报价'}合计 <strong>{money(activeQuote.total)}</strong></span></div>
+        {activeQuote.note&&<p className="qwQuoteNote"><span>报价备注</span>{activeQuote.note}</p>}
+      </div>
+    </section>}
+    {customerMode&&createDialog==='type'&&<QuoteCreateDialog customerName={projectName} disabled={disabled} onClose={()=>setCreateDialog(null)} onNew={()=>{setCreateDialog(null);openDraft('new');}} onCopy={()=>{setCopyError('');setCreateDialog('copy');}}/>}
+    {customerMode&&createDialog==='copy'&&<QuoteCopyDialog customerName={projectName} sources={copySources} disabled={disabled} error={copyError} onClose={()=>setCreateDialog(null)} onBack={()=>{setCopyError('');setCreateDialog('type');}} onImport={importBudget}/>}
+    {draft&&<div className="qwOverlay qwCustomerEditorOverlay"><section className={'qwDialog qwCustomerDialog '+(!customerMode?'qwProjectDialog':'qwCustomerQuoteEditor')} role="dialog" aria-modal="true" aria-labelledby="qwEditorTitle"><form onSubmit={event=>void saveDraft(event)}>
+      <div className={'qwDialogHead'+(customerMode?' qwCustomerEditorHead':'')}><div className={customerMode?'qwCustomerEditorTitleBlock':undefined}>{!customerMode&&<span className="eyebrow">{projectName}</span>}<div className={customerMode?'qwCustomerTitleBar':undefined}><h2 id="qwEditorTitle">{draft.mode==='update'?'编辑报价草稿':customerMode?'新建客户报价':'新建项目报价'}</h2>{customerMode&&<><label className="qwHeaderVersion"><span>报价版本名称 *</span><input aria-label="报价版本名称" value={draft.title} maxLength={100} required autoFocus disabled={disabled} onChange={event=>setDraft({...draft,title:event.target.value})}/></label>{!employeeMode&&<span className="qwHeadActions"><button type="button" aria-label="打印 A4 排版草稿" disabled={disabled} onClick={()=>{setDraftPrint(true);setTimeout(()=>{window.print();setDraftPrint(false);},60);}}><Printer size={14}/>打印 A4</button></span>}{!employeeMode&&<button type="button" disabled={disabled} onClick={()=>void showProfit()}>查看利润</button>}</>}</div>{draft.copyOrigin&&<p>复制来源：{draft.copyOrigin} · 可修改后保存为当前客户的新草稿</p>}</div><button type="button" aria-label="关闭报价编辑" disabled={disabled} onClick={()=>{if(!docImportTarget.current)setDraft(null);}}><X size={20}/></button></div>
+      <div className="qwEditorBody">{!customerMode&&<><div className="qwFormGrid"><label>关联项目名称 *{projectOptions&&draft.mode==='create'&&!draft.id?<select aria-label="关联项目名称" required value={draft.targetProjectId??projectId} disabled={disabled||draft.targetProjectId===undefined||draft.items.some(item=>!!item.name)} onChange={event=>{const target=projectOptions.find(p=>p.id===event.target.value);if(target){setDraft({...draft,targetProjectId:target.id,subproject_name:target.name});setLaborNotes({});}}}><option value="" disabled>请选择项目</option>{projectOptions.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>:<input value={draft.subproject_name} maxLength={100} required autoFocus disabled={disabled||!draft.subproject_id} onChange={event=>setDraft({...draft,subproject_name:event.target.value})} placeholder="如：吾悦南区东苑6-3-502"/>}</label></div>{!draft.subproject_id&&<p className="qwHint">此报价来自原项目。修改报价名称不改变历史报价分组。</p>}</>}
+        <div className={customerMode||!employeeMode?'qwRoomEditorLayout':'qwProjectEditorLayout'}>{(customerMode||!employeeMode)&&<aside className="qwEditorSidebar"><QuoteRooms rooms={draft.rooms} lines={draft.items} selected={editorRoom} onSelect={selectEditorRoom} total={sumItems(draft.items)} disabled={disabled} editable onAdd={addRoom} onRename={renameRoom} onRemove={removeRoom} onCopy={id=>setCopyRoomSource(id)} onReorder={reorderRooms} startAdding={startAddingRoom}/></aside>}<div className={customerMode||!employeeMode?'qwRoomEditorMain':'qwProjectEditorMain'}>
+        <div className="qwEditorHeading"><h3>{customerMode||!employeeMode?'全部空间 · 报价明细':'报价明细'}</h3><div className="qwEditorLineActions">{draftSelection.selectedIds.length>0&&<span className="qwLineSelectionCount">已选 {draftSelection.selectedIds.length} 条，保存后生效</span>}</div></div>
+        <div className="qwCategoryImportBar"><div className="qwCategoryTabs" role="tablist" aria-label="编辑费用类别"><button type="button" role="tab" aria-selected={editorAll} className={editorAll?'selected':''} disabled={disabled} onClick={()=>setEditorAll(true)}>全部<span>{draftRoomItems.length}</span></button>{QUOTE_CATEGORIES.map(value=><button type="button" key={value} role="tab" aria-selected={!editorAll&&editorCategory===value} className={!editorAll&&editorCategory===value?'selected':''} disabled={disabled} onClick={()=>switchEditorCategory(value)}>{value}<span>{draftRoomItems.filter(item=>item.category===value).length}</span></button>)}</div></div>
+        {docImportNotice&&<p className="qwDocumentImportNotice" role="status">{docImportNotice}</p>}
+        {!editorAll&&editorCategory==='柜体'&&<div className="qwImportActions qwCabinetNameHint"><p>点击明细名称框选择衣柜、鞋柜、酒柜等；自定义名称请在“配置 → 柜体”中新增。</p><button type="button" disabled={disabled||laborLoading} onClick={()=>void loadLabor()}>刷新柜体配置</button>{laborLoading&&<span role="status">正在读取柜体配置…</span>}{laborError&&<span role="alert">{laborError}</span>}<button type="button" disabled={disabled||draft.items.length>=500||customerMode&&!editorRoom} onClick={addItem}><Plus size={14}/>添加柜体明细</button><button type="button" className="dangerLink" disabled={disabled||!draftSelection.selectedIds.length} onClick={deleteDraftLines}><Trash2 size={14}/>删除</button></div>}
+        {!editorAll&&editorCategory==='材料费用'&&<div className="qwImportActions"><button type="button" disabled={disabled||draft.items.length>=500||customerMode&&!editorRoom} onClick={addItem}><Plus size={14}/>添加材料费用明细</button><button type="button" className="dangerLink" disabled={disabled||!draftSelection.selectedIds.length} onClick={deleteDraftLines}><Trash2 size={14}/>删除</button></div>}
+        {!editorAll&&editorCategory!=='柜体'&&<CatalogSearch key={editorCategory+'|'+editorRoom} materials={searchCatalog} category={editorCategory} disabled={disabled||customerMode&&!editorRoom} loading={laborLoading} error={laborError} onSelect={material=>{if(!draft||customerMode&&!editorRoom)return;const items=[...draft.items],index=items.findIndex(item=>item.category===editorCategory&&!item.name.trim()&&(!customerMode||draftRoomItems.some(row=>row.key===item.key)));const base=index>=0?items[index]:emptyItem(editorCategory,editorRoom||undefined);const result=editorCategory==='人工费用'?laborQuantity(material,purchaseOrders,draft.targetProjectId||projectId):null;const chosen={...base,name:material.name,model:material.model,unit:material.unit,price:(customerMode?customerPriceOf(material):material.purchase_price)/100,quantity:result?(customerMode?'':result.quantity??''):base.quantity,...(editorRoom?{room_id:editorRoom}:{})};if(index>=0)items[index]=chosen;else if(items.length<500)items.push(chosen);setDraft({...draft,items});if(result)setLaborNotes(previous=>({...previous,[chosen.key]:customerMode?'请填写当前空间数量。整户采购参考：'+result.notice:result.notice}));}}/>}
+        {!editorAll&&editorCategory==='人工费用'&&<div className="qwImportActions"><p>{customerMode?'从人工配置选择名称和型号；数量依据整户采购单汇总，请按当前空间核对并填写，避免重复计入。':'从人工配置选择名称和型号，数量自动读取本合作项目采购单：相同尺寸、厚度的材料数量自动累计（不区分品牌和花色）；「电梯上楼费」自动取全部 5mm 与 18mm 板数量之和；「运输费」数量默认为 1。数量可手动修改，保存前请核对。'}</p>{laborLoading&&<span role="status">正在读取人工配置与采购单…</span>}{laborError&&<span role="alert">{laborError}</span>}<button type="button" disabled={disabled||laborLoading} onClick={()=>void loadLabor()}>刷新人工配置与采购单</button><button type="button" disabled={disabled||draft.items.length>=500||customerMode&&!editorRoom} onClick={addItem}><Plus size={14}/>添加人工费用明细</button><button type="button" className="dangerLink" disabled={disabled||!draftSelection.selectedIds.length} onClick={deleteDraftLines}><Trash2 size={14}/>删除</button></div>}
+        {!editorAll&&editorCategory==='五金费用'&&<div className="qwImportActions"><button type="button" disabled={disabled||customerMode&&!editorRoom} onClick={()=>fileInput.current?.click()}><Upload size={14}/>{importing?'正在读取…':'导入五金 Excel / CSV'}</button><input ref={fileInput} className="qwFileInput" type="file" accept=".xlsx,.xls,.csv" aria-label="导入五金明细文件" disabled={disabled} onChange={event=>void importFile(event.target.files?.[0])}/><button type="button" disabled={disabled||customerMode&&!editorRoom} onClick={()=>allFilesInput.current?.click()}><FolderOpen size={14}/>{importing?'正在读取…':'导入全部料单'}</button><input ref={allFilesInput} className="qwFileInput" type="file" accept=".xlsx,.xls,.csv" multiple disabled={disabled} onChange={event=>void importAllFiles(event.target.files)} aria-label="选择全部料单文件夹" {...({'webkitdirectory':'webkitdirectory'} as any)}/><button type="button" disabled={disabled||draft.items.length>=500||customerMode&&!editorRoom} onClick={addItem}><Plus size={14}/>添加五金明细</button><button type="button" className="dangerLink" disabled={disabled||!draftSelection.selectedIds.length} onClick={deleteDraftLines}><Trash2 size={14}/>删除</button><p>导入名称、规格型号、数量、单位；销售价自动读取五金配置。导入全部料单可一次选择文件夹中的多个表格文件，汇总为五金单统计：相同名称的所有规格自动合并为一行（规格列汇总、数量合计），免拉手按规格最后数字折算米数，普通灯带按毫米汇总。</p></div>}
+        <div className="qwTableWrap"><ManagedTable tableKey={"quote-editor|"+(draft.id||draft.subproject_id||"legacy")+"|"+(editorAll?"all":editorCategory)+(customerMode?"|"+editorRoom:"")} preferenceScope={projectId} disabled={disabled} onRowsReorder={reorderDraft} resizable className="qwTable qwEditorTable qwLineSelectionTable"><thead><tr><th className="qwSelectColumn" data-column-key="quote-line-selection" data-column-required><SelectionCheckbox checked={draftSelection.allSelected} mixed={draftSelection.partiallySelected} label={"选择编辑"+(editorAll?"全部分类":editorCategory)+"全部明细"} disabled={disabled} onChange={draftSelection.toggleAll}/></th><th>序号</th><th>名称 *</th><th>规格型号</th><th>数量 *</th><th>单位 *</th><th>销售单价 *</th><th>金额</th><th>上传附件</th><th>备注</th><th></th></tr></thead><tbody>{(editorAll?draftAllItems:draftCategoryItems).map((item,index)=><tr key={item.key} data-row-id={item.key} data-quote-item-key={item.key} className={draftSelection.selectedIds.includes(item.key)?"qwLineSelected":""}><td className="qwSelectColumn"><SelectionCheckbox checked={draftSelection.selectedIds.includes(item.key)} label={"选择草稿"+item.category+"第"+(index+1)+"行"} disabled={disabled} onChange={()=>draftSelection.toggle(item.key)}/></td><td>{index+1}</td><td>{item.category==='柜体'?<QuoteCabinetNamePicker label={`${item.category}第${index+1}行名称`} value={item.name} options={cabinetOptions} disabled={disabled} onChange={name=>changeItem(item.key,{name})} onSelect={option=>selectCabinetName(item.key,option)}/>:<><input aria-label={`${item.category}第${index+1}行名称`} value={item.name} maxLength={100} disabled={disabled} role={item.category==='人工费用'?'combobox':undefined} aria-expanded={item.category==='人工费用'&&activeLaborKey===item.key} onClick={()=>{if(item.category==='人工费用')setActiveLaborKey(item.key);}} onFocus={()=>{if(item.category==='人工费用')setActiveLaborKey(item.key);}} onBlur={()=>setActiveLaborKey('')} onChange={event=>changeItem(item.key,{name:event.target.value})}/>{item.category==='人工费用'&&activeLaborKey===item.key&&<div className="qwLaborOptions" role="listbox" aria-label="人工费用配置">{laborCatalog.map(material=><button type="button" role="option" key={material.id} aria-selected={item.name===material.name&&item.model===material.model} onMouseDown={event=>event.preventDefault()} onClick={()=>{selectLabor(item.key,material.id);setActiveLaborKey('');}}>{material.name} / {material.model||'无型号'}</button>)}{laborLoading&&<span>正在读取…</span>}</div>}</>}</td><td><input aria-label={`${item.category}第${index+1}行规格型号`} value={item.model} maxLength={100} disabled={disabled} onChange={event=>changeItem(item.key,{model:event.target.value})}/></td><td><input aria-label={`${item.category}第${index+1}行数量`} type="number" min="0.000001" max="100000" step="any" value={item.quantity} disabled={disabled} onChange={event=>changeItem(item.key,{quantity:numeric(event.target.value)})} onBlur={()=>completeQuantity(item.key)} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();completeQuantity(item.key,true);}}}/></td><td><input aria-label={`${item.category}第${index+1}行单位`} value={item.unit} maxLength={10} disabled={disabled} onChange={event=>changeItem(item.key,{unit:event.target.value})}/></td><td><input aria-label={`${item.category}第${index+1}行销售单价`} type="number" min="0" max="10000000" step="0.01" value={item.price} disabled={disabled} onChange={event=>changeItem(item.key,{price:numeric(event.target.value)})}/></td><td className="qwNumeric qwAmount">{money(amountOf(item))}</td><td className="qwItemPhotos">{item.photos&&item.photos.length>0&&<div className="qwItemPhotoList">{item.photos.map(photo=><span key={photo.key} className="qwItemPhoto"><img src={'/api/quote-item-photos?key='+encodeURIComponent(photo.key)} alt={photo.name} loading="lazy"/><button type="button" className="qwItemPhotoZoom" aria-label={'放大图片 '+photo.name} title="放大查看" onClick={()=>setPhotoViewer({src:'/api/quote-item-photos?key='+encodeURIComponent(photo.key),name:photo.name})}><Maximize2 size={11}/></button><button type="button" aria-label={'移除图片 '+photo.name} disabled={disabled} onClick={()=>changeItem(item.key,{photos:item.photos!.filter(p=>p.key!==photo.key)})}><X size={11}/></button></span>)}</div>}<label className="qwItemPhotoAdd" title="上传附件" aria-label={`${item.category}第${index+1}行上传附件`}><Plus size={14}/><input type="file" accept="image/png,image/jpeg,image/webp" multiple aria-label={`${item.category}第${index+1}行添加图片`} disabled={disabled} onChange={event=>{void uploadItemPhotos(item.key,event.target.files);event.target.value='';}}/></label></td><td><input aria-label={`${item.category}第${index+1}行备注`} value={item.note} maxLength={500} disabled={disabled} onChange={event=>changeItem(item.key,{note:event.target.value})}/></td><td><button type="button" aria-label={`移除${item.category}第${index+1}行`} disabled={disabled} onClick={()=>setDraft({...draft,items:draft.items.filter(row=>row.key!==item.key)})}><X size={15}/></button></td></tr>)}</tbody></ManagedTable>{!(editorAll?draftAllItems:draftCategoryItems).length&&<p className="qwTableEmpty">{editorAll?'暂无明细，请选择分类后添加。':'暂无'+editorCategory+'明细，可添加一行'+(editorCategory==='五金费用'?'或导入表格':'')+'。'}</p>}</div>
+        <div className="qwDraftTotals">{QUOTE_CATEGORIES.map(value=><span key={value}>{value}<b>{money(sumItems(draftRoomItems.filter(item=>item.category===value)))}</b></span>)}<span>{customerMode?"整户合计":"总合计"}<strong>{money(sumItems(draft.items))}</strong></span></div></div></div>
+        {!customerMode&&<label className="qwNoteLabel">报价备注<textarea value={draft.note} maxLength={2000} disabled={disabled} onChange={event=>setDraft({...draft,note:event.target.value})}/></label>}
+        {error&&<p className="qwError" role="alert">{error}</p>}
+      </div><div className="qwDialogFoot"><p>{customerMode?"保存整户草稿，房间与所有明细一并保留；采纳后计入客户报价总额。":"保存为草稿，采纳后计入合作项目总额。"}</p><button type="button" disabled={disabled} onClick={()=>{if(!docImportTarget.current)setDraft(null);}}>取消</button><button className="primary" type="submit" disabled={disabled}>{working?'正在保存…':'保存报价草稿'}</button></div></form>
+    </section></div>}
+    {copyRoomSource&&draft&&<div className="qwOverlay"><section className="qwDialog" role="dialog" aria-modal="true" aria-labelledby="qwCopyRoomTitle"><div className="qwDialogHead"><div><h2 id="qwCopyRoomTitle">复制空间</h2><p>把「{draft.rooms.find(room=>room.id===copyRoomSource)?.name}」的柜体和报价明细复制到哪个空间？复制仅加入当前草稿，保存后生效。</p></div><button type="button" aria-label="关闭复制空间" disabled={disabled} onClick={()=>setCopyRoomSource('')}><X size={20}/></button></div><div className="qwCopyRoomTargets">{draft.rooms.filter(room=>room.id!==copyRoomSource).map(room=><button type="button" key={room.id} disabled={disabled} onClick={()=>copyRoomTo(copyRoomSource,room.id)}><b>{room.name}</b><span>{draft.cabinets.filter(cabinet=>cabinet.room_id===room.id).length} 个柜体 · {draft.items.filter(item=>item.room_id===room.id).length} 条明细</span></button>)}{draft.rooms.length<2&&<p className="qwHint">请先添加另一个空间作为复制目标。</p>}</div><div className="qwDialogFoot"><button type="button" disabled={disabled} onClick={()=>setCopyRoomSource('')}>取消</button></div></section></div>}
+    {photoViewer&&<div className="qwPhotoViewerOverlay" role="dialog" aria-modal="true" aria-label="放大查看图片" onClick={e=>{if(e.target===e.currentTarget)setPhotoViewer(null);}}><div className="qwPhotoViewerBody"><img src={photoViewer.src} alt={photoViewer.name} onClick={()=>setPhotoViewer(null)}/><span className="qwPhotoViewerName">{photoViewer.name}</span></div><button type="button" className="qwPhotoViewerClose" aria-label="关闭放大图片" onClick={()=>setPhotoViewer(null)}><X size={20}/></button></div>}
+    {draftPrint&&draft&&createPortal(<main className="qwDraftPrint"><table><tbody>
+      <tr className="qwPrTitle"><td colSpan={7}>{customerMode?projectName+' · '+draft.title:(draft.subproject_name||draft.title)+'的清单报价'}</td></tr>
+      <tr className="qwPrCustomer"><td colSpan={7}>客户姓名：{customerMode?projectName:''}　客户地址：{project?.address||''}　客户电话：{project?.phone||''}</td></tr>
+      <tr className="qwPrHead"><td>编号</td><td>项目</td><td>规格型号</td><td>单位</td><td>数量</td><td>单价</td><td>金额</td></tr>
+      {QUOTE_CATEGORIES.map(cat=>{const rows=draft.items.filter(item=>item.category===cat&&!untouchedAuto(item));if(!rows.length)return null;return <Fragment key={cat}><tr className="qwPrSection"><td colSpan={6}>{cat}销售清单</td><td>{(rows.reduce((sum,item)=>sum+Math.round(item.quantity*Math.round(typeof item.price==='number'?item.price:0)*100),0)/100).toFixed(2)}</td></tr>{rows.map((item,i)=><tr key={item.key}><td className="qwPrNum">{i+1}</td><td className="qwPrName">{item.name||'—'}</td><td className="qwPrModel">{item.model||'—'}</td><td className="qwPrUnit">{item.unit}</td><td className="qwPrQty">{item.quantity}</td><td className="qwPrNum">{typeof item.price==='number'?item.price.toFixed(2):'0.00'}</td><td className="qwPrAmount">{(Math.round(item.quantity*Math.round(typeof item.price==='number'?item.price:0)*100)/100).toFixed(2)}</td></tr>)}{rows.filter(item=>item.note.trim()).map(item=><tr key={item.key+'-note'} className="qwPrNote"><td colSpan={7}>备注：{item.note}</td></tr>)}</Fragment>;})}
+      <tr className="qwPrFee"><td colSpan={7}>费用项</td></tr>
+      <tr className="qwPrFeeHead"><td colSpan={6}>项目</td><td>金额</td></tr>
+      <tr className="qwPrTotal"><td colSpan={6}>报价</td><td>{(draft.items.filter(item=>!untouchedAuto(item)).reduce((sum,item)=>sum+Math.round(item.quantity*Math.round(typeof item.price==='number'?item.price:0)*100),0)/100).toFixed(2)}</td></tr>
+      {draft.note&&<tr className="qwPrNote"><td colSpan={7}>报价备注：{draft.note}</td></tr>}
+      <tr className="qwPrSign"><td colSpan={4}>乙方：{companyName}</td><td colSpan={3} className="qwPrLeft">甲方：</td></tr>
+      <tr className="qwPrSign"><td colSpan={4}>时间：</td><td colSpan={3} className="qwPrLeft">时间：</td></tr>
+    </tbody></table></main>,document.body)}
+    {customerMode&&activeQuote&&<CustomerQuotePrint title={activeQuote.title} customer={project?.customer||projectName} phone={project?.phone} address={project?.address} company={companyName} rooms={activeRooms} cabinets={activeCabinets} settlement={{adopted:Boolean(activeQuote.adopted),discount_amount:project?.discount_amount,rounding_amount:project?.rounding_amount,receivable:project?.receivable}} lines={activeItems} total={activeQuote.total} note={activeQuote.note}/>}
+    {active&&!employeeMode&&profit&&<QuoteProfit {...profit} companyName={companyName} retry={()=>void loadProfitCatalog(profit)} close={closeProfit}/>}
+    {active&&!employeeMode&&sharingQuote&&<QuoteShare key={sharingQuote.id} quoteId={sharingQuote.id} customerLabel={projectName} title={sharingQuote.title} total={sharingQuote.total} receivable={sharingQuote.receivable} onClose={()=>setSharingQuote(null)}/>}
+    {preview&&draft&&<div className="qwOverlay qwImportOverlay tableEditorOverlay"><section className="qwDialog qwImportDialog tableEditorDialog" role="dialog" aria-modal="true" aria-labelledby="qwImportTitle"><div className="qwDialogHead tableEditorHeader"><div><span className="eyebrow">五金明细导入 · 预览</span><h2 id="qwImportTitle">核对表格与销售价格</h2><p>{preview.fileName} · {preview.sheetName} · 共 {preview.rows.length} 行</p></div><button type="button" aria-label="关闭导入预览" disabled={disabled} onClick={()=>setPreview(null)}><X size={20}/></button></div>
+      <div className="qwImportBody tableEditorBody"><p className="qwHint">销售单价按名称匹配配置中的五金费用；按名称合并后的汇总行请核对规格与数量，价格为 0 的行加入后可在明细表中补填。</p>
+        {preview.warnings.length>0&&<div className="qwWarnings"><b>原表提示</b><ul>{preview.warnings.map((warning,index)=><li key={index}>{warning}</li>)}</ul></div>}
+        <p className="qwHint">可核对名称、规格型号、数量、单位和销售单价。名称、规格、数量、单位齐全即可加入；未匹配或单位不同的明细按 0 元加入，导入后请在明细表中补填销售单价。</p>
+        <div className="qwTableWrap"><ManagedTable tableKey={"quote-import|"+preview.fileName+"|"+preview.sheetName} preferenceScope={projectId} disabled={disabled} onRowsReorder={reorderImport} className="qwTable qwImportTable"><thead><tr><th><SelectionCheckbox checked={preview.rows.length>0&&preview.rows.every(row=>row.selected)} mixed={preview.rows.some(row=>row.selected)&&!preview.rows.every(row=>row.selected)} label="全选五金导入明细" onChange={()=>setPreview({...preview,rows:preview.rows.map(row=>({...row,selected:!preview.rows.every(item=>item.selected)}))})} disabled={disabled}/></th><th>源行</th><th>名称</th><th>规格型号</th><th>数量</th><th>单位</th><th>销售单价</th><th>计算金额</th><th>核对 / 备注</th></tr></thead><tbody>{preview.rows.map(row=>{const issues=importIssues(row),difference=row.sourceAmount!==null&&row.quantity!==null&&row.price!==null&&Math.abs(amountOf(row)-row.sourceAmount)>1;return <tr key={row.id} data-row-id={row.id} className={row.selected&&issues.length?'qwImportIssue':''}><td><SelectionCheckbox checked={row.selected} label={'选择导入第'+row.sourceRow+'行 '+row.name} onChange={()=>changeImportRow(row.id,{selected:!row.selected})} disabled={disabled}/></td><td>{row.sourceRow}</td><td><input aria-label={`导入第${row.sourceRow}行名称`} value={row.name} maxLength={100} onChange={event=>changeImportRow(row.id,{name:event.target.value})}/></td><td><input aria-label={`导入第${row.sourceRow}行规格型号`} value={row.model} maxLength={100} onChange={event=>changeImportRow(row.id,{model:event.target.value})}/></td><td><input aria-label={`导入第${row.sourceRow}行数量`} type="number" step="any" min="0.000001" value={row.quantity??''} onChange={event=>changeImportRow(row.id,{quantity:event.target.value===''?null:Number(event.target.value),acceptDifference:false})}/></td><td><input aria-label={`导入第${row.sourceRow}行单位`} value={row.unit} maxLength={10} onChange={event=>changeImportRow(row.id,{unit:event.target.value,acceptDifference:false})}/></td><td><input aria-label={`导入第${row.sourceRow}行销售单价`} type="number" step="0.01" min="0" value={row.price??''} onChange={event=>changeImportRow(row.id,{price:event.target.value===''?null:Number(event.target.value),acceptDifference:false})}/></td><td className="qwNumeric qwAmount">{row.quantity===null||row.price===null?'—':money(amountOf(row))}</td><td>{row.issues.length>0&&<small className="qwSourceIssue">{row.issues.join('；')}</small>}{issues.length>0&&row.selected&&<small className="qwLiveIssue">{issues.join('；')}</small>}{difference&&<label className="qwCheckLabel"><input type="checkbox" checked={row.acceptDifference} onChange={event=>changeImportRow(row.id,{acceptDifference:event.target.checked})}/><span>确认使用计算金额</span></label>}<input aria-label={`导入第${row.sourceRow}行备注`} value={row.note} maxLength={500} onChange={event=>changeImportRow(row.id,{note:event.target.value})}/></td></tr>;})}</tbody></ManagedTable></div>
+        <div className="qwImportSummary"><span>所选计算总额 <strong>{money(sumItems(selectedImportRows))}</strong></span><span>已选 {selectedImportRows.length} 行{importProblems>0&&` · ${importProblems} 项待核对（加入时自动跳过）`}</span></div>
+        {importError&&<p className="qwError" role="alert">{importError}</p>}
+      </div><div className="qwDialogFoot tableEditorFooter"><p>{customerMode?"加入当前房间，核对后保存整户报价。":"只加入当前草稿，不会立即保存报价。"}</p><button type="button" disabled={disabled} onClick={()=>setPreview(null)}>取消导入</button><button type="button" className="primary" disabled={disabled||!eligibleImportRows.length||!priceBasis||(costConfirmationRequired&&!costConfirmed)} onClick={confirmImport}>加入五金明细（{eligibleImportRows.length} 条）</button></div>
+    </section></div>}
+  </div>;
+}
