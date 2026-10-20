@@ -4,7 +4,7 @@ import {useSyncExternalStore} from 'react';
 import {createPortal} from 'react-dom';
 import type {QuoteRoom} from './quote-rooms';
 import {type QuoteCabinet,type QuoteItem} from '../lib/quotes';
-import {buildQuoteExportSheets,type QuoteExportSheet,type QuoteSettlementInput} from '../lib/quote-export';
+import {buildQuoteExportSheets,type QuoteExportSheet,type QuoteSettlementInput,type QuoteExportInput} from '../lib/quote-export';
 
 type Line = QuoteItem & {room_id?:string};
 const subscribeToMount=()=>()=>{};
@@ -21,8 +21,8 @@ export function buildCustomerQuotePrintGroups(rooms:QuoteRoom[],lines:Line[],cab
 }
 
 /** 整户报价打印：与「下载 Excel」完全同一套表格（buildQuoteExportSheets），Excel 文件即打印文件。 */
-export default function CustomerQuotePrint({title,customer,phone,address,company,rooms,lines,total,note,cabinets=[],settlement}: {
-  title:string;customer?:string;phone?:string;address?:string;company:string;rooms:QuoteRoom[];lines:Line[];total:number;note?:string;cabinets?:QuoteCabinet[];settlement?:QuoteSettlementInput;
+export default function CustomerQuotePrint({title,customer,phone,address,company,rooms,lines,total,note,cabinets=[],settlement,exportInput}: {
+  title:string;customer?:string;phone?:string;address?:string;company:string;rooms:QuoteRoom[];lines:Line[];total:number;note?:string;cabinets?:QuoteCabinet[];settlement?:QuoteSettlementInput;exportInput?:QuoteExportInput;
 }) {
   const mounted=useSyncExternalStore(subscribeToMount,clientMounted,serverMounted);
   if(!mounted)return null;
@@ -32,7 +32,7 @@ export default function CustomerQuotePrint({title,customer,phone,address,company
   const printLines=orphan.length?lines.map(line=>({...line,room_id:line.room_id&&rooms.some(room=>room.id===line.room_id)?line.room_id:'unassigned'})):lines;
   let sheet:QuoteExportSheet|null=null,printError='';
   try{
-    sheet=buildQuoteExportSheets({project:{id:'print',name:title,project_type:'customer',customer,phone,address,...(settlement||{})},companyName:company,quote:{subproject_name:title,title,rooms:printRooms,cabinets,items:printLines,total,adopted:settlement?.adopted===true,note}})[0];
+    sheet=buildQuoteExportSheets(exportInput||{project:{id:'print',name:title,project_type:'customer',customer,phone,address,...(settlement||{})},companyName:company,quote:{subproject_name:title,title,rooms:printRooms,cabinets,items:printLines,total,adopted:settlement?.adopted===true,note}})[0];
   }catch(reason){printError=reason instanceof Error?reason.message:'报价信息无效，请核对后打印。';}
   if(printError||!sheet)return createPortal(<main className="qwCustomerPrint"><h1>{title}</h1><p>{company}</p><p>客户：{customer||'—'}　电话：{phone||'—'}　地址：{address||'—'}</p><p role="alert">{printError||'报价信息无效，请核对后打印。'}</p></main>,document.body);
   const {rows,sectionRows,subtotalRows,yellowRows,photoRows}=sheet;

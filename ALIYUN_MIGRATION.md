@@ -147,6 +147,14 @@
 - 备份：/var/lib/gugemei/backups/gugemei-backup-20261020T163057Z-db.sqlite；回滚目录：/opt/gugemei/app-prev2-v1583。发布脚本改用sed读取最新备份名，避免大量备份文件时head与pipefail引起SIGPIPE误失败；同批发布重试不增加版本。
 - 服务active、备份计时器enabled、nginx登录200，线上版本和签字框及品牌文字已核对；未创建、修改或删除真实业务记录。
 
+## 2026-10-21 项目七按钮与跨客户复制 V-1-5-86
+
+- 项目报价页始终显示与客户报价同序的七按钮工具栏，空项目可新建或复制。保留原有员工权限与回收站删除逻辑。
+- 两种报价页面的复制新增直接打开来源客户/项目方案选择器，复制空间、柜体、明细、附件、原价和备注到当前对象的可编辑草稿。来源对象不变，保存时新建记录；项目复制生成新分组编号并保留输入的方案名称。
+- 项目与客户整户打印均使用 CustomerQuotePrint，传入与下载Excel完全相同的原始 project/quote，表格由 buildQuoteExportSheets 生成。项目客户签字确定沿用同一 QuoteShare 组件及Excel确认快照/手机签字/存根流程。
+- 34项针对本批功能的隔离测试通过，生产构建成功；未使用真实业务数据测试。另有历史复制单测未更新 photos 空数组预期，以及旧静态收款UI测试仍引用已移除组件，不能计为全量测试通过；本批没有修改对应底层逻辑。
+- 部署包SHA256：4a042011c4dfd302dc78550e6443b00edccd4083fcc0452e650d4d274c989891；回滚目录 /opt/gugemei/app-prev2-v1586。
+
 ## 2026-10-21 Codex Responses API 兼容修正 V-1-5-85
 
 - Codex 接入改用官方 /v1/responses，工具参数使用 Responses 格式；工具查询保留 call_id、原始输出与加密推理上下文，store=false。保留老板权限、写入确认和防重放机制。

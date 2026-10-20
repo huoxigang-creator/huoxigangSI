@@ -17,8 +17,18 @@ function load(path){
  return module.exports;
 }
 const {default:Print,buildCustomerQuotePrintGroups}=load(resolve('app/customer-quote-print.tsx'));
+const {buildQuoteExportSheets}=load(resolve('lib/quote-export.ts'));
 const A='81000000-0000-4000-a000-000000000001',B='81000000-0000-4000-a000-000000000002',X='82000000-0000-4000-a000-000000000001',Y='82000000-0000-4000-a000-000000000002',Z='82000000-0000-4000-a000-000000000003';
 const line=(room_id,name,category,quantity,price,cabinet_id)=>({room_id,cabinet_id,name,category,quantity,price,model:'原规格',unit:'项',note:'原明细备注'});
+
+test('普通项目整户打印直接使用Excel原始输入，无房间历史方案不额外改版',()=>{
+ const exportInput={project:{id:'project',name:'项目',project_type:'project',customer:'测试客户'},companyName:'测试公司',quote:{title:'项目版本',subproject_name:'项目甲',items:[{name:'安装',category:'人工费用',quantity:2,price:20,unit:'项'}],total:4000}};
+ const sheet=buildQuoteExportSheets(exportInput)[0];
+ const labels=printRows({title:'无效备用标题',company:'测试公司',rooms:[],lines:exportInput.quote.items,total:4000,exportInput}).map(text);
+ assert.equal(labels[0],sheet.rows[0][0]);
+ assert.ok(labels.includes('报价合计40.00'));
+ assert.equal(labels.some(label=>label.includes('未分配空间')),false);
+});
 function fixture(){return {title:'整户版本',company:'测试公司',rooms:[{id:A,name:'主卧'},{id:B,name:'厨房'}],cabinets:[{id:X,room_id:A,name:'衣柜'},{id:Z,room_id:A,name:'待填柜'},{id:Y,room_id:B,name:'地柜'}],lines:[line(A,'衣柜安装','人工费用',2,10.005,X),line(A,'公共材料','材料费用',1,50),line(B,'地柜板材','材料费用',2,100,Y),line(B,'地柜拉手','五金费用',3,1.5,Y)],total:27452,note:'原整户备注'};}
 function elements(node){if(Array.isArray(node))return node.flatMap(elements);if(!React.isValidElement(node))return[];return [node,...elements(node.props.children)];}
 function text(node){if(Array.isArray(node))return node.map(text).join('');return React.isValidElement(node)?text(node.props.children):typeof node==='string'||typeof node==='number'?String(node):'';}

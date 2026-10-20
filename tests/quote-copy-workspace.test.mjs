@@ -44,7 +44,7 @@ const text=node=>typeof node==='string'||typeof node==='number'?String(node):Arr
 function find(tree,check,label){const node=elements(tree).find(check);assert.ok(node,label);return node;}
 const button=(tree,label)=>find(tree,node=>node.type==='button'&&text(node)===label,'Button: '+label);
 const input=(tree,label)=>find(tree,node=>node.type==='input'&&node.props['aria-label']===label,'Input: '+label);
-function beginCopy(app){let tree=app.render();button(tree,'新建客户报价').props.onClick();tree=app.render();const choice=find(tree,node=>node.type===app.dialogs.QuoteCreateDialog,'Type selection');choice.props.onCopy();tree=app.render();return find(tree,node=>node.type===app.dialogs.default,'Copy dialog');}
+function beginCopy(app){let tree=app.render();button(tree,'新建报价').props.onClick();tree=app.render();const choice=find(tree,node=>node.type===app.dialogs.QuoteCreateDialog,'Type selection');choice.props.onCopy();tree=app.render();return find(tree,node=>node.type===app.dialogs.default,'Copy dialog');}
 function chooseSource(app,node,id){let tree=app.copyDialog(node);find(tree,node=>node.type==='select'&&node.props['aria-label']==='来源客户或项目','Source select').props.onChange({target:{value:id}});tree=app.copyDialog(node);find(tree,node=>node.type==='button'&&node.props.role==='radio','Quotation card').props.onClick();return app.copyDialog(node);}
 
 test('老客户报价导入只建立目标客户可编辑草稿；手动保存才创建新记录，来源保持不变',async()=>{
@@ -79,4 +79,32 @@ test('复制来源支持搜索，未选报价不能导入，返回可继续空�
  input(tree,'搜索来源客户或项目').props.onChange({target:{value:'不存在的名字'}});tree=app.copyDialog(dialog);assert.match(text(tree),/没有匹配的来源客户或项目/);
  assert.equal(elements(tree).filter(node=>node.type==='option').length,1);
  dialog.props.onBack();tree=app.render();find(tree,node=>node.type===app.dialogs.QuoteCreateDialog,'Type selection').props.onNew();tree=app.render();assert.equal(input(tree,'报价版本名称').props.value,'新客户测试报价');assert.equal(app.mutations.length,0);
+});
+
+test('空项目保留七按钮，复制其他客户仅创建当前项目的新草稿且保留来源标题', async()=>{
+ const app=harness(),before=JSON.stringify(source);app.props.customerMode=false;
+ let tree=app.render();const toolbar=find(tree,node=>node.props.role==='toolbar'&&node.props['aria-label']==='项目报价操作','项目工具栏');
+ assert.deepEqual(elements(toolbar).filter(node=>node.type==='button').map(text),['新建报价','采纳','复制新增','删除','下载Excel','打印整户报价','客户签字确定']);
+ assert.equal(button(toolbar,'复制新增').props.disabled,false);
+ button(toolbar,'复制新增').props.onClick();tree=app.render();
+ const dialog=find(tree,node=>node.type===app.dialogs.default,'来源报价弹窗');
+ dialog.props.onImport(source.quotes[0],'从老客户复制的新方案',source.name);tree=app.render();
+ assert.equal(app.mutations.length,0);
+ find(tree,node=>node.type==='form','项目草稿表单').props.onSubmit({preventDefault(){}});await nextTurn();
+ assert.equal(app.mutations.length,1);const {action,args}=app.mutations[0];
+ assert.equal(action,'create_quote');assert.equal(args.project_id,app.props.projectId);assert.equal(args.title,'从老客户复制的新方案');
+ assert.ok(args.subproject_id);assert.equal(args.items[0].price,50);assert.equal(args.rooms.length,2);
+ assert.equal(args.adopted,undefined);assert.equal(args.id,undefined);assert.equal(JSON.stringify(source),before);
+});
+
+test('项目下载、打印使用同一份所选报价，客户签字绑定该报价',()=>{
+ const app=harness();app.props.customerMode=false;
+ app.props.project={id:app.props.projectId,name:app.props.projectName};
+ app.props.items=[{...source.quotes[0],project:app.props.projectId,adopted:false}];
+ let tree=app.render();const print=find(tree,node=>Boolean(node.props.exportInput),'整户打印');
+ assert.equal(print.props.exportInput.quote.id,source.quotes[0].id);
+ assert.equal(print.props.exportInput.project.id,app.props.projectId);
+ button(tree,'客户签字确定').props.onClick();tree=app.render();
+ const share=find(tree,node=>node.props.quoteId===source.quotes[0].id,'客户签字确认');
+ assert.equal(share.props.title,source.quotes[0].title);
 });
