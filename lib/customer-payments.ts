@@ -7,18 +7,18 @@ export function createCustomerPayments(db:any,codes:any,execute:(owner:string,ac
   // Lazy migration: importing this module never opens or writes a database.
   function init(){db.exec('CREATE TABLE IF NOT EXISTS customer_payment_requests (id TEXT PRIMARY KEY, owner TEXT NOT NULL, project TEXT NOT NULL, token_hash TEXT UNIQUE NOT NULL, data TEXT NOT NULL, created TEXT NOT NULL)');}
   function project(owner:string,id:string){const row=db.prepare("SELECT data FROM records WHERE id=? AND owner=? AND kind='project'").get(id,owner);if(!row||JSON.parse(row.data).deleted)throw new CustomerPaymentError('客户或项目不存在',404);return JSON.parse(row.data);}
-  function read(row:any){if(!row)throw new CustomerPaymentError('付款单不存在或链接无效',404);project(row.owner,row.project);return {...row,value:JSON.parse(row.data)};}
-  function safe(row:any){const d=row.value;return {id:row.id,project_id:row.project,title:d.title,customer:d.customer,amount:d.amount,channel:d.channel,status:d.status,created:row.created,reported_at:d.reported_at,paid_at:d.paid_at,transaction_id:d.transaction_id,expires_at:d.expires_at};}
+  function read(row:any){if(!row)throw new CustomerPaymentError('付款单不存在或链接无效',404);project(row.owner,row.project);const value=JSON.parse(row.data);if(value.scope_project_id)project(row.owner,value.scope_project_id);return {...row,value};}
+  function safe(row:any){const d=row.value;return {id:row.id,project_id:row.project,project_name:d.project_name||d.customer,title:d.title,customer:d.customer,amount:d.amount,channel:d.channel,status:d.status,created:row.created,reported_at:d.reported_at,paid_at:d.paid_at,transaction_id:d.transaction_id,expires_at:d.expires_at};}
   function owned(owner:string,id:string){init();return read(db.prepare('SELECT * FROM customer_payment_requests WHERE id=? AND owner=?').get(id,owner));}
   function shared(token:string){init();if(!/^[a-f0-9]{64}$/.test(token))throw new CustomerPaymentError('付款链接无效',404);const row=read(db.prepare('SELECT * FROM customer_payment_requests WHERE token_hash=?').get(hash(token)));if(Date.parse(row.value.expires_at)<Date.now()&&row.value.status!=='paid')throw new CustomerPaymentError('付款链接已到期，请联系商家重新生成',410);return row;}
   return {
-    list(owner:string,id:string){init();project(owner,id);return db.prepare('SELECT * FROM customer_payment_requests WHERE owner=? AND project=? ORDER BY created DESC').all(owner,id).map((row:any)=>({...safe(read(row)),token:JSON.parse(row.data).token}));},
-    async create(owner:string,args:any){init();const p=project(owner,args.project_id);const title=typeof args.title==='string'?args.title.trim():'';
+    list(owner:string,id:string){init();project(owner,id);return db.prepare('SELECT * FROM customer_payment_requests WHERE owner=? ORDER BY created DESC').all(owner).filter((row:any)=>row.project===id||JSON.parse(row.data).scope_project_id===id).filter((row:any)=>{try{read(row);return true;}catch{return false;}}).map((row:any)=>({...safe(read(row)),token:JSON.parse(row.data).token}));},
+    async create(owner:string,args:any){init();const p=project(owner,args.project_id),scopeId=args.scope_project_id||args.project_id,scope=project(owner,scopeId);if(args.project_id!==scopeId&&p.parent_id!==scopeId)throw new CustomerPaymentError('收款项目不属于当前客户或合作项目');const title=typeof args.title==='string'?args.title.trim():'';
       if(!title||title.length>100||!Number.isSafeInteger(args.amount)||args.amount<=0||args.amount>10000000000||!['微信','支付宝'].includes(args.channel))throw new CustomerPaymentError('请填写付款标题、有效金额和收款方式');
       const image=await codes.image(owner,args.code_id);const token=randomBytes(32).toString('hex'),id=randomUUID(),created=new Date().toISOString();
-      const data={token,title,customer:p.name,amount:args.amount,channel:args.channel,status:'pending',expires_at:new Date(Date.now()+7*86400000).toISOString(),image:Buffer.from(image.bytes).toString('base64'),mime:image.metadata.content_type};
+      const data={token,title,scope_project_id:scopeId,customer:scope.name,project_name:p.name,amount:args.amount,channel:args.channel,status:'pending',expires_at:new Date(Date.now()+7*86400000).toISOString(),image:Buffer.from(image.bytes).toString('base64'),mime:image.metadata.content_type};
       // Recheck ownership/liveness after the asynchronous image lookup.
-      project(owner,args.project_id);
+      project(owner,args.project_id);project(owner,scopeId);
       db.prepare('INSERT INTO customer_payment_requests VALUES(?,?,?,?,?,?)').run(id,owner,args.project_id,hash(token),JSON.stringify(data),created);
       return {...safe({id,project:args.project_id,created,value:data}),token};
     },

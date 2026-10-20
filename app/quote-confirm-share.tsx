@@ -30,7 +30,8 @@ export default function QuoteConfirmShare({quoteId,title,total,customerLabel,onC
   context.fillStyle='#1769aa';context.font='bold 32px "Microsoft YaHei",sans-serif';lines.forEach((line,index)=>context.fillText(line,400,230+index*46));
   context.fillStyle='white';context.strokeStyle='#dce6f2';context.beginPath();context.roundRect(144,qrTop-16,512,512,14);context.fill();context.stroke();context.drawImage(image,160,qrTop,480,480);
   context.fillStyle='#475569';context.font='26px "Microsoft YaHei",sans-serif';context.fillText('固美格SI超级智能平台',400,qrTop+548);
-  const link=document.createElement('a');link.href=canvas.toDataURL('image/png');link.download=(customerLabel||title).replace(/[\\/:*?"<>|]/g,'_')+'-客户确定单二维码.png';link.click();
+  const cropped=document.createElement('canvas');cropped.width=752;cropped.height=height-48;cropped.getContext('2d')!.drawImage(canvas,24,24,752,height-48,0,0,752,height-48);
+  const link=document.createElement('a');link.href=cropped.toDataURL('image/png');link.download=(customerLabel||title).replace(/[\\/:*?"<>|]/g,'_')+'-客户确定单二维码.png';link.click();
  }catch{setError('二维码图片下载失败，请重试');}}
  async function revoke(){if(!selected||lock.current)return;if(!window.confirm('停用后客户不能再打开此链接，已保存的签字存根仍保留。确定停用？'))return;lock.current=true;setBusy(true);try{const response=await fetch('/api/quote-shares',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'revoke',args:{id:selected.id}})}),data=await response.json() as {ok?:boolean;error?:string};if(!response.ok||!data.ok)throw Error(data.error||'停用失败');await load();}catch(e){setError(e instanceof Error?e.message:'停用失败');}finally{lock.current=false;setBusy(false);}}
  const receipt=selected?'/api/quote-shares?receipt_id='+encodeURIComponent(selected.id):'';
