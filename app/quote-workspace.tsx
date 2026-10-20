@@ -59,6 +59,7 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
   function customerPriceOf(material:any){if(customerPriceType==='internal')return material.internal_price||material.sale_price;if(customerPriceType==='contract')return material.contract_price||material.sale_price;return material.sale_price;}
   const groups=groupQuotes(customerMode?items.map(quote=>({...quote,subproject_id:undefined,subproject_name:projectName})):items),selection=useListSelection(items,projectId+'|报价版本');
   const [chosen,setChosen]=useState<{project:string;group:string;quote:string}>({project:projectId,group:'',quote:''});
+  const [pickedQuote,setPickedQuote]=useState<string|null>(null);
   const [category,setCategory]=useState<QuoteCategory>('人工费用');
   const [viewAll,setViewAll]=useState(false);
   const [draft,setDraft]=useState<QuoteDraft|null>(null),[editorCategory,setEditorCategory]=useState<QuoteCategory>('人工费用');
@@ -87,7 +88,7 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
   const [focusItemKey,setFocusItemKey]=useState('');
   const disabled=busy||working||importing||docImportBusy;
   const selectedGroup=groups.find(group=>chosen.project===projectId&&group.id===chosen.group)||groups[0]||null;
-  const activeQuote:QuoteRecord|null=selectedGroup?(selectedGroup.quotes.find(quote=>quote.id===chosen.quote)||selectedGroup.adopted||selectedGroup.quotes[0]):null;
+  const activeQuote:QuoteRecord|null=customerMode&&!chosen.quote?(pickedQuote?(selectedGroup?.quotes.find(quote=>quote.id===pickedQuote)||null):null):(selectedGroup?(selectedGroup.quotes.find(quote=>quote.id===chosen.quote)||selectedGroup.adopted||selectedGroup.quotes[0]):null);
   const activeRooms=recordRooms(activeQuote);
   const activeRoom=activeQuote&&roomChoice.quote===activeQuote.id&&(roomChoice.id===''||activeRooms.some(room=>room.id===roomChoice.id))?roomChoice.id:activeRooms[0]?.id||'';
   const activeCabinets=recordCabinets(activeQuote);
@@ -107,7 +108,7 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
   const eligibleImportRows=selectedImportRows.filter(row=>!importIssues(row).length);
   const costConfirmationRequired=preview?.priceKind==='cost'||priceBasis==='cost';
 
-  useEffect(()=>{profitRequest.current++;setProfit(null);setSharingQuote(null);laborRequest.current++;setLaborLoading(false);setLaborCatalog([]);setPurchaseOrders([]);setLaborNotes({});draftToken.current++;docImportTarget.current=null;setDocImportBusy(false);setDocImportNotice('');setDocImportOpenRequest(0);setDraft(null);setPreview(null);setCreateDialog(null);setCopyError('');setMessage('');setError('');setCategory('人工费用');setFullscreen(false);},[projectId,customerMode]);
+  useEffect(()=>{profitRequest.current++;setProfit(null);setSharingQuote(null);laborRequest.current++;setLaborLoading(false);setLaborCatalog([]);setPurchaseOrders([]);setLaborNotes({});draftToken.current++;docImportTarget.current=null;setDocImportBusy(false);setDocImportNotice('');setDocImportOpenRequest(0);setDraft(null);setPreview(null);setCreateDialog(null);setCopyError('');setMessage('');setError('');setCategory('人工费用');setFullscreen(false);setPickedQuote(null);},[projectId,customerMode]);
   useEffect(()=>{
     if(!active||(!draft&&(!customerMode||!fullscreen)))return;
     const previous=document.body.style.overflow;document.body.style.overflow='hidden';
@@ -262,6 +263,20 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
     catch(reason){setMessage(reason instanceof Error?reason.message:'刷新失败，请刷新后核对记录。');}
     finally{mutationLock.current=false;setWorking(false);}
   }
+  async function removePicked() {
+    if(disabled||mutationLock.current||!activeQuote)return;
+    const quote=activeQuote;
+    if(!window.confirm(`将报价“${quote.title}”移入回收站？删除后可恢复。删除已采纳版本会重新计算${customerMode?'客户报价':'合作项目'}总额。`))return;
+    mutationLock.current=true;setWorking(true);setMessage('');
+    try{
+      await trashRequest('delete_record',{id:quote.id});
+      setPickedQuote(null);
+      setMessage('已删除，可从回收站恢复。');
+      await onDeleted([quote.id]);
+    }
+    catch(reason){setMessage(reason instanceof Error?reason.message:'删除失败，请重试。');}
+    finally{mutationLock.current=false;setWorking(false);}
+  }
   async function importFile(file:File|undefined) {
     if(!file||!draft||disabled)return;
     setImporting(true);setImportError('');setError('');
@@ -311,13 +326,13 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
   const purchasedGroupIds=new Set(groups.filter(group=>overviewOrders.some(order=>group.quotes.some(quote=>quote.id===order.source_quote_id)||!order.source_quote_id&&familyProjectIds.has(order.project_id))).map(group=>group.id));
   return <div className={'quoteWorkspace '+(customerMode?'qwCustomerWorkspace ':'')+(customerMode&&fullscreen?'qwCustomerFullscreen':'')}>
     {customerMode&&fullscreen&&<header className="qwFullscreenHead"><button type="button" disabled={disabled} onClick={()=>setFullscreen(false)}><ArrowLeft size={16}/>返回客户页面</button><div><strong>{projectName}</strong><span>{activeQuote?.title||'客户报价'}</span></div></header>}
-    {!(customerMode&&activeQuote)&&<div className="qwOverview"><div><h2>{customerMode?'客户报价':'项目报价'} <span className="count">{customerMode?items.length:groups.length}</span></h2><p>{customerMode?'整户报价按空间填写；一个客户可保留多个版本，采纳一个版本。':`每个项目分别采纳一个报价版本，已采纳金额汇总到"${projectName}"。`}</p></div><div><span>已采纳总额</span><strong>{money(groups.reduce((sum,group)=>sum+group.total,0))}</strong></div></div>}
+    {!customerMode&&<div className="qwOverview"><div><h2>{customerMode?'客户报价':'项目报价'} <span className="count">{customerMode?items.length:groups.length}</span></h2><p>{customerMode?'整户报价按空间填写；一个客户可保留多个版本，采纳一个版本。':`每个项目分别采纳一个报价版本，已采纳金额汇总到"${projectName}"。`}</p></div><div><span>已采纳总额</span><strong>{money(groups.reduce((sum,group)=>sum+group.total,0))}</strong></div></div>}
     {message&&<p className="qwFeedback" role="status">{message}</p>}
     {customerMode&&<div className="qwCardToolbar" role="toolbar" aria-label="客户报价操作">
       <button disabled={disabled} onClick={()=>setCreateDialog('type')}><Plus size={14}/>新建报价</button>
       <button className="primary" disabled={disabled||!activeQuote||activeQuote.adopted} onClick={()=>void adopt()}><Check size={14}/>采纳</button>
       <button disabled={disabled||!activeQuote} onClick={()=>{if(activeQuote)openDraft('version',activeQuote);}}><Copy size={14}/>复制新增</button>
-      {!employeeMode&&<button className="dangerLink" disabled={disabled||!selection.selectedIds.length} onClick={()=>void remove()}><Trash2 size={14}/>删除</button>}
+      {!employeeMode&&<button className="dangerLink" disabled={disabled||(!selection.selectedIds.length&&!activeQuote)} onClick={()=>{if(selection.selectedIds.length)void remove();else void removePicked();}}><Trash2 size={14}/>删除</button>}
       <button disabled={disabled||!activeQuote} onClick={()=>void exportExcel()}><FileSpreadsheet size={14}/>下载Excel</button>
       <button disabled={disabled||!activeQuote} onClick={()=>window.print()}><Printer size={14}/>打印整户报价</button>
       {!employeeMode&&<button disabled={disabled||!activeQuote} onClick={()=>{if(activeQuote)setSharingQuote({id:activeQuote.id,title:activeQuote.title,total:activeQuote.total,receivable:project?.receivable??activeQuote.total});}}><FileCheck2 size={14}/>客户签字确定</button>}
@@ -326,7 +341,7 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
       const selected=quote.id===activeQuote?.id;
       return <article key={quote.id} className={'qwCard '+(selected?'current ':'')+(quote.adopted?'adopted':'')}>
         <div className="qwCardTop"><SelectionCheckbox checked={selection.selectedIds.includes(quote.id)} label={'选择报价 '+quote.title} onChange={()=>selection.toggle(quote.id)} disabled={disabled}/><span className={'badge '+(quote.adopted?'green':'blue')}>{quote.adopted?'已采纳':'草稿'}</span><small>{quote.created?.slice(0,10)||''}</small></div>
-        <button className="qwCardOpen" disabled={disabled} onClick={()=>choose(quote)}>
+        <button className="qwCardOpen" disabled={disabled} onClick={()=>setPickedQuote(quote.id)} onDoubleClick={()=>choose(quote)}>
           <h3>{quote.title||'报价方案'}</h3>
           <strong>{money(quote.total)}</strong>
           <span>{quote.adopted?'已采纳金额':'草稿金额'} · 双击查看明细</span>
