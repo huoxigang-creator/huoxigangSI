@@ -13,7 +13,7 @@ export function proxy(request: NextRequest) {
   }
   const next = () => NextResponse.next({ request: { headers } });
   const staticAsset = path.startsWith('/_next/') || path.startsWith('/assets/') || path === '/favicon.ico' || /\.(?:svg|png|jpg|jpeg|webp|ico|css|js|woff2?)$/.test(path);
-  if (staticAsset || publicPaths.has(path) || path.startsWith('/s/c/') || (/^\/s\/q\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-quote'&&['GET','POST'].includes(request.method))) return next();
+  if ((/^\/s\/p\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-customer-payment'&&['GET','POST'].includes(request.method)) || staticAsset || publicPaths.has(path) || path.startsWith('/s/c/') || (/^\/s\/q\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-quote'&&['GET','POST'].includes(request.method))) return next();
 
   const account = sessionAccount(request.cookies.get(SESSION_COOKIE)?.value);
   if (!account) {

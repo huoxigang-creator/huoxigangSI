@@ -23,8 +23,8 @@ test('对业主进展仅包含名称、已登记阶段和人工说明，不包�
 });
 
 test('未设置或未知阶段不会编造工作环节，收尾与已归档能正确定位', () => {
-  assert.equal(progressStep('收尾中'), 4);
-  assert.equal(progressStep('已归档'), 5);
+  assert.equal(progressStep('收尾中'), 5);
+  assert.equal(progressStep('已归档'), 6);
   assert.equal(publicProgress({name: '测试', status: '内部成本 10000'}).stage, '未设置阶段');
   assert.equal(publicProgress({}).summary, '当前工作环节尚未登记。');
   assert.ok(!publicProgressText(publicProgress({name: '空任务项目', status: '设计中'})).includes('已完成设计'));

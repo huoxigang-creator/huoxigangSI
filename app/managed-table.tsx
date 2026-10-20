@@ -24,6 +24,23 @@ export default function ManagedTable({children, tableKey, preferenceScope = '', 
   const focusMemory = useRef<{key: string; element: HTMLElement; start?: number | null; end?: number | null; direction?: 'forward' | 'backward' | 'none' | null} | null>(null);
   const [draggingColumn, setDraggingColumn] = useState(''), [columnTarget, setColumnTarget] = useState('');
   const table = useRef<HTMLTableElement>(null), latest = useRef<{key: string; preferences: TablePreferences}>({key: '', preferences: emptyTablePreferences()});
+  const viewport = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (viewport.current) viewport.current.scrollTop = 0; }, [storageKey]);
+  useEffect(() => {
+    const element = viewport.current;
+    if (!element) return;
+    const measure = () => {
+      const top = element.getBoundingClientRect().top;
+      const bottom = element.closest('[role="dialog"]')?.querySelector('.tableEditorFooter,.qwDialogFoot,.modalFoot');
+      const reserve = bottom?.getBoundingClientRect().height || 24;
+      element.style.setProperty('--table-available-height', Math.max(100, window.innerHeight - Math.max(0, top) - reserve - 16) + 'px');
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    if (element.parentElement) observer?.observe(element.parentElement);
+    return () => { window.removeEventListener('resize', measure); observer?.disconnect(); };
+  });
   const resize = useRef<{key: string; id: string; startX: number; startWidth: number; minimum: number; widths: Record<string, number>; original: TablePreferences; pointerId: number; handle: HTMLElement} | null>(null);
   const [layout, setLayout] = useState<{key: string; widths: Record<string, number>}>({key: '', widths: {}}), [resizing, setResizing] = useState('');
   const preferences = state.key === storageKey ? state.preferences : emptyTablePreferences();
@@ -174,9 +191,11 @@ export default function ManagedTable({children, tableKey, preferenceScope = '', 
   });
   const fixed = resizable && layout.key === storageKey, totalWidth = visibleColumns.reduce((sum, column) => sum + widthFor(column), 102);
   return <>
+    <div ref={viewport} className="managedTableViewport" tabIndex={0} role="region" aria-label="表格滚动区域">
     <table {...props} ref={table} style={{...props.style, ...(fixed ? {tableLayout: 'fixed', width: totalWidth, minWidth: totalWidth} : {})}} className={'managedTable ' + (fixed ? 'managedTableResizable ' : '') + className}>
       {fixed && <colgroup>{visibleColumns.map(column => <col key={column.id} data-column-id={column.id} style={{width: widthFor(column)}}/>)}<col className="managedControlColumn" style={{width: 102}}/></colgroup>}{rendered}
     </table>
+    </div>
     {columnReorder && hasComplexCells && <p className="managedTableFeedback managedColumnOrderNotice">此表含合并单元格，列顺序固定；仍可拖动边界调整列宽。</p>}
     {feedback && <p className="managedTableFeedback" role="status">{feedback}</p>}
     {settings && !disabled && <div className="overlay managedColumnsOverlay"><section className="modal managedColumnsDialog" role="dialog" aria-modal="true" aria-label="显示字段管理">

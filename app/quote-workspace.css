@@ -454,3 +454,9 @@
 .qwTabUploadAction:disabled{opacity:.5;cursor:not-allowed}
 /* V-1-5-66: 报价明细表格恢复「空间」列，标明每条明细所属空间 */
 .qwTable .qwRoomCell{white-space:nowrap;color:#1d4ed8;font-weight:600;font-size:12px}
+
+@media screen {
+ .qwDialog .qwTableWrap:has(>.managedTableViewport){min-height:0!important;overflow:visible!important;flex:1;display:flex;flex-direction:column}
+ .qwDialog .qwTableWrap>.managedTableViewport{flex:1;min-height:0}
+ .qwDialog .qwTableWrap .managedTable>thead,.qwDialog .qwTableWrap .managedTable>thead>tr>th{top:0!important}
+}

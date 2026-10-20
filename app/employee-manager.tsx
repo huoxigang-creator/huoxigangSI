@@ -6,7 +6,7 @@ import { SOFTWARE_VERSION } from '../lib/release';
 
 type Project = { id: string; name: string; customer: string; phone?: string; address?: string; status: string; note?: string; order_date?: string; project_type?: string; parent_id?: string };
 type Workspace = { projects: Project[]; quotes: any[] };
-const stages = ['洽谈中', '设计中', '生产中', '安装中', '收尾中', '已完工', '已归档'];
+const stages = ['意向','洽谈中', '设计中', '生产中', '安装中', '收尾中', '已完工', '已归档'];
 
 export default function EmployeeManager() {
   const [data, setData] = useState<Workspace>({ projects: [], quotes: [] });

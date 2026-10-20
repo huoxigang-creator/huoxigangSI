@@ -14,6 +14,9 @@ export type QuoteItem = {
   unit: string;
   quantity: number;
   price: number;
+  sale_price?: number;
+  internal_price?: number;
+  contract_price?: number;
   note: string;
   photos?: { key: string; name: string; mime: string; size: number }[];
 };
@@ -52,6 +55,7 @@ export function normalizeQuoteItem(raw: Partial<QuoteItem> | null | undefined): 
     unit: typeof item.unit === 'string' ? item.unit : '',
     quantity: typeof item.quantity === 'number' ? item.quantity : 1,
     price: typeof item.price === 'number' ? item.price : 0,
+    ...Object.fromEntries(['sale_price','internal_price','contract_price'].flatMap(field=>{const value=(item as any)[field];return typeof value==='number'&&Number.isFinite(value)&&value>=0?[[field,value]]:[];})),
     note: typeof item.note === 'string' ? item.note : '',
     photos: Array.isArray(item.photos) ? item.photos.filter(photo => photo && typeof photo.key === 'string' && typeof photo.name === 'string').map(photo => ({ key: photo.key, name: photo.name, mime: typeof photo.mime === 'string' ? photo.mime : '', size: typeof photo.size === 'number' ? photo.size : 0 })) : [],
   };

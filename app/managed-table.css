@@ -3,3 +3,15 @@
 .managedColumnsOverlay{z-index:450!important}.managedTable.managedTableResizable>thead>tr>th[data-column-id],.managedTable.managedTableResizable>tbody>tr>td[data-column-id],.managedTable.managedTableResizable>tfoot>tr>td[data-column-id]{width:auto!important;min-width:0!important;max-width:none!important}.managedTable .managedReorderHeader{position:relative}.managedTable .managedHeaderDrag{cursor:grab;touch-action:none;user-select:none}
 .managedTable .managedHeaderDrag:active{cursor:grabbing}
 .managedTable th.managedColumnOrderHandle{display:none!important}.managedTable .managedColumnOrderHandle:hover,.managedTable .managedColumnOrderHandle:focus-visible{color:#245c9c;background:#e8f1fc!important;outline:2px solid #5083c0;outline-offset:0}.managedTable .managedColumnOrderHandle:active{cursor:grabbing}.managedTable .managedColumnOrderHandle:disabled{cursor:default;opacity:.35}.managedTable th.isColumnDragging{background:#edf4fd!important}.managedTable th.isColumnTarget{box-shadow:inset 3px 0 #245c9c}.managedColumnOrderNotice{margin:0;padding:7px 12px;color:#71849c;font-size:11px}@media print{.managedColumnOrderHandle,.managedColumnOrderNotice{display:none!important}.managedTable .managedReorderHeader,.managedTable .managedResizableHeader{padding-right:8px!important}.managedTable th.isColumnDragging,.managedTable th.isColumnTarget{box-shadow:none!important}}
+
+/* All interactive tables scroll independently; column resize/reorder must not override sticky headers. */
+@media screen {
+ .managedTableViewport{min-width:0;width:100%;max-height:var(--table-available-height,55dvh);overflow:auto;overscroll-behavior:contain;position:relative;isolation:isolate}
+ .managedTableViewport:focus-visible{outline:2px solid #5083c0;outline-offset:-2px}
+ .managedTableViewport>.managedTable>thead{position:sticky!important;top:0!important;z-index:5;background:#eef4fb}
+ .managedTableViewport>.managedTable>thead>tr>th{position:sticky!important;top:0!important;z-index:5;background:#eef4fb}
+ .managedTableViewport>.managedTable>thead>tr>th.managedTableHeader{z-index:6}
+ .diRawTableScroll,.diTableScroll{max-height:55dvh;overflow:auto;overscroll-behavior:contain}
+ .diRawTable>thead,.diPreviewTable>thead{position:sticky;top:0;z-index:5;background:#eef4fb}
+}
+@media print{.managedTableViewport{display:block;max-height:none!important;height:auto!important;overflow:visible!important;isolation:auto}.managedTableViewport>.managedTable>thead{position:static!important}}

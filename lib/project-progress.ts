@@ -1,4 +1,5 @@
 export const PROGRESS_STAGES = [
+  {status: '意向', label: '意向'},
   {status: '洽谈中', label: '洽谈'},
   {status: '设计中', label: '设计'},
   {status: '生产中', label: '生产'},

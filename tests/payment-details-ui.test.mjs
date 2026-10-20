@@ -19,3 +19,11 @@ test('历史板材付款以明细显示，明细区域先于备注且使用原�
  const html=renderToStaticMarkup(React.createElement(PaymentDetailSummary,{transaction:{type:'付款',amount:993900,note:'板材款'}}));
  assert.match(html,/板材款/);assert.match(html,/9,939\.00/);assert.ok(html.indexOf('板材款')<html.indexOf('paymentDetailNote'));
 });
+
+test('付款金额输入完成自动补一行，重复完成与空值不重复添加',()=>{
+ let items=[{name:'板材款',amount:'100'}];
+ const nodes=value=>Array.isArray(value)?value.flatMap(nodes):React.isValidElement(value)?[value,...nodes(value.props.children)]:[];
+ const amount=()=>nodes(PaymentDetailsEditor({items,onChange:value=>{items=value;}})).find(node=>node.props['aria-label']==='明细金额1');
+ amount().props.onBlur();assert.equal(items.length,2);assert.deepEqual(items[1],{name:'',amount:''});amount().props.onBlur();assert.equal(items.length,2);
+ items=[{name:'',amount:''}];amount().props.onBlur();assert.equal(items.length,1);
+});

@@ -84,7 +84,7 @@ test('复制来源支持搜索，未选报价不能导入，返回可继续空�
 test('空项目保留七按钮，复制其他客户仅创建当前项目的新草稿且保留来源标题', async()=>{
  const app=harness(),before=JSON.stringify(source);app.props.customerMode=false;
  let tree=app.render();const toolbar=find(tree,node=>node.props.role==='toolbar'&&node.props['aria-label']==='项目报价操作','项目工具栏');
- assert.deepEqual(elements(toolbar).filter(node=>node.type==='button').map(text),['新建报价','采纳','复制新增','删除','下载Excel','打印整户报价','客户签字确定']);
+ assert.deepEqual(elements(toolbar).filter(node=>node.type==='button').map(text),['新建报价','采纳','取消采纳','复制新增','删除','下载Excel','打印整户报价','客户签字确定']);
  assert.equal(button(toolbar,'复制新增').props.disabled,false);
  button(toolbar,'复制新增').props.onClick();tree=app.render();
  const dialog=find(tree,node=>node.type===app.dialogs.default,'来源报价弹窗');
@@ -107,4 +107,34 @@ test('项目下载、打印使用同一份所选报价，客户签字绑定该�
  button(tree,'客户签字确定').props.onClick();tree=app.render();
  const share=find(tree,node=>node.props.quoteId===source.quotes[0].id,'客户签字确认');
  assert.equal(share.props.title,source.quotes[0].title);
+});
+
+test('客户与项目均可取消所选报价采纳；草稿与空列表按钮置灰',async()=>{
+ for(const customerMode of [true,false]){
+  const app=harness();app.props.customerMode=customerMode;
+  let tree=app.render();assert.equal(button(tree,'取消采纳').props.disabled,true);
+  app.props.items=[{...source.quotes[0],project:app.props.projectId,adopted:true}];tree=app.render();
+  if(customerMode){find(tree,node=>node.type==='button'&&node.props.className==='qwCardOpen','报价卡片').props.onClick();tree=app.render();}
+  const toolbar=find(tree,node=>node.props.role==='toolbar','工具栏');assert.equal(button(toolbar,'取消采纳').props.disabled,false);
+  button(toolbar,'取消采纳').props.onClick();await nextTurn();
+  assert.equal(app.mutations.at(-1).action,'unadopt_quote');assert.equal(app.mutations.at(-1).args.id,source.quotes[0].id);
+ }
+});
+
+test('报价数量完成后即补空行，不依赖名称先填写，重复离焦不重复补行',()=>{
+ const app=harness();app.props.customerMode=false;let tree=app.render();button(tree,'新建报价').props.onClick();tree=app.render();find(tree,node=>node.type===app.dialogs.QuoteCreateDialog,'新建选择').props.onNew();tree=app.render();
+ input(tree,'人工费用第1行数量').props.onChange({target:{value:'2'}});tree=app.render();input(tree,'人工费用第1行数量').props.onBlur();tree=app.render();
+ assert.equal(input(tree,'人工费用第2行数量').props.value,'');assert.equal(input(tree,'人工费用第1行名称').props.value,'');
+ input(tree,'人工费用第1行数量').props.onBlur();tree=app.render();assert.equal(elements(tree).filter(node=>node.type==='input'&&/^人工费用第\d+行数量$/.test(node.props['aria-label']||'')).length,2);
+});
+
+test('草稿同时显示三种价格，按客户类型计价，保存保留快照，其他价修改不改变当前金额',async()=>{
+ const app=harness();app.props.project={id:app.props.projectId,name:app.props.projectName,price_type:'internal'};
+ button(app.render(),'复制新增').props.onClick();let tree=app.render();
+ const dialog=find(tree,node=>node.type===app.dialogs.default,'来源选择');
+ dialog.props.onImport({...source.quotes[0],items:[{...source.quotes[0].items[0],sale_price:100,internal_price:30,contract_price:20}]},'三价方案','测试来源');tree=app.render();
+ assert.equal(input(tree,'材料费用第1行销售单价').props.value,100);assert.equal(input(tree,'材料费用第1行内部价').props.value,30);assert.equal(input(tree,'材料费用第1行合同价').props.value,20);
+ input(tree,'材料费用第1行销售单价').props.onChange({target:{value:'150'}});tree=app.render();input(tree,'材料费用第1行内部价').props.onChange({target:{value:'0'}});tree=app.render();
+ find(tree,node=>node.type==='form','草稿保存').props.onSubmit({preventDefault(){}});await nextTurn();
+ const line=app.mutations[0].args.items[0];assert.equal(line.price,0);assert.equal(line.sale_price,150);assert.equal(line.internal_price,0);assert.equal(line.contract_price,20);
 });

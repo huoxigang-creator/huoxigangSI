@@ -77,8 +77,9 @@ async function saveProgressImage(progress: PublicProgress, ownerNote: string) {
   context.fillStyle = '#7a91ac'; context.font = `24px ${font}`; context.fillText(`更新日期：${progress.asOf}`, 92, y + 10);
   const current = progressStep(progress.stage), nodeY = y + 100;
   PROGRESS_STAGES.forEach((stage, index) => {
-    const x = 117 + index * 176;
-    if (index < PROGRESS_STAGES.length - 1) {context.strokeStyle = index < current ? '#92b4dc' : '#e1e9f3'; context.lineWidth = 5; context.beginPath(); context.moveTo(x + 22, nodeY); context.lineTo(x + 154, nodeY); context.stroke();}
+    const step = (canvas.width - 234) / (PROGRESS_STAGES.length - 1);
+    const x = 117 + index * step;
+    if (index < PROGRESS_STAGES.length - 1) {context.strokeStyle = index < current ? '#92b4dc' : '#e1e9f3'; context.lineWidth = 5; context.beginPath(); context.moveTo(x + 22, nodeY); context.lineTo(x + step - 22, nodeY); context.stroke();}
     context.fillStyle = index <= current ? '#245c9c' : '#edf2f8'; context.beginPath(); context.arc(x, nodeY, 22, 0, Math.PI * 2); context.fill();
     context.fillStyle = index <= current ? '#ffffff' : '#91a1b4'; context.font = `22px ${font}`; context.textAlign = 'center'; context.fillText(String(index + 1), x, nodeY + 8);
     context.fillStyle = index === current ? '#245c9c' : '#71869e'; context.font = `${index === current ? 'bold ' : ''}24px ${font}`; context.fillText(stage.label, x, nodeY + 62);

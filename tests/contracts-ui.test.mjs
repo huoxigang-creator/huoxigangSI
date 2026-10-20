@@ -223,3 +223,5 @@ test('旧合同缺身份证先提示编辑，签署确认完整显示已填号�
  const complete=harness({configured:true});tree=await ready(complete);button(tree,'发起电子签署').props.onClick();sign=dialog(complete.render(),'电子签署确认');
  assert.match(text(sign),/大陆身份证/);assert.match(text(sign),new RegExp(identityFixture));assert.equal(complete.calls.some(call=>call.action==='start_signing'),false);
 });
+
+test('合同数字完成后补空白分期，空行不强制填写且保存不计入分期',async()=>{const app=harness({contracts:[]});let tree=await newEditor(app);input(tree,'第1期比例').props.onBlur();tree=app.render();assert.equal(input(tree,'第2期名称').props.required,false);assert.equal(input(tree,'第2期比例').props.required,false);assert.equal(input(tree,'第2期比例').props.value,'');input(tree,'第1期比例').props.onBlur();tree=app.render();assert.equal(nodes(tree).filter(node=>node.type==='input'&&/^第\d+期比例$/.test(node.props['aria-label']||'')).length,2);await submit(tree);const saved=app.calls.find(value=>value.action==='save_contract');assert.equal(saved.args.installments.length,1);assert.equal(saved.args.installments[0].ratio,100);});
