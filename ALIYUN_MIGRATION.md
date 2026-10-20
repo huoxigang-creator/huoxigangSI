@@ -146,3 +146,12 @@
 - 部署包SHA256：5d0dc804c27d8de77f3fefa12fa22e0bf62ce42d8f5be2d4c9bbff73dbc569bb；BUILD_ID：74b77d60-af74-4a20-9800-5f6d415b5e4d。
 - 备份：/var/lib/gugemei/backups/gugemei-backup-20261020T163057Z-db.sqlite；回滚目录：/opt/gugemei/app-prev2-v1583。发布脚本改用sed读取最新备份名，避免大量备份文件时head与pipefail引起SIGPIPE误失败；同批发布重试不增加版本。
 - 服务active、备份计时器enabled、nginx登录200，线上版本和签字框及品牌文字已核对；未创建、修改或删除真实业务记录。
+
+## 2026-10-21 客户报价卡片单击选中/双击进入 V-1-5-84
+
+- 客户报价卡片交互调整：单击卡片选中并高亮（蓝色边框），选中后顶部操作栏按钮（采纳/复制新增/删除/下载Excel/打印整户报价/客户签字确定）针对所选卡片操作；未选中任何卡片时依赖报价的按钮置灰。双击卡片进入报价明细。删除按钮：无勾选时删除当前选中卡片（新增 removePicked），有勾选仍按勾选批量删除。实现文件：app/quote-workspace.tsx。
+- 本批版本 2026-10-21 V-1-5-84（lib/release.ts SOFTWARE_VERSION + CHANGELOG 追加一条）。
+- 生产构建成功，BUILD_ID fee7eac6-697a-46d6-819a-25737540ce41；线上 client 产物 release-ChrPLGCj.js 含 V-1-5-84。
+- 部署包 gugemei-standalone-v1584.tar.gz（70.9MB）；SHA256：ef7ebc78f9a0bb29f67396abdd57ff3cdc23148f5a8c88e2db8874d8baf0a783；回滚目录 /opt/gugemei/app-prev2-v1584。
+- 部署前备份：/var/lib/gugemei/backups/gugemei-backup-20261020T171423Z-db.sqlite；备份计时器 enabled。
+- 服务 active、3700 与 nginx 8080 登录页均 200，线上 BUILD_ID 与本地一致；GitHub main 已推送提交 caf18cce（固美格 V-1-5-84）。未创建、修改或删除真实业务记录。
