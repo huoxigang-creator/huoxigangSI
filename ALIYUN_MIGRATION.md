@@ -206,3 +206,12 @@
 - 部署包SHA256：97175acd9ff9e8b216844e797f4ba1d0d3ff317f6c706e027738b9fe04456f5a；BUILD_ID：c05cdb90-aea9-4850-a34b-9f77572fbb85。
 - 发布前备份：/var/lib/gugemei/backups/gugemei-backup-20261020T183721Z-db.sqlite；回滚目录 /opt/gugemei/app-prev2-v1590。线上版本90，服务active、nginx登录200、匿名付款管理401、无效图片token404，两项备份timer enabled。
 - 按用户约定，每次发布同时更新阿里云与GitHub，保持本地软件版本号一致，已记入agents.md。
+
+
+## 2026-10-21 付款卡片顺序与原图保存 V-1-5-91
+
+- 后台预览及下载PNG去掉重复付款标题/项目名称，按品牌标题、付款状态、客户地址、二维码、金额、平台落款居中排列；付款状态随所选付款单列表刷新，已付款不标成待付款。
+- 用户实测微信长按菜单无识别二维码选项，因此不再把长按识别当作可保证的能力；手机大图新增原图保存入口，提示先保存，再在微信/支付宝扫一扫中从相册选择。保留个人码人工核实入账流程。
+- 六项付款服务隔离测试通过，生产构建成功，相关文件未见类型错误；未进行真实微信付款实测。
+- 部署包SHA256：07b30e0a4d86fbd8da0a842a068a223b1c4af68b9a4380bd376f5bfb1408abaf；BUILD_ID：a6d9e276-c46f-4d1d-844b-3c7fab24c425。
+- 发布前备份：/var/lib/gugemei/backups/gugemei-backup-20261020T184704Z-db.sqlite；回滚目录 /opt/gugemei/app-prev2-v1591。线上版本91，服务active、nginx登录200，两项备份timer enabled。
