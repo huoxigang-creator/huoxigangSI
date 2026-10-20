@@ -147,6 +147,13 @@
 - 备份：/var/lib/gugemei/backups/gugemei-backup-20261020T163057Z-db.sqlite；回滚目录：/opt/gugemei/app-prev2-v1583。发布脚本改用sed读取最新备份名，避免大量备份文件时head与pipefail引起SIGPIPE误失败；同批发布重试不增加版本。
 - 服务active、备份计时器enabled、nginx登录200，线上版本和签字框及品牌文字已核对；未创建、修改或删除真实业务记录。
 
+## 2026-10-21 Codex Responses API 兼容修正 V-1-5-85
+
+- Codex 接入改用官方 /v1/responses，工具参数使用 Responses 格式；工具查询保留 call_id、原始输出与加密推理上下文，store=false。保留老板权限、写入确认和防重放机制。
+- 三项隔离测试通过，生产构建成功；没有使用真实业务数据测试 AI。
+- 部署包 SHA256：26057fd09418699c7fbaa93ea5d510711e7f3a985bca94476e7e08f8a327eb5e。回滚目录 /opt/gugemei/app-prev2-v1585。
+- 服务器已保存 API Key，但直连 api.openai.com:443 连接超时；未完成真实模型调用验证，不能认定模型已可用或密钥已通过鉴权。网络错误在界面显示明确提示，密钥不进入源码和日志。
+
 ## 2026-10-21 客户报价卡片单击选中/双击进入 V-1-5-84
 
 - 客户报价卡片交互调整：单击卡片选中并高亮（蓝色边框），选中后顶部操作栏按钮（采纳/复制新增/删除/下载Excel/打印整户报价/客户签字确定）针对所选卡片操作；未选中任何卡片时依赖报价的按钮置灰。双击卡片进入报价明细。删除按钮：无勾选时删除当前选中卡片（新增 removePicked），有勾选仍按勾选批量删除。实现文件：app/quote-workspace.tsx。

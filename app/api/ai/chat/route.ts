@@ -8,6 +8,7 @@ import { MANAGEMENT_OWNER_ID } from '../../../../lib/management-access';
 import { state, execute, BusinessError } from '../../../../lib/service';
 import { catalogExecute, CatalogError } from '../../../../lib/catalog';
 import { aiContext } from '../../../../lib/ai-context';
+import { codexInput, codexMessage } from '../../../../lib/codex-responses';
 import { tools, catalogActions } from '../../../mcp/route';
 
 export const runtime = 'nodejs';
@@ -15,7 +16,7 @@ const recentCalls = new Map<string, number[]>();
 let activeCalls = 0;
 const noStore = { 'Cache-Control': 'no-store' };
 type ToolCall = { id: string; type: 'function'; function: { name: string; arguments: string } };
-type Message = { role: 'system' | 'user' | 'assistant' | 'tool'; content?: string | null; tool_calls?: ToolCall[]; tool_call_id?: string };
+type Message = { role: 'system' | 'user' | 'assistant' | 'tool'; content?: string | null; tool_calls?: ToolCall[]; tool_call_id?: string; responseItems?: any[] };
 type Provider = 'qwen' | 'claude' | 'codex';
 
 function secret() { return readFileSync(join(dataDirectory, 'session-secret')); }
@@ -74,13 +75,14 @@ async function callModel(provider: Provider, messages: Message[]): Promise<Messa
     if (!key) throw new Error('Codex 尚未配置 API Key');
     const base = process.env.GUGEMEI_CODEX_BASE_URL || 'https://api.openai.com/v1';
     const url = new URL(base);
-    if (url.protocol !== 'https:' || url.hostname !== 'api.openai.com' || url.pathname !== '/v1') throw new Error('Codex 地址配置无效');
-    endpoint = new URL(base + '/chat/completions');
+    if (url.origin !== 'https://api.openai.com' || url.pathname !== '/v1' || url.search || url.hash || url.username || url.password) throw new Error('Codex 地址配置无效');
+    endpoint = new URL(base + '/responses');
     headers = { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
     body = {
-      model: process.env.GUGEMEI_CODEX_MODEL || 'gpt-5-codex', messages,
-      tools: tools.map(tool => ({ type: 'function', function: { name: tool.name, description: tool.description, parameters: tool.inputSchema } })),
-      parallel_tool_calls: false, max_completion_tokens: 4000,
+      model: process.env.GUGEMEI_CODEX_MODEL || 'gpt-5-codex', input: codexInput(messages),
+      tools: tools.map(tool => ({ type: 'function', name: tool.name, description: tool.description, parameters: tool.inputSchema, strict: false })),
+      parallel_tool_calls: false, max_output_tokens: 8000, store: false,
+      include: ['reasoning.encrypted_content'],
     };
   } else {
     const key = process.env.GUGEMEI_CLAUDE_API_KEY;
@@ -94,9 +96,13 @@ async function callModel(provider: Provider, messages: Message[]): Promise<Messa
       tools: tools.map(tool => ({ name: tool.name, description: tool.description, input_schema: tool.inputSchema })),
     };
   }
-  const response = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(90_000) });
+  const response = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(90_000) }).catch(error => {
+    if (provider === 'codex') throw new Error('服务器暂时无法连接 OpenAI 官方接口，请检查服务器网络连接');
+    throw error;
+  });
   if (!response.ok) throw new Error(`${provider === 'qwen' ? '百炼' : provider === 'codex' ? 'Codex' : 'Claude'} 调用失败（HTTP ${response.status}），请核对模型和 API Key`);
   const data = await response.json() as any;
+  if (provider === 'codex') return codexMessage(data);
   if (provider !== 'claude') {
     const message = data.choices?.[0]?.message;
     if (!message) throw new Error('模型没有返回内容');
