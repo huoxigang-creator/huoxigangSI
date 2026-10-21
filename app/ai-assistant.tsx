@@ -14,6 +14,7 @@ export default function AiAssistant({ onChanged }: { onChanged?: () => Promise<v
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [attachedText, setAttachedText] = useState('');
 
   async function ask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -23,7 +24,7 @@ export default function AiAssistant({ onChanged }: { onChanged?: () => Promise<v
     try {
       const response = await fetch('/api/ai/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: value, provider }),
+        body: JSON.stringify({ question: value, provider, context: attachedText.trim() || undefined }),
       });
       const result = await response.json() as { answer?: string; proposal?: Proposal; error?: string };
       if (!response.ok || (!result.answer && !result.proposal)) throw new Error(result.error || '提问失败');
@@ -54,12 +55,18 @@ export default function AiAssistant({ onChanged }: { onChanged?: () => Promise<v
       <label htmlFor="ai-provider">使用模型</label>
       <select id="ai-provider" value={provider} onChange={event => setProvider(event.target.value as 'qwen' | 'doubao')}><option value="doubao">豆包</option><option value="qwen">阿里云百炼 · 千问</option></select>
       <label htmlFor="ai-question">你想了解什么？</label>
+      {attachedText.trim() && (
+        <div className="aiAttached">
+          <span>已附带下方识别的文字（{attachedText.trim().length} 字），会随你的问题一起发给AI处理；在框里直接写要对这些文字做什么即可。</span>
+          <button type="button" onClick={() => setAttachedText('')}>移除</button>
+        </div>
+      )}
       <textarea onKeyDown={event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing&&event.nativeEvent.keyCode!==229){event.preventDefault();event.currentTarget.form?.requestSubmit();}}} id="ai-question" value={question} maxLength={500} rows={3} placeholder="例如：哪些项目还有待收款？" onChange={event => setQuestion(event.target.value)} />
       <div className="aiAssistantActions"><span>{provider === 'doubao' ? '每次提问会把相关业务数据发送到火山方舟豆包处理。可在本页下方文字识别的豆包设置中配置。' : provider === 'qwen' ? '每次提问会把相关业务数据发送到阿里云百炼处理。' : ''}</span><button type="submit" disabled={busy || !question.trim()}>{busy ? '正在查询…' : '确定'}</button></div>
     </form>
     {proposal && <div className="aiAssistantProposal"><h3>请核对后确认操作</h3><p>{proposal.description}</p><pre>{JSON.stringify(proposal.args, null, 2)}</pre><div><button type="button" onClick={() => setProposal(null)} disabled={busy}>取消</button><button type="button" onClick={() => void confirm()} disabled={busy}>{busy ? '正在执行…' : '确认执行'}</button></div></div>}
     {error && <p className="aiAssistantError" role="alert">{error}</p>}
     <div className="aiAssistantAnswers" aria-live="polite">{entries.map((entry, index) => <article key={index}><h3>{entry.question}</h3><p>{entry.answer}</p></article>)}</div>
-    <section style={{marginTop:32}}><TextRecognition/></section>
+    <section style={{marginTop:32}}><TextRecognition onTextChange={setAttachedText}/></section>
   </section>;
 }

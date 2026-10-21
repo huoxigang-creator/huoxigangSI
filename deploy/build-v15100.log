@@ -1,0 +1,82 @@
+﻿
+> site-creator-vinext-starter@0.1.0 build
+> node scripts/run-framework.mjs build
+
+
+  vinext build  (Vite 8.0.13)
+
+[34m[1/5] analyze client references...[39m
+[2K
+transforming...✓ 493 modules transformed.
+rendering chunks...
+node.exe : [33m[33m[PLUGIN_TIMINGS] [0mYour build spent significant time in plugins. Here is a breakdown:
+所在位置 行:1 字符: 1
++ & "C:\Users\18168\AppData\Local\Doubao\User Data\sandbox_runtime\base ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([33m[33m[PLUG...is a breakdown::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  - vinext:css-data-url (18%)
+  - rsc:virtual-client-package (17%)
+  - vinext:og-inline-fetch-assets (13%)
+  - vinext:middleware-server-only (10%)
+  - alias (10%)
+See https://rolldown.rs/options/checks#plugintimings for more details.
+[39m
+[32m✓ built in 4.87s[39m
+[34m[2/5] analyze server references...[39m
+[2K
+transforming...✓ 260 modules transformed.
+rendering chunks...
+[33m[33m[PLUGIN_TIMINGS] [0mYour build spent significant time in plugins. Here is a breakdown:
+  - vinext:og-inline-fetch-assets (18%)
+  - vinext:css-data-url (11%)
+  - vinext:validate-middleware-exports (8%)
+  - alias (7%)
+  - rsc:virtual-client-package (7%)
+See https://rolldown.rs/options/checks#plugintimings for more details.
+[39m
+[32m✓ built in 3.56s[39m
+[34m[3/5] build rsc environment...[39m
+[2K
+transforming...✓ 527 modules transformed.
+rendering chunks...
+computing gzip size...
+[33m[33m[PLUGIN_TIMINGS] [0mYour build spent significant time in plugins. Here is a breakdown:
+  - rsc:virtual-client-package (21%)
+  - vinext:css-data-url (15%)
+  - vinext:og-inline-fetch-assets (11%)
+  - alias (7%)
+  - vite-plugin-commonjs (5%)
+See https://rolldown.rs/options/checks#plugintimings for more details.
+[39m
+[32m✓ built in 3.41s[39m
+[34m[4/5] build client environment...[39m
+[2K
+transforming...✓ 2192 modules transformed.
+rendering chunks...
+computing gzip size...
+[33m[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeS
+plitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 5.87s[39m
+[34m[5/5] build ssr environment...[39m
+[33m[33m[PLUGIN_TIMINGS] [0mYour build spent significant time in plugins. Here is a breakdown:
+  - vinext:middleware-server-only (19%)
+  - vinext:css-data-url (11%)
+  - alias (10%)
+  - vinext:og-inline-fetch-assets (9%)
+  - rsc:virtual-client-package (8%)
+See https://rolldown.rs/options/checks#plugintimings for more details.
+[39m
+[2K
+transforming...✓ 349 modules transformed.
+rendering chunks...
+computing gzip size...
+[32m✓ built in 1.96s[39m
+  Generated standalone output in dist/standalone/
+  Start it with: node dist/standalone/server.js
+

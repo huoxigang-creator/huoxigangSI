@@ -1,0 +1,74 @@
+﻿
+> site-creator-vinext-starter@0.1.0 build
+> node scripts/run-framework.mjs build
+
+
+  vinext build  (Vite 8.0.13)
+
+[34m[1/5] analyze client references...[39m
+[2K
+transforming...✓ 471 modules transformed.
+rendering chunks...
+node.exe : [33m[33m[PLUGIN_TIMINGS] [0mYour build spent significant time in plugins. Here is a breakdown:
+所在位置 行:1 字符: 1
++ & "C:\Users\18168\AppData\Local\DoubaoWork\User Data\sandbox_runtime\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([33m[33m[PLUG...is a breakdown::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  - rsc:virtual-client-package (19%)
+  - vinext:og-inline-fetch-assets (17%)
+  - vinext:css-data-url (17%)
+  - alias (6%)
+  - vinext:middleware-server-only (6%)
+See https://rolldown.rs/options/checks#plugintimings for more details.
+[39m
+[32m✓ built in 4.88s[39m
+[34m[2/5] analyze server references...[39m
+[2K
+transforming...✓ 238 modules transformed.
+rendering chunks...
+[33m[33m[PLUGIN_TIMINGS] [0mYour build spent significant time in plugins. Here is a breakdown:
+  - vinext:og-inline-fetch-assets (13%)
+  - vite-plugin-commonjs (9%)
+  - vinext:middleware-server-only (7%)
+  - rsc:virtual-client-package (7%)
+  - vinext:css-data-url (7%)
+See https://rolldown.rs/options/checks#plugintimings for more details.
+[39m
+[32m✓ built in 3.26s[39m
+[34m[3/5] build rsc environment...[39m
+[2K
+transforming...✓ 505 modules transformed.
+rendering chunks...
+computing gzip size...
+[32m✓ built in 2.88s[39m
+[34m[4/5] build client environment...[39m
+[2K
+transforming...✓ 2170 modules transformed.
+rendering chunks...
+computing gzip size...
+[33m[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeS
+plitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[33m[33m[PLUGIN_TIMINGS] [0mYour build spent significant time in plugins. Here is a breakdown:
+  - vinext:middleware-server-only (21%)
+  - vinext:css-data-url (10%)
+  - alias (9%)
+  - vite-plugin-commonjs (8%)
+  - vinext:validate-middleware-exports (8%)
+See https://rolldown.rs/options/checks#plugintimings for more details.
+[39m
+[32m✓ built in 6.30s[39m
+[34m[5/5] build ssr environment...[39m
+[2K
+transforming...✓ 327 modules transformed.
+rendering chunks...
+computing gzip size...
+[32m✓ built in 2.62s[39m
+  Generated standalone output in dist/standalone/
+  Start it with: node dist/standalone/server.js
+

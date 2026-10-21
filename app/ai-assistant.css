@@ -5,6 +5,8 @@
 .aiAssistant textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid #c6d4e4;border-radius:8px;font:inherit;resize:vertical}
 .aiAssistant select{padding:10px;border:1px solid #c6d4e4;border-radius:8px;max-width:360px}
 .aiAssistantActions{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.aiAttached{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:#eef4fb;border:1px solid #cdddef;border-radius:8px;font-size:12px;color:#3d5a78;line-height:1.6}
+.aiAttached button{background:transparent;border:1px solid #b9cbe0;border-radius:6px;color:#285e98;padding:4px 12px;font-size:12px;cursor:pointer;white-space:nowrap}
 .aiAssistantActions span{font-size:12px;color:#74869a}
 .aiAssistantActions button{background:#1f64a0;color:white;border:0;border-radius:8px;padding:10px 22px;cursor:pointer}
 .aiAssistantActions button:disabled{opacity:.5;cursor:default}
