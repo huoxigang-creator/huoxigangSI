@@ -3,6 +3,7 @@
 export const MANAGEMENT_OWNER_ID = 'ompip4rR6NGJU749JpvhG1rI9uduEdGw8IEH099saYIO6vcz6biK6d';
 export function canManageSite(userId:string|null,development=false){return !!userId&&(development||userId===MANAGEMENT_OWNER_ID);}
 export function customerRoute(pathname:string,method:string){
+ if(method==='GET'&&/^\/api\/ocr-language\/(?:fast|full)\/chi_sim\.traineddata\.gz$/.test(pathname))return true;
  if(method==='GET'&&/^\/s\/m\/[a-f0-9]{64}\/?$/.test(pathname))return true;
  if(['GET','POST'].includes(method)&&pathname==='/api/shared-material-selections')return true;
  if(method==='GET'&&/^\/s\/p\/[a-f0-9]{64}\/?$/.test(pathname))return true;
