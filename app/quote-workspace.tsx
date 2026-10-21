@@ -26,6 +26,8 @@ import QuoteCabinetNamePicker from './quote-cabinet-name-picker';
 import {getCabinetOptions,isBuiltinCabinetOption} from '../lib/cabinet-catalog';
 import QuoteShare from './quote-confirm-share';
 import DocumentImport from './document-import';
+import DrawingImport from './drawing-import';
+import {drawingArea,type DrawingRow} from '../lib/drawing-import';
 import {documentImportNumber,type DocumentImportRow} from '../lib/document-import';
 
 type QuoteRecord = {id:string; title:string; items:any[]; total:number; adopted:boolean; created:string; subproject_id?:string; subproject_name?:string; note?:string;rooms?:QuoteRoom[];cabinets?:QuoteCabinet[]; [key:string]:any};
@@ -151,6 +153,21 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
     if(value){if(!draft||busy||working||importing||customerMode&&!editorRoom)return;docImportTarget.current={token:draftToken.current,projectId,targetProjectId:draft.targetProjectId??projectId,room:editorRoom,category:editorCategory};setDocImportNotice('');}
     else docImportTarget.current=null;
     setDocImportBusy(value);
+  }
+  function applyDrawingImport(rows:DrawingRow[]){
+    if(!draft||disabled)throw Error('报价状态已变化，请重新打开图纸识别。');
+    const retained=draft.items.filter(item=>!importPlaceholder(item));
+    if(retained.length+rows.length>500)throw Error('加入后超过每份报价500条明细，请分批处理。');
+    const rooms=[...draft.rooms];
+    const added=rows.map(row=>{
+      const quantity=drawingArea(row.width,row.height);
+      if(!row.room.trim()||!row.name.trim()||quantity===null)throw Error('请补充房间、柜名和有效宽高。');
+      let room=rooms.find(value=>value.name.trim()===row.room.trim());
+      if(!room){room={id:crypto.randomUUID(),name:row.room.trim()};rooms.push(room);}
+      return {key:crypto.randomUUID(),category:'柜体' as const,name:row.name.trim(),model:`${row.width}×${row.height} mm`,unit:'㎡',quantity,price:row.price.trim()===''?'' as const:Number(row.price),room_id:room.id,note:('图纸尺寸，待复尺；投影面积；来源：'+row.source).slice(0,500)};
+    });
+    if(rooms.length>100)throw Error('空间数量超过100个，请合并房间后重试。');
+    setDraft({...draft,rooms,items:[...retained,...added]});setEditorRoom(added[0].room_id);setEditorAll(false);setEditorCategory('柜体');setDocImportNotice(`已加入 ${added.length} 个柜体，按房间归类；请填写单价并保存草稿。`);
   }
   function applyDocumentImport(rows:DocumentImportRow[]){
     const target=docImportTarget.current;
@@ -374,7 +391,7 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
       <div className="qwEditorBody">{!customerMode&&<><div className="qwFormGrid"><label>关联项目名称 *{projectOptions&&draft.mode==='create'&&!draft.id?<select aria-label="关联项目名称" required value={draft.targetProjectId??projectId} disabled={disabled||draft.targetProjectId===undefined||draft.items.some(item=>!!item.name)} onChange={event=>{const target=projectOptions.find(p=>p.id===event.target.value);if(target){setDraft({...draft,targetProjectId:target.id,subproject_name:target.name});setLaborNotes({});}}}><option value="" disabled>请选择项目</option>{projectOptions.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>:<input value={draft.subproject_name} maxLength={100} required autoFocus disabled={disabled||!draft.subproject_id} onChange={event=>setDraft({...draft,subproject_name:event.target.value})} placeholder="如：吾悦南区东苑6-3-502"/>}</label></div>{!draft.subproject_id&&<p className="qwHint">此报价来自原项目。修改报价名称不改变历史报价分组。</p>}</>}
         <div className={customerMode||!employeeMode?'qwRoomEditorLayout':'qwProjectEditorLayout'}>{(customerMode||!employeeMode)&&<aside className="qwEditorSidebar"><QuoteRooms rooms={draft.rooms} lines={draft.items} selected={editorRoom} onSelect={selectEditorRoom} total={sumItems(draft.items)} disabled={disabled} editable onAdd={addRoom} onRename={renameRoom} onRemove={removeRoom} onCopy={id=>setCopyRoomSource(id)} onReorder={reorderRooms} startAdding={startAddingRoom}/></aside>}<div className={customerMode||!employeeMode?'qwRoomEditorMain':'qwProjectEditorMain'}>
         <div className="qwEditorHeading"><h3>{customerMode||!employeeMode?'全部空间 · 报价明细':'报价明细'}</h3><div className="qwEditorLineActions">{draftSelection.selectedIds.length>0&&<span className="qwLineSelectionCount">已选 {draftSelection.selectedIds.length} 条，保存后生效</span>}</div></div>
-        <div className="qwCategoryImportBar"><div className="qwCategoryTabs" role="tablist" aria-label="编辑费用类别"><button type="button" role="tab" aria-selected={editorAll} className={editorAll?'selected':''} disabled={disabled} onClick={()=>setEditorAll(true)}>全部<span>{draftRoomItems.length}</span></button>{QUOTE_CATEGORIES.map(value=><button type="button" key={value} role="tab" aria-selected={!editorAll&&editorCategory===value} className={!editorAll&&editorCategory===value?'selected':''} disabled={disabled} onClick={()=>switchEditorCategory(value)}>{value}<span>{draftRoomItems.filter(item=>item.category===value).length}</span></button>)}</div></div>
+        <div className="qwCategoryImportBar"><DrawingImport disabled={disabled} onApply={applyDrawingImport}/><div className="qwCategoryTabs" role="tablist" aria-label="编辑费用类别"><button type="button" role="tab" aria-selected={editorAll} className={editorAll?'selected':''} disabled={disabled} onClick={()=>setEditorAll(true)}>全部<span>{draftRoomItems.length}</span></button>{QUOTE_CATEGORIES.map(value=><button type="button" key={value} role="tab" aria-selected={!editorAll&&editorCategory===value} className={!editorAll&&editorCategory===value?'selected':''} disabled={disabled} onClick={()=>switchEditorCategory(value)}>{value}<span>{draftRoomItems.filter(item=>item.category===value).length}</span></button>)}</div></div>
         {docImportNotice&&<p className="qwDocumentImportNotice" role="status">{docImportNotice}</p>}
         {!editorAll&&editorCategory==='柜体'&&<div className="qwImportActions qwCabinetNameHint"><p>点击明细名称框选择衣柜、鞋柜、酒柜等；自定义名称请在“配置 → 柜体”中新增。</p><button type="button" disabled={disabled||laborLoading} onClick={()=>void loadLabor()}>刷新柜体配置</button>{laborLoading&&<span role="status">正在读取柜体配置…</span>}{laborError&&<span role="alert">{laborError}</span>}<button type="button" disabled={disabled||draft.items.length>=500||customerMode&&!editorRoom} onClick={addItem}><Plus size={14}/>添加柜体明细</button><button type="button" className="dangerLink" disabled={disabled||!draftSelection.selectedIds.length} onClick={deleteDraftLines}><Trash2 size={14}/>删除</button></div>}
         {!editorAll&&editorCategory==='材料费用'&&<div className="qwImportActions"><button type="button" disabled={disabled||draft.items.length>=500||customerMode&&!editorRoom} onClick={addItem}><Plus size={14}/>添加材料费用明细</button><button type="button" className="dangerLink" disabled={disabled||!draftSelection.selectedIds.length} onClick={deleteDraftLines}><Trash2 size={14}/>删除</button></div>}

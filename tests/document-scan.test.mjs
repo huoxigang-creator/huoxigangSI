@@ -16,7 +16,7 @@ const parserUrl=url(compile('lib/document-import.ts'));
 const ocrUrl=url(compile('lib/document-ocr.ts'));
 const parsers=await import(parserUrl);
 const {documentOcrWords}=await import(ocrUrl);
-const reader=await import(url(compile('lib/document-scan.ts').replace("from './document-import'",`from '${parserUrl}'`).replace("from './document-ocr'",`from '${ocrUrl}'`).replaceAll("import('xlsx')",`import('${import.meta.resolve('xlsx')}')`).replaceAll("import('cfb')",`import('${import.meta.resolve('cfb')}')`)));
+const reader=await import(url(compile('lib/document-scan.ts').replace("from './drawing-import'",`from '${url(compile('lib/drawing-import.ts'))}'`).replace("from './document-import'",`from '${parserUrl}'`).replace("from './document-ocr'",`from '${ocrUrl}'`).replaceAll("import('xlsx')",`import('${import.meta.resolve('xlsx')}')`).replaceAll("import('cfb')",`import('${import.meta.resolve('cfb')}')`)));
 const options={mode:'purchase',defaultCategory:'材料费用'};
 const file=(name,text,type='text/plain')=>new File([text],name,{type});
 
