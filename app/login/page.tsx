@@ -89,7 +89,7 @@ export default function Login() {
 
   const switchTo = (next: Mode) => { setMode(next); setError(''); setNotice(''); };
 
-  return <main className="loginPage"><img className="loginScene" src="/login-neural-kitchen-v1597-refined.png" alt=""/><section className="loginPosition"><header className="loginBrand"><h1>SI超级智能平台</h1></header><form className="loginCard" onSubmit={mode === 'password' ? submitPassword : mode === 'sms' ? submitSms : submitForgot}><h2>{mode === 'forgot' ? '重置登录密码' : mode === 'sms' ? '短信验证码登录' : '账号密码登录'}</h2>
+  return <main className="loginPage"><img className="loginScene" src="/login-neural-kitchen-v1597-backlit.png" alt=""/><section className="loginPosition"><header className="loginBrand"><h1>SI超级智能平台</h1></header><form className="loginCard" onSubmit={mode === 'password' ? submitPassword : mode === 'sms' ? submitSms : submitForgot}><h2>{mode === 'forgot' ? '重置登录密码' : mode === 'sms' ? '短信验证码登录' : '账号密码登录'}</h2>
       {mode !== 'forgot' && <label style={{ display: 'block', marginBottom: 16 }}>账号{/* 密码模式保留账号输入；短信模式为手机号 */}
         {mode === 'password'
           ? <input name="username" autoComplete="username" required style={field} placeholder="输入账号" />
