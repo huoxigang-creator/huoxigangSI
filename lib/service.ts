@@ -107,15 +107,14 @@ export async function execute(owner:string,action:string,args:any,employee=false
   }else if(data.project_type===undefined)data.project_type='project';
   if(data.project_type==='customer'&&data.parent_id)throw new BusinessError('终端客户不能归属于合作项目');
   if(data.parent_id){const parent=get(data.parent_id,'project');if(parent.project_type==='customer')throw new BusinessError('终端客户不能添加独立项目，请在报价中添加房间');if(parent.parent_id||parent.id===id)throw new BusinessError('只能在合作项目下面添加独立项目');}
-  // 新建客户时自动生成唯一客户编号：SID+日期+N+5位序号
+  // 新建客户时自动生成唯一客户编号：SID+当天日期+N+全局累计序号（序号从所有客户总数计算，不按天重置）
   if(action==='create_project'&&data.project_type==='customer'){
    const now=new Date(Date.now()+8*60*60*1000);
    const ymd=now.toISOString().slice(0,10).replace(/-/g,'');
-   const prefix='SID'+ymd+'N';
-   const res=await db().prepare("SELECT json_extract(data,'$.customer_no') AS no FROM records WHERE owner=? AND kind='project' AND json_extract(data,'$.project_type')='customer' AND json_extract(data,'$.customer_no') LIKE ?").bind(owner,prefix+'%').all<{no:string|null}>();
+   const res=await db().prepare("SELECT json_extract(data,'$.customer_no') AS no FROM records WHERE owner=? AND kind='project' AND json_extract(data,'$.project_type')='customer' AND json_extract(data,'$.customer_no') LIKE 'SID%'").bind(owner).all<{no:string|null}>();
    let maxSeq=0;
-   for(const row of res.results){if(row.no){const m=row.no.match(/(\d+)$/);if(m){const n=parseInt(m[1],10);if(n>maxSeq)maxSeq=n;}}}
-   data.customer_no=prefix+String(maxSeq+1).padStart(5,'0');
+   for(const row of res.results){if(row.no){const m=row.no.match(/N(\d+)$/);if(m){const n=parseInt(m[1],10);if(n>maxSeq)maxSeq=n;}}}
+   data.customer_no='SID'+ymd+'N'+String(maxSeq+1).padStart(5,'0');
   }
   detail=action==='create_project'?(data.project_type==='customer'?'新建客户':'新建项目'):'修改项目';
  }
