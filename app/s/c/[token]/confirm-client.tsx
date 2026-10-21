@@ -48,7 +48,7 @@ export default function ConfirmClient({ token }: { token: string }) {
   useEffect(() => {
     if (!fullscreenSigning || !fullCanvasRef.current || !signature) return;
     const canvas = fullCanvasRef.current;
-    const img = new Image();
+    const img = new window.Image();
     img.onload = () => {
       const context = canvas.getContext('2d');
       if (context) context.drawImage(img, 0, 0, canvas.width, canvas.height);

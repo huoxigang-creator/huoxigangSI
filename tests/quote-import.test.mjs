@@ -6,9 +6,18 @@ import * as XLSX from 'xlsx';
 
 const source = readFileSync('lib/quote-import.ts', 'utf8');
 const compiled = ts.transpileModule(source, {compilerOptions: {module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022}}).outputText.replace("import('xlsx')", `import('${import.meta.resolve('xlsx')}')`);
-const {hardwareCatalogPreview, hardwareCatalogRow, parseQuoteImportRows, parseQuoteImport, finalizeQuoteImport, quoteImportTemplate, quoteImportNumber, quoteImportRowIssues} = await import('data:text/javascript;base64,' + Buffer.from(compiled).toString('base64'));
+const {mergeQuoteImportRows,hardwareCatalogPreview, hardwareCatalogRow, parseQuoteImportRows, parseQuoteImport, finalizeQuoteImport, quoteImportTemplate, quoteImportNumber, quoteImportRowIssues} = await import('data:text/javascript;base64,' + Buffer.from(compiled).toString('base64'));
 const header = ['序号', '名称', '规格', '单位', '数量', '销售单价', '金额', '备注'];
 const basic = () => parseQuoteImportRows([header, [1, '匿名配件', 'A', '个', 3, 2.50, 7.50, '']]);
+
+test('毫米灯带合计后转米，两位小数；免拉手取末段，挂衣杆取首段',()=>{
+ const row=(name,model,quantity,unit='个')=>({...basic().rows[0],name,model,quantity,unit});
+ const result=mergeQuoteImportRows([row('普通灯带','2598mm',2598,'毫米'),row('普通灯带','713mm',713,'mm'),row('普通灯带','1687mm',1687,'毫米'),row('L型免拉手','58.0*25.0*1914.0',2),row('普通挂衣杆','737.0*0.0*0.0',2)]).rows;
+ assert.equal(result[0].unit,'米');assert.equal(result[0].quantity,5);assert.equal(result[1].model,'1914');assert.equal(result[1].quantity,3.83);assert.equal(result[2].model,'737');
+ const byCount=mergeQuoteImportRows([row('普通灯带','2598',2),row('普通灯带','713',1)]).rows[0];assert.equal(byCount.quantity,5.91);assert.equal(byCount.unit,'米');
+ const angle=mergeQuoteImportRows([row('免拉手角码','',4)]).rows[0];assert.equal(angle.quantity,4);assert.equal(angle.unit,'个');
+ const matched=hardwareCatalogRow(row('普通灯带','',10712,'毫米'),[{id:'led',name:'普通灯带',model:'',unit:'米',expense_category:'五金费用',sale_price:1000}]);assert.equal(matched.quantity,10.71);assert.equal(matched.price,10);
+});
 
 test('recognizes separated Chinese sections, cached formulas, pending prices and a non-duplicated control total', () => {
   const preview = parseQuoteImportRows([

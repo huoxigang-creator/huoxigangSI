@@ -238,10 +238,16 @@ type MergeGroup = { row: QuoteImportRow; models: Set<string>; units: Set<string>
 
 /** 按名称合并五金明细：相同名称的所有规格汇总为一行（规格列列出全部规格、数量合计）。
  *  免拉手（名称含「免拉手」）按规格最后数字（毫米）折算为米，单位改为「米」；
- *  灯带（名称含「灯带」）按长度毫米汇总，单位改为「毫米」。返回合并行与核对提示。 */
+ *  灯带（名称含「灯带」）按长度毫米汇总，单位改为「米」。返回合并行与核对提示。 */
 export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteImportRow[]; notices: string[] } {
   const groups = new Map<string, MergeGroup>();
-  for (const row of allRows) {
+  for (const original of allRows) {
+    const row={...original};
+    const numbers=row.model.match(/\d+(?:\.\d+)?/g);
+    if(numbers?.length&&/L型.*免拉手/.test(row.name))row.model=String(Number(numbers.at(-1)));
+    if(numbers?.length&&/挂衣杆/.test(row.name))row.model=String(Number(numbers[0]));
+    const lengthItem=/免拉手|灯带/.test(row.name)&&!/角码|封口|连接|堵头/.test(row.name);
+    if(!lengthItem&&/^(mm|毫米)$/i.test(row.unit.trim())){row.quantity=row.quantity===null?null:row.quantity/1000;row.unit='米';}
     const key = row.name.trim() || '（未命名）';
     let group = groups.get(key);
     if (!group) {
@@ -252,7 +258,9 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
       if (row.model) group.models.add(row.model);
       if (row.unit.trim()) group.units.add(row.unit.trim());
     }
-    if (/免拉手|灯带/.test(row.name)) {
+    if (lengthItem) {
+      if(/^(mm|毫米)$/i.test(row.unit.trim())){group.lengthMm+=(row.quantity??0);continue;}
+      if(/^(m|米)$/i.test(row.unit.trim())){group.lengthMm+=(row.quantity??0)*1000;continue;}
       const mm = specLastMm(row.model);
       if (mm !== null) group.lengthMm += (row.quantity ?? 0) * mm;
       else group.missingSpec++;
@@ -264,24 +272,27 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
     const row = group.row;
     const models = [...group.models];
     const units = [...group.units];
-    const isHandle = /免拉手/.test(row.name);
+    const isHandle = /免拉手/.test(row.name)&&!/角码|封口|连接|堵头/.test(row.name);
     const isLed = /灯带/.test(row.name);
     // 规格型号列汇总全部规格（避免超过 100 字校验上限）
     const specText = models.join('、');
     row.model = specText.length > 90 ? specText.slice(0, 90) + '…等' + models.length + '种规格' : specText;
-    if (isHandle || isLed) {
-      const divisor = isHandle ? 1000 : 1;
-      row.unit = isHandle ? '米' : '毫米';
-      row.quantity = Number((group.lengthMm / divisor).toFixed(3));
+    if ((isHandle || isLed)&&group.missingSpec===0) {
+      const divisor = 1000;
+      row.unit = '米';
+      row.quantity = Number((group.lengthMm / divisor).toFixed(2));
       if (group.missingSpec === 0) {
-        notices.push(`「${row.name}」已按规格${isHandle ? '最后数字（毫米）折算为 ' + row.quantity + ' 米（共 ' + group.lengthMm + ' 毫米）' : '长度汇总为 ' + row.quantity + ' 毫米'}。`);
+        notices.push(`「${row.name}」已按规格${isHandle ? '最后数字（毫米）折算为 ' + row.quantity + ' 米（共 ' + group.lengthMm + ' 毫米）' : '长度折算为 ' + row.quantity + ' 米'}。`);
       } else {
         notices.push(`「${row.name}」有 ${group.missingSpec} 行规格缺少长度数字，未计入${isHandle ? '米' : '毫米'}汇总，请核对。`);
       }
     } else {
+      if((isHandle||isLed)&&group.lengthMm>0&&group.missingSpec){row.quantity=null;notices.push('「'+row.name+'」部分规格缺少长度，不能混合件数与米数，请补齐长度后核对。');}
       row.unit = units[0] ?? '';
       if (units.length > 1) notices.push(`「${row.name}」原单位不一致（${units.join('、')}），已合并数量并保留单位「${row.unit}」，请核对。`);
     }
+    if(/^(mm|毫米)$/i.test(row.unit.trim())){row.quantity=(row.quantity??0)/1000;row.unit='米';}
+    if(row.quantity!==null)row.quantity=Number(row.quantity.toFixed(2));
     row.issues = []; // 合并后的提示交由价格匹配与行校验重新生成
     rows.push(row);
   }
@@ -358,7 +369,11 @@ export async function parseQuoteImport(file: File, options: QuoteImportOptions =
 
 
 function matchText(value:string){return value.normalize('NFKC').replace(/\s+/g,'').toLowerCase();}
-export function hardwareCatalogRow(row:QuoteImportRow,materials:MaterialRecord[]):QuoteImportRow {
+export function hardwareCatalogRow(input:QuoteImportRow,materials:MaterialRecord[]):QuoteImportRow {
+  const row={...input};const parts=row.model.match(/\d+(?:\.\d+)?/g);
+  if(parts?.length&&!row.model.includes('、')){if(/L型.*免拉手/.test(row.name))row.model=String(Number(parts.at(-1)));else if(/挂衣杆/.test(row.name))row.model=String(Number(parts[0]));}
+  if(/^(mm|毫米)$/i.test(row.unit.trim())){row.quantity=row.quantity===null?null:row.quantity/1000;row.unit='米';}
+  if(row.quantity!==null)row.quantity=Number(row.quantity.toFixed(2));
   const hardware=materials.filter(material=>!material.deleted&&material.expense_category==='五金费用');
   const name=matchText(row.name),description=matchText(row.name+' '+row.model);
   let candidates=hardware.filter(material=>matchText(material.name)===name);

@@ -17,6 +17,13 @@ const KEY = 'alice/project-a/files/' + UUID;
 const PAYMENT = 'tx:alice:payment-one';
 const PAYMENT_KEY = 'alice/project-a/payment-vouchers/' + encodeURIComponent(PAYMENT) + '/' + UUID;
 
+test('独立待办可软删除和恢复，不要求不存在的父项目',async()=>{
+ const app=setup();app.row('standalone-task','task','',{title:'独立任务',note:'备注'});
+ await app.service.execute('alice','delete_record',{id:'standalone-task'});
+ const removed=(await app.service.execute('alice','list')).records.find(r=>r.id==='standalone-task');assert.equal(removed.parentDeleted,false);
+ await app.service.execute('alice','restore_record',{id:'standalone-task'});assert.equal(app.record('standalone-task').data.deleted,false);assert.equal(app.record('standalone-task').data.note,'备注');
+});
+
 test('全局材料可恢复，采购单按父项目恢复且保留材料快照和金额', async () => {
   const app = setup();
   app.row('material-one', 'material', '', {name: '测试板材', code: 'M-01', purchase_price: 19500});

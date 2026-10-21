@@ -27,7 +27,7 @@ export async function state(owner:string){
  const res=await db().prepare('SELECT * FROM records WHERE owner = ? ORDER BY created DESC').bind(owner).all<StoredRow>();
  const all=res.results.map(unpack),projects=all.filter(r=>r.kind==='project'&&!r.deleted),activeProjects=new Set(projects.map(p=>p.id));
  const visible=(r:any)=>!r.deleted&&activeProjects.has(r.project);
- const quotes=all.filter(r=>r.kind==='quote'&&visible(r)),transactions=all.filter(r=>r.kind==='transaction'&&visible(r)),tasks=all.filter(r=>r.kind==='task'&&visible(r)),logs=all.filter(r=>r.kind==='audit');
+ const quotes=all.filter(r=>r.kind==='quote'&&visible(r)),transactions=all.filter(r=>r.kind==='transaction'&&visible(r)),tasks=all.filter(r=>r.kind==='task'&&!r.deleted&&(!r.project||activeProjects.has(r.project))),logs=all.filter(r=>r.kind==='audit');
  const result={reminder_scope:owner,projects:summarize(projects,quotes,transactions),quotes,transactions,tasks,hardware:all.filter(r=>r.kind==='hardware'&&visible(r)),logs:logs.slice(0,150)};
  // Symbols are not enumerated or JSON-serialized into API and MCP responses.
  return Object.defineProperty(result,SNAPSHOTS,{value:new Map(res.results.map(row=>[row.id,row]))}) as typeof result&{[SNAPSHOTS]:Map<string,StoredRow>};
@@ -164,7 +164,7 @@ export async function execute(owner:string,action:string,args:any,employee=false
   detail=data.type==='收款'?'登记收款':'登记付款';
  }
  else if(action==='void_transaction'){const old=get(id,'transaction');if(old.void)return old;if(merchantReceipt(old))throw new BusinessError('微信商户自动登记的收款对应真实到账，不能作废；如需退款请在微信商户平台办理',409);kind='transaction';project=old.project;data={...old,void:true,void_reason:zString(args.reason)};detail='作废流水：'+data.void_reason;}
- else if(action==='create_task'||action==='update_task'){data=taskSchema.parse(args);get(data.project_id,'project');kind='task';project=data.project_id;if(action==='update_task'){const old=get(id,kind);if(old.project!==project)throw new BusinessError('任务不能移动到其他项目');if(data.due_at===undefined)data.due_at=old.due_at||'';if(!Object.prototype.hasOwnProperty.call(args,'date'))data.date=old.date||'';}else if(data.due_at===undefined)data.due_at='';if(data.due_at&&Object.prototype.hasOwnProperty.call(args,'due_at'))data.date=new Date(new Date(data.due_at).getTime()+8*60*60*1000).toISOString().slice(0,10);detail='更新任务';}
+ else if(action==='create_task'||action==='update_task'){data=taskSchema.parse(args);if(data.project_id)get(data.project_id,'project');kind='task';project=data.project_id;if(action==='update_task'){const old=get(id,kind);if(old.project!==project)throw new BusinessError('任务不能移动到其他项目');if(!Object.prototype.hasOwnProperty.call(args,'note'))data.note=old.note||'';if(data.due_at===undefined)data.due_at=old.due_at||'';if(!Object.prototype.hasOwnProperty.call(args,'date'))data.date=old.date||'';}else if(data.due_at===undefined)data.due_at='';if(data.due_at&&Object.prototype.hasOwnProperty.call(args,'due_at'))data.date=new Date(new Date(data.due_at).getTime()+8*60*60*1000).toISOString().slice(0,10);detail='更新任务';}
  else throw new BusinessError('不支持的操作');
  const now=new Date().toISOString();data.updated=now;
  const updated=['update_project','update_quote','delete_quote_items','update_task','void_transaction','adopt_quote','unadopt_quote','set_customer_settlement'].includes(action);
@@ -184,13 +184,15 @@ export async function execute(owner:string,action:string,args:any,employee=false
   const targetGuard="EXISTS (SELECT 1 FROM records AS target WHERE target.id = ? AND target.owner = ? AND target.kind = 'quote' AND target.project = ? AND target.data = ? AND COALESCE(json_extract(target.data, '$.deleted'), 0) = 0) AND "+SAFE_QUOTE_CONTRACT;
   statements.push(db().prepare("UPDATE records SET data = json_set(data, '$.adopted', json('false'), '$.updated', ?) WHERE owner = ? AND project = ? AND kind = 'quote' AND id <> ? AND "+QUOTE_GROUP+" = ? AND COALESCE(json_extract(data, '$.deleted'), 0) = 0 AND json_extract(data, '$.adopted') = 1 AND "+targetGuard+' AND '+ACTIVE_PARENT+typeGuard+settlementGuard).bind(now,owner,project,id,quoteGroupKey(data),id,owner,project,snapshot!.data,...adoptionRangeBindings,project,owner,...typeBindings,...settlementBindings));
  }
+ const parentGuard=kind==='task'&&!project?"(? = '' AND ? = ?)":ACTIVE_PARENT;
+ const parentBindings=kind==='task'&&!project?[project,owner,owner]:[project,owner];
  let mutation:D1PreparedStatement;
  if(updated){
-  mutation=db().prepare("UPDATE records SET data = ? WHERE id = ? AND owner = ? AND kind = ? AND project = ? AND data = ? AND COALESCE(json_extract(data, '$.deleted'), 0) = 0 AND "+ACTIVE_PARENT+(action==='adopt_quote'?' AND '+SAFE_QUOTE_CONTRACT:'')+typeGuard+settlementGuard+(changingProjectType?' AND '+EMPTY_PROJECT_STRUCTURE:'')).bind(serialized,id,owner,kind,project,snapshot!.data,project,owner,...adoptionRangeBindings,...typeBindings,...settlementBindings,...(changingProjectType?[owner,id,id]:[]));
+  mutation=db().prepare("UPDATE records SET data = ? WHERE id = ? AND owner = ? AND kind = ? AND project = ? AND data = ? AND COALESCE(json_extract(data, '$.deleted'), 0) = 0 AND "+parentGuard+(action==='adopt_quote'?' AND '+SAFE_QUOTE_CONTRACT:'')+typeGuard+settlementGuard+(changingProjectType?' AND '+EMPTY_PROJECT_STRUCTURE:'')).bind(serialized,id,owner,kind,project,snapshot!.data,...parentBindings,...adoptionRangeBindings,...typeBindings,...settlementBindings,...(changingProjectType?[owner,id,id]:[]));
  }else{
   // New records, especially stable financial IDs, are immutable insertions.
-  let guard=kind==='project'?(data.parent_id?' WHERE '+ACTIVE_PARENT+" AND EXISTS (SELECT 1 FROM records AS root WHERE root.id = ? AND root.owner = ? AND COALESCE(json_extract(root.data, '$.parent_id'), '') = '' AND COALESCE(json_extract(root.data, '$.project_type'), 'project') = 'project')":''):' WHERE '+ACTIVE_PARENT+typeGuard;
-  const bindings:any[]=[id,owner,kind,project,serialized,now,...(kind==='project'?(data.parent_id?[data.parent_id,owner,data.parent_id,owner]:[]):[project,owner]),...typeBindings];
+  let guard=kind==='project'?(data.parent_id?' WHERE '+ACTIVE_PARENT+" AND EXISTS (SELECT 1 FROM records AS root WHERE root.id = ? AND root.owner = ? AND COALESCE(json_extract(root.data, '$.parent_id'), '') = '' AND COALESCE(json_extract(root.data, '$.project_type'), 'project') = 'project')":''):' WHERE '+parentGuard+typeGuard;
+  const bindings:any[]=[id,owner,kind,project,serialized,now,...(kind==='project'?(data.parent_id?[data.parent_id,owner,data.parent_id,owner]:[]):parentBindings),...typeBindings];
   // Reserve a subproject ID to one owner and one parent, including recycled versions.
   // The atomic guard also covers two requests that both passed the earlier lookup.
   if(kind==='quote'&&data.subproject_id){guard+=' AND '+UNUSED_QUOTE_GROUP;bindings.push(data.subproject_id,owner,project);}

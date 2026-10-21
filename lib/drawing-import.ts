@@ -1,6 +1,6 @@
 export type DrawingRow={source:string;room:string;name:string;width:string;height:string;price:string;selected:boolean};
 type Word={text:string;bbox:{x0:number;y0:number;x1:number;y1:number}};
-export function drawingArea(width:string,height:string){const w=Number(width),h=Number(height);return width.trim()&&height.trim()&&Number.isFinite(w)&&Number.isFinite(h)&&w>0&&h>0&&w<=30000&&h<=30000?Math.round(w*h/1000000*10000)/10000:null;}
+export function drawingArea(width:string,height:string){const w=Number(width),h=Number(height);return width.trim()&&height.trim()&&Number.isFinite(w)&&Number.isFinite(h)&&w>0&&h>0&&w<=30000&&h<=30000?Math.round(w*h/1000000*100)/100:null;}
 /** CAD dimensions are candidates only: the user confirms the axes before import. */
 export function drawingFromWords(words:Word[],source:string):DrawingRow{
  const text=words.map(w=>w.text).join(' ').replace(/(?<=[\u3400-\u9fff])\s+(?=[\u3400-\u9fff])/g,''),room=text.match(/(?:主卧室|次卧室|主卧|次卧|儿童房|客卧|书房|厨房|客餐厅|客厅|餐厅|阳台|玄关|卫生间)/)?.[0]||'',name=text.match(/(?:衣帽柜|衣柜|鞋柜|酒柜|书柜|橱柜|电视柜|储物柜|浴室柜|餐边柜)/)?.[0]||'';

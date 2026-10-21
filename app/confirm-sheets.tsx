@@ -172,7 +172,7 @@ export default function ConfirmSheets({ project, busy, adoptedQuotes = [] }: { p
     setItems(lines.map(item => ({
       kind: 'selection' as const,
       label: label(item.name.trim() + (item.model && item.model.trim() ? ' / ' + item.model.trim() : '')),
-      detail: [item.category || '', `${item.quantity}${item.unit || ''} × ¥${Number(item.price).toFixed(2)}`].filter(Boolean).join(' · '),
+      detail: [item.category || '', `${Number(Number(item.quantity).toFixed(2))}${item.unit || ''} × ¥${Number(item.price).toFixed(2)}`].filter(Boolean).join(' · '),
     })));
     setImportedMessage(`已导入「${quote.title}」的 ${lines.length} 条报价明细，可继续增删修改后生成。`);
   }

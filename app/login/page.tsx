@@ -1,11 +1,12 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import './login.css';
 
 type Mode = 'password' | 'sms' | 'forgot';
 
-const field: React.CSSProperties = { display: 'block', width: '100%', padding: '10px 12px', marginTop: 6, border: '1px solid #cbd5e1', borderRadius: 8, background: '#f8fafc', fontSize: 15, boxSizing: 'border-box' };
+const field: React.CSSProperties = { display: 'block', width: '100%', padding: '10px 12px', marginTop: 6, border: '1px solid #cbd5e1', borderRadius: 8, background: '#192b42', color:'#fff', fontSize: 15, boxSizing: 'border-box' };
 const primary: React.CSSProperties = { width: '100%', padding: 12, background: '#1769aa', color: 'white', border: 0, borderRadius: 8, fontSize: 15, cursor: 'pointer' };
-const link: React.CSSProperties = { border: 0, background: 'none', color: '#1769aa', cursor: 'pointer', fontSize: 14, padding: 0 };
+const link: React.CSSProperties = { border: 0, background: 'none', color: '#b9dcff', cursor: 'pointer', fontSize: 14, padding: 0 };
 
 export default function Login() {
   const [mode, setMode] = useState<Mode>('password');
@@ -88,15 +89,7 @@ export default function Login() {
 
   const switchTo = (next: Mode) => { setMode(next); setError(''); setNotice(''); };
 
-  return <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#f6f7fa', fontFamily: 'sans-serif', position: 'relative', backgroundImage: 'url(/login-bg.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
-    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, #0f172a55 0%, #0f172a33 45%, #0f172a66 100%)' }} aria-hidden />
-    <form onSubmit={mode === 'password' ? submitPassword : mode === 'sms' ? submitSms : submitForgot} style={{ position: 'relative', width: 'min(90vw, 400px)', padding: 32, borderRadius: 18, background: 'rgba(255,255,255,0.96)', boxShadow: '0 24px 80px #0f172a40', backdropFilter: 'blur(6px)' }}>
-      <div style={{ textAlign: 'center', marginBottom: 22 }}>
-        <div style={{ width: 44, height: 44, margin: '0 auto 10px', borderRadius: 12, background: '#1769aa', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 20, letterSpacing: 1 }}>SI</div>
-        <h1 style={{ margin: 0, fontSize: 22 }}>SI超级智能平台</h1>
-        <p style={{ margin: '6px 0 0', color: '#475569', fontSize: 13 }}>{mode === 'forgot' ? '重置登录密码' : mode === 'sms' ? '短信验证码登录' : '连云港固美格家具有限公司'}</p>
-      </div>
-
+  return <main className="loginPage"><img className="loginScene" src="/login-bg.jpg" alt=""/><section className="loginPosition"><header className="loginBrand"><h1>SI超级智能平台</h1><p>连云港固美格家具有限公司 · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">苏ICP备2026079938号-1</a></p></header><form className="loginCard" onSubmit={mode === 'password' ? submitPassword : mode === 'sms' ? submitSms : submitForgot}><h2>{mode === 'forgot' ? '重置登录密码' : mode === 'sms' ? '短信验证码登录' : '账号密码登录'}</h2>
       {mode !== 'forgot' && <label style={{ display: 'block', marginBottom: 16 }}>账号{/* 密码模式保留账号输入；短信模式为手机号 */}
         {mode === 'password'
           ? <input name="username" autoComplete="username" required style={field} placeholder="输入账号" />
@@ -129,6 +122,6 @@ export default function Login() {
           </>
           : <button type="button" style={link} onClick={() => switchTo('password')}>← 返回账号密码登录</button>}
       </div>
-    </form>
+    </form></section>
   </main>;
 }

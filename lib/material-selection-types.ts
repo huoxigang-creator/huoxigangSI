@@ -1,6 +1,6 @@
 export type Swatch={id:string;revision:string;brand:string;name:string;note:string;image_id:string;created:string};
 export type SelectionLine={id:string;swatch_id:string;swatch_revision:string;brand:string;name:string;image_id:string;room:string;use:'门板'|'柜体';note:string};
-export type SelectionVersion={version:number;submitted_at:string;submitted_by:string;items:SelectionLine[];request_id:string;fingerprint:string};
+export type SelectionVersion={signature?:string;version:number;submitted_at:string;submitted_by:string;items:SelectionLine[];request_id:string;fingerprint:string};
 export type SelectionState={revision:number;latest_version:number;effective_version:number;accepted_at?:string;accepted_by?:string;history:SelectionVersion[];acceptances:{version:number;at:string;actor:string}[]};
 export function selectionChanges(before:SelectionLine[],after:SelectionLine[]){const result:string[]=[];for(const old of before){const row=after.find(r=>r.id===old.id);if(!row)result.push(`删除：${old.room} · ${old.use} · ${old.brand} ${old.name}`);else if(JSON.stringify([old.swatch_id,old.swatch_revision,old.room,old.use,old.note])!==JSON.stringify([row.swatch_id,row.swatch_revision,row.room,row.use,row.note]))result.push(`修改：${old.room} · ${old.use} · ${old.brand} ${old.name} → ${row.room} · ${row.use} · ${row.brand} ${row.name}${row.note?'（'+row.note+'）':''}`);}for(const row of after)if(!before.some(old=>old.id===row.id))result.push(`新增：${row.room} · ${row.use} · ${row.brand} ${row.name}`);return result;}
 

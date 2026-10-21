@@ -106,7 +106,7 @@ export function createTrashService(deps: Dependencies) {
     for (const row of all) {
       if (!deleted(row)) continue;
       const parent = all.find(value => value.kind === 'project' && value.id === row.project);
-      if (KINDS.has(row.kind)) records.push({...rowResult(row), name: description(row), parentName: PROJECT_SCOPED.has(row.kind) ? parent?.data.name || '' : '', parentDeleted: PROJECT_SCOPED.has(row.kind) && (!parent || deleted(parent))});
+      if (KINDS.has(row.kind)) records.push({...rowResult(row), name: description(row), parentName: (PROJECT_SCOPED.has(row.kind)&&!!row.project) ? parent?.data.name || '' : '', parentDeleted: (PROJECT_SCOPED.has(row.kind)&&!!row.project) && (!parent || deleted(parent))});
       if (row.kind === 'file_trash') {
         const transaction = row.data.transaction_id;
         const payment = transaction ? all.find(value => value.id === transaction && value.kind === 'transaction' && value.data.type === '付款' && (value.data.voucher_project_id || value.project) === row.project) : undefined;
@@ -127,7 +127,7 @@ export function createTrashService(deps: Dependencies) {
     if(!restore&&row.kind==='contract'&&(row.data.status!=='draft'&&!(row.data.status==='failed'&&!row.data.signature?.flow_id)))throw new TrashError('签署中或已签合同不能删除',409);
     if(!restore&&row.kind==='project'&&all.some(value=>value.kind==='contract'&&value.project===row.id&&!deleted(value)&&['preparing','signing','uncertain'].includes(value.data.status)))throw new TrashError('此项目还有正在签署或结果待核对的合同，请先核对签署状态',409);
     if(!restore&&row.kind==='transaction'&&(row.data.payment_provider||row.data.wechat_transaction_id||row.data.payment_order_id))throw new TrashError('微信商户自动登记的收款对应真实到账，不能删除；如需退款请在微信商户平台办理',409);
-    if (restore && PROJECT_SCOPED.has(row.kind)) projectFor(all, row.project);
+    if (restore && (PROJECT_SCOPED.has(row.kind)&&!!row.project)) projectFor(all, row.project);
     if(restore&&row.kind==='project'&&row.data.parent_id)projectFor(all,row.data.parent_id);
     if(!restore&&row.kind==='project'&&all.some(child=>child.kind==='project'&&!deleted(child)&&child.data.parent_id===row.id))throw new TrashError('此合作项目还有独立项目，请先分别处理下属项目后再删除',409);
     if (deleted(row) !== restore) return {ok: true, reused: true, record: rowResult(row)};
@@ -174,7 +174,7 @@ export function createTrashService(deps: Dependencies) {
     }
     if(!restore&&row.kind==='contract')sql+=" AND (json_extract(data,'$.status')='draft' OR (json_extract(data,'$.status')='failed' AND COALESCE(json_extract(data,'$.signature.flow_id'),'')=''))";
     if(!restore&&row.kind==='project'){sql+=" AND NOT EXISTS (SELECT 1 FROM records AS signing WHERE signing.owner=? AND signing.project=? AND signing.kind='contract' AND COALESCE(json_extract(signing.data,'$.deleted'),0)=0 AND json_extract(signing.data,'$.status') IN ('preparing','signing','uncertain'))";bindings.push(owner,row.id);}
-    if (restore && PROJECT_SCOPED.has(row.kind)) {
+    if (restore && (PROJECT_SCOPED.has(row.kind)&&!!row.project)) {
       sql += " AND EXISTS (SELECT 1 FROM records AS parent WHERE parent.id = ? AND parent.owner = ? AND parent.kind = 'project' AND COALESCE(json_extract(parent.data, '$.deleted'), 0) = 0)";
       bindings.push(row.project, owner);
     }

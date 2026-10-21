@@ -23,6 +23,16 @@ async function fixture(t){
 const instant=value=>Date.parse('2026-10-12T'+value+':00.000Z');
 const task=(id,time,extra={})=>({id,title:'任务 '+id,due_at:'2026-10-12T'+time+':00.000Z',...extra});
 
+test('独立待办无需项目，备注保留且账号隔离，完成后仍可读取',async t=>{
+ const f=await fixture(t);const task=await f.execute('alice','create_task',{title:'办理业务',note:'携带资料',due_at:'2026-10-21T15:00:00+08:00'});
+ assert.equal(task.project,'');assert.equal(task.note,'携带资料');
+ assert.equal((await f.state('alice')).tasks.find(r=>r.id===task.id).note,'携带资料');
+ assert.equal((await f.state('bob')).tasks.length,0);
+ await f.execute('alice','update_task',{id:task.id,title:task.title,done:true});
+ const saved=(await f.state('alice')).tasks.find(r=>r.id===task.id);assert.equal(saved.done,true);assert.equal(saved.note,'携带资料');
+ await assert.rejects(f.execute('bob','update_task',{id:task.id,title:'无权修改'}),/不存在/);
+});
+
 test('提醒时间需要真实日期、合法时分秒和显式时区，并归一 UTC',()=>{
  assert.equal(normalizeTaskReminder('2026-10-12T15:30:00+08:00'),'2026-10-12T07:30:00.000Z');
  assert.equal(normalizeTaskReminder('2024-02-29T23:59:59.123Z'),'2024-02-29T23:59:59.123Z');

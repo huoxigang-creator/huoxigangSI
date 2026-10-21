@@ -5,6 +5,7 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {Check,Copy,Download,ExternalLink,Loader2,QrCode,RefreshCw,X} from 'lucide-react';
 import './quote-share.css';
 import './quote-confirmation.css';
+import {brandedQrCard} from '../lib/branded-qr-card';
 
 type Share={id:string;url:string;created:string;expires_at:string;revoked:boolean;signed:boolean;signed_at:string|null};
 const date=(value:string)=>new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'short',timeStyle:'medium',hourCycle:'h23'}).format(new Date(value));
@@ -19,19 +20,8 @@ export default function QuoteConfirmShare({quoteId,title,total,customerLabel,onC
  async function create(){if(lock.current)return;lock.current=true;setBusy(true);setError('');setMessage('');if(!creation.current)creation.current=crypto.randomUUID();try{const response=await fetch('/api/quote-shares',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create',args:{id:creation.current,quote_id:quoteId,document_mode:'excel_confirmation',expires_days:days,payment_mode:'manual_code'}})}),data=await response.json() as {ok?:boolean;error?:string;result:Share};if(!response.ok||!data.ok)throw Error(data.error||'生成失败');creation.current='';setRecords(previous=>[data.result,...previous.filter(r=>r.id!==data.result.id)]);setSelectedId(data.result.id);setPreview(true);setRevision(v=>v+1);setMessage('待确认表格已保存，可将二维码发给客户。');}catch(e){setError(e instanceof Error?e.message:'生成失败');}finally{lock.current=false;setBusy(false);}}
  async function copy(){if(!selected)return;try{if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(selected.url);else{const input=document.createElement('textarea');input.value=selected.url;document.body.appendChild(input);input.select();const ok=document.execCommand('copy');input.remove();if(!ok)throw Error();}setMessage('客户签字链接已复制');}catch{setError('请选中下方链接手动复制');}}
  async function downloadQr(){if(!qr||!selected)return;try{
-  const image=new Image();image.src=qr;await image.decode();const canvas=document.createElement('canvas');
-  const chars=Array.from(customerLabel||title),lines:string[]=[];for(let i=0;i<chars.length;i+=16)lines.push(chars.slice(i,i+16).join(''));
-  const qrTop=220+lines.length*46,height=qrTop+480+110;canvas.width=800;canvas.height=height;
-  const context=canvas.getContext('2d')!;context.fillStyle='white';context.fillRect(0,0,800,height);
-  context.fillStyle='#f7f9fc';context.strokeStyle='#dce6f2';context.lineWidth=2;context.beginPath();context.roundRect(24,24,752,height-48,24);context.fill();context.stroke();
-  context.fillStyle='#1769aa';context.beginPath();context.roundRect(56,56,688,12,6);context.fill();context.textAlign='center';
-  context.fillStyle='#172033';context.font='bold 42px "Microsoft YaHei",sans-serif';context.fillText('固美格全屋定制',400,130);
-  context.fillStyle='#64748b';context.font='26px "Microsoft YaHei",sans-serif';context.fillText('客户确定单',400,178);
-  context.fillStyle='#1769aa';context.font='bold 32px "Microsoft YaHei",sans-serif';lines.forEach((line,index)=>context.fillText(line,400,230+index*46));
-  context.fillStyle='white';context.strokeStyle='#dce6f2';context.beginPath();context.roundRect(144,qrTop-16,512,512,14);context.fill();context.stroke();context.drawImage(image,160,qrTop,480,480);
-  context.fillStyle='#475569';context.font='26px "Microsoft YaHei",sans-serif';context.fillText('固美格SI超级智能平台',400,qrTop+548);
-  const cropped=document.createElement('canvas');cropped.width=752;cropped.height=height-48;cropped.getContext('2d')!.drawImage(canvas,24,24,752,height-48,0,0,752,height-48);
-  const link=document.createElement('a');link.href=cropped.toDataURL('image/png');link.download=(customerLabel||title).replace(/[\\/:*?"<>|]/g,'_')+'-客户确定单二维码.png';link.click();
+  const card=await brandedQrCard(qr,customerLabel||title);
+  const link=document.createElement('a');link.href=card;link.download=(customerLabel||title).replace(/[\\/:*?"<>|]/g,'_')+'-客户确定单二维码.png';link.click();
  }catch{setError('二维码图片下载失败，请重试');}}
  async function revoke(){if(!selected||lock.current)return;if(!window.confirm('停用后客户不能再打开此链接，已保存的签字存根仍保留。确定停用？'))return;lock.current=true;setBusy(true);try{const response=await fetch('/api/quote-shares',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'revoke',args:{id:selected.id}})}),data=await response.json() as {ok?:boolean;error?:string};if(!response.ok||!data.ok)throw Error(data.error||'停用失败');await load();}catch(e){setError(e instanceof Error?e.message:'停用失败');}finally{lock.current=false;setBusy(false);}}
  const receipt=selected?'/api/quote-shares?receipt_id='+encodeURIComponent(selected.id):'';

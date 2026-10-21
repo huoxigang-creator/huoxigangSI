@@ -17,7 +17,7 @@ export function laborQuantity(labor:{name:string;model:string;unit:string},order
   const laborName=normalized(labor.name);
   const scoped=orders.filter(order=>order.project_id===projectId&&!order.deleted).flatMap(order=>order.items).filter(item=>item.attribute!=='人工');
   if(laborName.includes('电梯')){
-    const quantity=Math.round(scoped.reduce((sum,item)=>{const gauge=thickness(item.name+' '+item.model);return gauge==='5'||gauge==='18'?sum+(Number.isFinite(item.quantity)&&item.quantity>0?item.quantity:0):sum;},0)*1e6)/1e6;
+    const quantity=Math.round(scoped.reduce((sum,item)=>{const gauge=thickness(item.name+' '+item.model);return gauge==='5'||gauge==='18'?sum+(Number.isFinite(item.quantity)&&item.quantity>0?item.quantity:0):sum;},0)*100)/100;
     return {quantity,notice:''};
   }
   if(laborName.includes('运输'))return {quantity:1,notice:''};
@@ -26,6 +26,6 @@ export function laborQuantity(labor:{name:string;model:string;unit:string},order
   if((!size&&!backboard)||!gauge)return {quantity:null,notice:'未识别尺寸或厚度，请手动填写数量。'};
   const matched=scoped.filter(item=>(!size||boardSize(item.name+' '+item.model)===size)&&thickness(item.name+' '+item.model)===gauge);
   if(matched.some(item=>normalized(item.unit)!==normalized(labor.unit)))return {quantity:null,notice:'匹配采购明细的单位与人工配置不同，请核对单位后手动填写，避免混算。'};
-  const quantity=Math.round(matched.reduce((sum,item)=>sum+(Number.isFinite(item.quantity)&&item.quantity>0?item.quantity:0),0)*1e6)/1e6;
+  const quantity=Math.round(matched.reduce((sum,item)=>sum+(Number.isFinite(item.quantity)&&item.quantity>0?item.quantity:0),0)*100)/100;
   return {quantity,notice:`本合作项目 ${matched.length} 条采购明细合计 ${quantity} ${labor.unit}（${size?size.replace('x','×')+'尺 / ':''}${gauge}mm），不区分名称、品牌和花色。`};
 }

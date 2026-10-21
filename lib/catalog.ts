@@ -26,7 +26,7 @@ const purchaseItemSchema = z.object({
   expense_category:z.enum(['材料费用','五金费用']).optional(),
   material_id: text(128), name: z.string().trim().min(1, '请填写采购名称').max(100), brand: text(100), model: text(100), code: text(100),
   attribute: z.enum(['主材', '辅材', '人工']).default('主材'), unit: z.string().trim().min(1, '请填写采购单位').max(30),
-  quantity: z.number().finite().positive().max(1000000).refine(value => {try {purchaseQuantity(value); return true;} catch {return false;}}, '数量最多4位小数'), price,
+  quantity: z.number().finite().positive().max(1000000).transform(value=>Number(value.toFixed(2))).refine(value => {try {purchaseQuantity(value); return true;} catch {return false;}}, '数量最多2位小数'), price,
   batch: text(100),
 });
 const orderSchema = z.object({
