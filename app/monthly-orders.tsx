@@ -80,7 +80,7 @@ export default function MonthlyOrders({data, busy, onSelect, onDeleted}: Monthly
 
   return <div className="monthlyOrders" aria-busy={busy}>
     <div className="monthlyOrdersHead">
-      <div><h2>月度订单</h2><p>查看当月接单客户、项目进度与收款情况。</p></div>
+      <div></div>
       <div className="monthlyMonthPicker">
         <button type="button" aria-label="上个月" title="上个月" disabled={busy} onClick={() => changeMonth(adjacentMonth(month, -1))}><ChevronLeft size={17}/></button>
         <label><CalendarDays size={16}/><input type="month" aria-label="接单月份" value={month} disabled={busy} onChange={event => changeMonth(event.target.value)}/></label>
