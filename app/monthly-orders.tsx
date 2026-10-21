@@ -1,15 +1,17 @@
 'use client';
 
 import {useMemo, useState} from 'react';
-import {CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, FolderOpen, Search, Timer, TriangleAlert, UsersRound} from 'lucide-react';
+import {CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, FolderOpen, Search, Timer, Trash2, TriangleAlert, UsersRound} from 'lucide-react';
 import ManagedTable from './managed-table';
 import {buildOrderRows, receiptTargets, shanghaiMonth, type OrderRow} from '../lib/order-overview';
+import {trashRequest} from '../lib/trash-client';
 import './monthly-orders.css';
 
 export type MonthlyOrdersProps = {
   data: {projects: any[]; quotes: any[]; transactions: any[]};
   busy: boolean;
   onSelect: (project: any, subprojectId?: string) => void;
+  onDeleted?: () => void;
 };
 
 type OrderFilter = '全部' | '进行中' | '收尾中' | '已完工' | '已归档';
@@ -40,8 +42,9 @@ function Balance({row}: {row: OrderRow}) {
   return <><strong className={row.remaining > 0 ? 'monthlyOutstanding' : 'monthlySettled'}>{formatMoney(row.remaining)}</strong>{row.overpaid > 0 ? <small className="monthlyOverpaid">多收 {formatMoney(row.overpaid)}</small> : row.remaining === 0 ? <small>已结清</small> : null}{row.unallocated > 0 && <small className="monthlyAllocationHint">有款项尚未分配</small>}</>;
 }
 
-export default function MonthlyOrders({data, busy, onSelect}: MonthlyOrdersProps) {
-  const [month, setMonth] = useState(shanghaiMonth), [filter, setFilter] = useState<OrderFilter>('全部'), [search, setSearch] = useState('');
+export default function MonthlyOrders({data, busy, onSelect, onDeleted}: MonthlyOrdersProps) {
+  const [month, setMonth] = useState(shanghaiMonth), [filter, setFilter] = useState<OrderFilter>('全部'), [search, setSearch] = useState(''), [searchInput, setSearchInput] = useState(''), [submittedSearch, setSubmittedSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const allRows = useMemo(() => buildOrderRows(data.projects, data.quotes, data.transactions), [data.projects, data.quotes, data.transactions]);
   const projectsById = useMemo(() => new Map(data.projects.map(project => [project.id, project])), [data.projects]);
   const monthRows = useMemo(() => allRows.filter(row => row.orderDate.slice(0, 7) === month).sort((a, b) => b.orderDate.localeCompare(a.orderDate) || a.name.localeCompare(b.name, 'zh-CN')), [allRows, month]);
@@ -49,7 +52,7 @@ export default function MonthlyOrders({data, busy, onSelect}: MonthlyOrdersProps
   const ongoingCount = monthRows.filter(row => inProgress(row.status)).length;
   const finishingCount = monthRows.filter(row => row.status === '收尾中').length;
   const completedCount = monthRows.filter(row => row.status === '已完工').length;
-  const query = search.trim().toLocaleLowerCase('zh-CN');
+  const query = submittedSearch.trim().toLocaleLowerCase('zh-CN');
   const visibleRows = monthRows.filter(row => (filter === '全部' || (filter === '进行中' ? inProgress(row.status) : row.status === filter)) && [row.name, row.parentName, row.customer].filter(Boolean).join(' ').toLocaleLowerCase('zh-CN').includes(query));
   const unallocatedByCustomer = useMemo(() => {
     const amounts = new Map<string, number>();
@@ -100,12 +103,16 @@ export default function MonthlyOrders({data, busy, onSelect}: MonthlyOrdersProps
       <div className="panelHead"><div><h2>{monthLabel(month)}接单</h2><p className="monthlyPanelDescription">{customerCount} 家客户 · {monthRows.length} 项订单<span>金额为累计已收和当前待收</span></p></div>{busy && <span className="monthlyLoading" role="status">正在更新…</span>}</div>
       <div className="monthlyOrderFilters">
         <div className="monthlyStatusFilters" role="group" aria-label="订单状态筛选">{filters.map(value => <button key={value} type="button" className={filter === value ? 'selected' : ''} aria-pressed={filter === value} disabled={busy} onClick={() => setFilter(value)}>{value}</button>)}</div>
-        <label className="monthlyOrderSearch"><Search size={16}/><input type="search" aria-label="搜索订单或客户" placeholder="搜索订单或客户" value={search} disabled={busy} onChange={event => setSearch(event.target.value)}/></label>
+        <div className="monthlyOrderRight">
+          <button type="button" className="monthlyBatchDelete" disabled={busy || !selectedIds.size} onClick={async () => {if(!selectedIds.size||!window.confirm('将选中的 '+selectedIds.size+' 个订单移入回收站？相关报价和收付款将隐藏，可恢复。'))return;for(const id of selectedIds){try{await trashRequest('delete_record',{id})}catch{}}setSelectedIds(new Set());onDeleted?.();}}><Trash2 size={14}/>批量删除({selectedIds.size})</button>
+          <div className="monthlySearchBox"><input type="search" aria-label="搜索订单或客户" placeholder="搜索订单或客户" value={searchInput} disabled={busy} onChange={event=>setSearchInput(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();setSubmittedSearch(searchInput);}}}/><button type="button" disabled={busy} onClick={()=>setSubmittedSearch(searchInput)}><Search size={15}/>搜索</button></div>
+        </div>
       </div>
 
       {visibleRows.length > 0 ? <div className="tableWrap"><ManagedTable tableKey="monthly-orders" disabled={busy} className="monthlyOrderTable" allRowOrder={monthRows.map(row => row.id)}>
-        <thead><tr><th scope="col" data-column-key="order-name" data-column-required>订单名称</th><th scope="col" data-column-key="customer">客户</th><th scope="col" data-column-key="stage">当前阶段</th><th scope="col" data-column-key="received">累计已收</th><th scope="col" data-column-key="remaining">当前待收</th><th scope="col" data-column-key="order-date">接单日期</th></tr></thead>
+        <thead><tr><th style={{width:32}}><input type="checkbox" aria-label="全选" checked={visibleRows.length>0 && visibleRows.every(row=>selectedIds.has(row.id))} disabled={busy||!visibleRows.length} onChange={()=>{const ids=new Set(selectedIds);visibleRows.forEach(row=>{if(ids.has(row.id))ids.delete(row.id);else ids.add(row.id);});setSelectedIds(ids);}}/></th><th scope="col" data-column-key="order-name" data-column-required>订单名称</th><th scope="col" data-column-key="customer">客户</th><th scope="col" data-column-key="stage">当前阶段</th><th scope="col" data-column-key="received">累计已收</th><th scope="col" data-column-key="remaining">当前待收</th><th scope="col" data-column-key="order-date">接单日期</th></tr></thead>
         <tbody>{visibleRows.map(row => <tr key={row.id} data-row-id={row.id}>
+          <td><input type="checkbox" aria-label={'选择 '+row.name} checked={selectedIds.has(row.id)} disabled={busy} onChange={()=>{const ids=new Set(selectedIds);if(ids.has(row.id))ids.delete(row.id);else ids.add(row.id);setSelectedIds(ids);}}/></td>
           <td className="monthlyOrderName"><button type="button" className="projectLink" aria-label={'进入项目 ' + row.name} disabled={busy || !projectsById.has(row.projectId)} onClick={() => onSelect(projectsById.get(row.projectId), row.subprojectId)}>{row.name}<ChevronRight size={14}/></button>{row.parentName && <small>{row.parentName}</small>}</td>
           <td className="monthlyOrderCustomer">{row.customer || '未填写客户'}</td>
           <td><span className={'monthlyStage ' + stageClass(row.status)}><i aria-hidden="true"/>{row.status || '未设置'}</span></td>
