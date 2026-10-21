@@ -191,12 +191,15 @@
 .qwCustomerQuoteEditor .qwRoomEditorLayout{margin-top:0;margin-bottom:0;border-top:0;border-bottom:0}
 .qwCustomerQuoteEditor .qwRoomEditorMain .qwEditorHeading{margin-top:12px}
 @media(max-width:760px){.qwCustomerDialog .qwCustomerEditorHead{align-items:flex-start;gap:10px}.qwCustomerTitleBar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 10px}.qwCustomerTitleBar>h2{grid-column:1;grid-row:1}.qwHeaderVersion{grid-column:1/-1;grid-row:2;min-width:0;max-width:none}.qwHeaderVersion>span{font-size:11px}.qwHeaderVersion>input{font-size:12px;padding:7px 8px}.qwCustomerTitleBar>button{grid-column:2;grid-row:1;font-size:11px;padding:7px 9px}.qwCustomerQuoteEditor .qwEditorBody{padding-top:0;padding-bottom:0}.qwCustomerQuoteEditor .qwRoomEditorLayout{margin-top:0;margin-bottom:0}}
-.qwCategoryBarInline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
-.qwCategoryBarInline>button{border-radius:6px;padding:8px 14px;font-size:12px;background:#245c9c;color:#fff;border:1px solid #245c9c;cursor:pointer}
-.qwCategoryBarInline>button:hover{background:#1d4a80}
-.qwCategoryBarInline>button.active{background:#1a3d6e;border-color:#1a3d6e}
+.qwSearchRow{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;margin:0 0 12px;overflow-x:auto;padding-bottom:2px}
+.qwSearchRow>*{flex-shrink:0}
+.qwCategoryBarInline{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;margin:0}
+.qwCategoryBarInline>button{border-radius:6px;padding:7px 12px;font-size:12px;background:transparent;color:#5a7ba0;border:1px solid #dce5ef;cursor:pointer;white-space:nowrap}
+.qwCategoryBarInline>button:hover{background:#f0f4f8}
+.qwCategoryBarInline>button.active{background:#245c9c;color:#fff;border-color:#245c9c}
 .qwCategoryBarInline>button:disabled{opacity:.5;cursor:default}
-.qwCategoryBarInline>button span{background:#ffffff26;border-radius:8px;padding:1px 5px;margin-left:6px;font-size:10px}
+.qwCategoryBarInline>button span{background:#ffffff26;border-radius:8px;padding:1px 5px;margin-left:5px;font-size:10px}
+.qwCategoryBarInline>button.active span{background:#ffffff26}
 .qwCardToolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding:0 0 12px;margin-bottom:12px;border-bottom:1px solid #e2e8f0}.qwCardToolbar button{font-size:12px;padding:8px 13px}
 .qwCardSubmitPay{display:block;text-align:right;font-style:normal;font-size:12px;color:#ff5722;margin-top:4px}
 .qwCustomerDialog .qwCategoryImportBar{position:sticky;top:0;z-index:4;background:#fff;padding-top:6px;padding-bottom:2px}
