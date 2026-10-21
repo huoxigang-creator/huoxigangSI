@@ -81,14 +81,15 @@ export async function sendSmsCode(phone: string, code: string): Promise<void> {
 }
 
 // 通知客户项目进展（需先申请“通知”类短信模板，配置 SMS_NOTICE_TEMPLATE_CODE）
+// 模板变量为 address（地址属性，楼盘楼栋房号）/ stage（环节）/ summary（进展说明）。
 export function progressNoticeConfigured(): boolean {
   return Boolean(smsEnv().NOTICE_TEMPLATE_CODE);
 }
 
-export async function sendProgressNotice(phone: string, name: string, stage: string, summary: string): Promise<void> {
+export async function sendProgressNotice(phone: string, address: string, stage: string, summary: string): Promise<void> {
   const config = smsEnv();
   if (!config.NOTICE_TEMPLATE_CODE) throw new Error('通知短信模板未配置');
-  await sendSms(phone, config.NOTICE_TEMPLATE_CODE, { name, stage, summary });
+  await sendSms(phone, config.NOTICE_TEMPLATE_CODE, { address, stage, summary });
 }
 
 function hashCode(code: string, phone: string): string {

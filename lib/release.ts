@@ -3,9 +3,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-21 V-1-5-97';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-21 V-1-5-98';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-5-98',date:'2026-10-21',items:['修复项目进展通知短信把楼盘房号误填入“个人姓名”变量被阿里云拒发的问题：改用“地址”变量 address 承载项目地址/房号，当前环节用 stage、进展说明用 summary，需配合新通知模板 SMS_512511714。']},
   {version:'V-1-5-97',date:'2026-10-21',items:['登录背景保留深蓝青蓝风格，上方增加多层神经网络连接，左下保留干净地面；左侧开放式厨房采用参照实物的深靛蓝、米白矿脉景泰蓝奢石岛台，降低背光亮度，包含水池、高柜及嵌入式电器，右侧为登录框预留空间。']},
   {version:'V-1-5-96',date:'2026-10-21',items:['登录框保持原高度，宽度缩窄至340像素，呈现高于宽的竖向比例，平台标题及底部文字位置保持不变。']},
   {version:'V-1-5-95',date:'2026-10-21',items:['登录页平台标题保持原位，公司版权及备案号移至屏幕底部居中，下方新增“数字化运营中心”。']},
