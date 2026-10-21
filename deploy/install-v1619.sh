@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd /opt/gugemei
+
+archive=gugemei-standalone-v1619.tar.gz
+expected=c564d4372a2a0e9d3fe9472bf0e1c8602a39868a745c90c29f7ff641145e0bb5
+actual=$(sha256sum "$archive" | cut -d " " -f 1)
+test "$actual" = "$expected"
+test -d app
+test ! -e app-prev2-v1619
+test ! -e app-new-v1619
+
+before=$(ls -1t /var/lib/gugemei/backups/*-report.json 2>/dev/null | sed -n '1p')
+systemctl start gugemei-backup.service
+after=$(ls -1t /var/lib/gugemei/backups/*-report.json 2>/dev/null | sed -n '1p')
+test -n "$after"
+test "$after" != "$before"
+echo "db_backup=$(ls -1t /var/lib/gugemei/backups/*-db.sqlite | sed -n '1p')"
+
+mkdir app-new-v1619
+tar -xzf "$archive" -C app-new-v1619
+test -f app-new-v1619/server.js
+test -d app-new-v1619/dist
+test -d app-new-v1619/node_modules
+grep -q "2026-10-22 V-1-6-19" -r app-new-v1619/dist/client/_next/static/chunks/
+chown -R --reference=app app-new-v1619
+chmod -R go-w app-new-v1619
+
+systemctl stop gugemei.service
+mv app app-prev2-v1619
+mv app-new-v1619 app
+
+rollback() {
+  systemctl stop gugemei.service || true
+  mv app app-failed-v1619
+  mv app-prev2-v1619 app
+  systemctl start gugemei.service
+  echo 'Deployment failed; previous version restored' >&2
+  exit 1
+}
+
+systemctl start gugemei.service || rollback
+sleep 2
+systemctl is-active --quiet gugemei.service || rollback
+curl --silent --fail --output /dev/null http://127.0.0.1:3700/login || rollback
+curl --silent --output /dev/null --write-out 'login_http=%{http_code}\n' http://127.0.0.1:3700/login
+cat app/dist/server/BUILD_ID; echo
+systemctl is-active gugemei.service
