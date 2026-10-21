@@ -300,10 +300,10 @@
 .qwCustomerDialog.qwProjectDialog .qwEditorTable td{padding:2px 5px}
 .qwCustomerDialog.qwProjectDialog .qwEditorTable input{padding:11px 7px}
 .qwCustomerDialog.qwProjectDialog .qwEditorTable select{margin-bottom:3px;padding:10px 7px}
-.qwCustomerDialog .qwCustomerQuoteEditor .qwEditorBody{display:flex;flex-direction:column;min-height:0;flex:1;overflow:hidden}
+.qwCustomerDialog .qwCustomerQuoteEditor .qwEditorBody{display:flex;flex-direction:column;min-height:0;flex:1;overflow:hidden;padding-bottom:0}
 .qwCustomerDialog .qwCustomerQuoteEditor .qwEditorMain{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
-.qwCustomerDialog .qwCustomerQuoteEditor .qwTableWrap{flex:1;min-height:200px;overflow:auto}
-.qwCustomerDialog .qwDraftTotals{margin-top:auto;padding:10px 0 4px;flex-shrink:0}
+.qwCustomerDialog .qwCustomerQuoteEditor .qwTableWrap{flex:1;min-height:150px;overflow:auto;overscroll-behavior:contain}
+.qwCustomerDialog .qwDraftTotals{margin-top:0;padding:8px 0 4px;flex-shrink:0;border-top:1px solid #e8eef6}
 .qwCustomerDialog.qwProjectDialog .qwNoteLabel{margin-top:0}
 .qwCustomerDialog.qwProjectDialog .qwNoteLabel textarea{min-height:48px}
 .qwCustomerDialog.qwProjectDialog .qwDialogFoot{padding:8px 18px}
@@ -328,7 +328,7 @@
 .qwDialog.qwCustomerDialog .qwRoomEditorLayout{margin:4px 0}
 .qwDialog.qwCustomerDialog .catalogSearchPanel{margin:4px 0}
 .qwDialog.qwCustomerDialog .qwImportActions{margin:0 0 4px}
-.qwDialog.qwCustomerDialog .qwDraftTotals{margin-top:auto;padding:10px 0 4px;gap:16px}
+.qwDialog.qwCustomerDialog .qwDraftTotals{margin-top:0;padding:6px 0 2px;gap:16px}
 .qwDialog.qwCustomerDialog .qwDraftTotals span{gap:2px}
 .qwDialog.qwCustomerDialog .qwNoteLabel{margin-top:0}
 .qwDialog.qwCustomerDialog .qwNoteLabel textarea{min-height:48px}
