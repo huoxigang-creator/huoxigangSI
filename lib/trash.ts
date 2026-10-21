@@ -4,7 +4,7 @@ type FileType = 'project' | 'payment';
 type Row = {id: string; owner: string; kind: string; project: string; data: string; created: string};
 type RecordValue = Omit<Row, 'data'> & {data: Record<string, any>; rawData: string};
 type Dependencies = {database: () => D1Database | undefined; bucket: () => R2Bucket | undefined};
-const KINDS = new Set(['project', 'quote', 'transaction', 'task', 'material', 'purchase_order','contract','contract_template']);
+const KINDS = new Set(['project', 'quote', 'transaction', 'task', 'material', 'purchase_order','contract','contract_template','swatch']);
 const PROJECT_SCOPED = new Set(['quote', 'transaction', 'task', 'purchase_order','contract']);
 const CATEGORIES = new Set(['合同', '设计图', '项目资料']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

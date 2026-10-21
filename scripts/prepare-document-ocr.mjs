@@ -23,6 +23,7 @@ for(const language of ['chi_sim']){
  const languageRoot=path.dirname(require.resolve('@tesseract.js-data/'+language+'/package.json'));
  // The full Chinese LSTM model preserves more character detail than best_int.
  copyFileSync(path.join(languageRoot,'4.0.0',language+'.traineddata.gz'),path.join(languageTarget,language+'.traineddata.gz'));
+ const fastTarget=path.join(root,'languages/fast');mkdirSync(fastTarget,{recursive:true});copyFileSync(path.join(languageRoot,'4.0.0_best_int',language+'.traineddata.gz'),path.join(fastTarget,language+'.traineddata.gz'));
  if(existsSync(path.join(languageRoot,'README.md')))copyFileSync(path.join(languageRoot,'README.md'),path.join(root,'languages','README-'+language+'.md'));
 }
 // Remove the unused English model created by earlier local preparation.

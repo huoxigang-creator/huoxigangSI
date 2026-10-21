@@ -5,7 +5,7 @@ import {RefreshCw, RotateCcw, Trash2} from 'lucide-react';
 import {trashRequest} from '../lib/trash-client';
 import {runBulkActions} from '../lib/bulk-actions';
 import {SelectionCheckbox, SelectionToolbar, useListSelection} from './list-selection';
-const labels: Record<string, string> = {project: '项目', quote: '报价', transaction: '收付款记录', task: '任务', material: '材料', purchase_order: '采购单',contract:'合同',contract_template:'合同模板'};
+const labels: Record<string, string> = {project: '项目', quote: '报价', transaction: '收付款记录', task: '任务', material: '材料', purchase_order: '采购单',contract:'合同',contract_template:'合同模板',swatch:'选材花色'};
 const money = (amount: number) => <span className="moneyValue">{new Intl.NumberFormat('zh-CN', {style: 'currency', currency: 'CNY'}).format(amount / 100)}</span>;
 const date = (value: string) => new Date(value).toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'});
 type TrashRow = {id: string; recordId: string; isFile: boolean; name?: string; kind?: string; parentDeleted?: boolean; paymentDeleted?: boolean; [key: string]: any};

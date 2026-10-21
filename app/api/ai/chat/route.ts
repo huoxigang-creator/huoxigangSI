@@ -1,3 +1,4 @@
+import {recognitionSettings} from '../../../../lib/recognition-settings-service';
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -17,7 +18,7 @@ let activeCalls = 0;
 const noStore = { 'Cache-Control': 'no-store' };
 type ToolCall = { id: string; type: 'function'; function: { name: string; arguments: string } };
 type Message = { role: 'system' | 'user' | 'assistant' | 'tool'; content?: string | null; tool_calls?: ToolCall[]; tool_call_id?: string; responseItems?: any[] };
-type Provider = 'qwen' | 'claude' | 'codex';
+type Provider = 'qwen' | 'claude' | 'codex' | 'doubao';
 
 function secret() { return readFileSync(join(dataDirectory, 'session-secret')); }
 function seal(value: object) {
@@ -57,16 +58,18 @@ async function callModel(provider: Provider, messages: Message[]): Promise<Messa
   let endpoint: URL;
   let headers: Record<string, string>;
   let body: object;
-  if (provider === 'qwen') {
-    const key = process.env.GUGEMEI_AI_API_KEY;
-    const base = process.env.GUGEMEI_AI_BASE_URL;
+  if (provider === 'qwen' || provider === 'doubao') {
+    const selected=provider==='doubao'?recognitionSettings.resolve(MANAGEMENT_OWNER_ID,'doubao'):null;
+    const key = selected?.key || process.env.GUGEMEI_AI_API_KEY;
+    const base = selected?.base || process.env.GUGEMEI_AI_BASE_URL;
     if (!key || !base) throw new Error('千问尚未配置');
     const url = new URL(base);
-    if (url.protocol !== 'https:' || !url.hostname.endsWith('.maas.aliyuncs.com') || url.pathname !== '/compatible-mode/v1') throw new Error('百炼地址配置无效');
+    if (url.protocol !== 'https:' || (provider==='doubao'?url.origin!=='https://ark.cn-beijing.volces.com'||url.pathname!=='/api/v3':!url.hostname.endsWith('.maas.aliyuncs.com')||url.pathname!=='/compatible-mode/v1')) throw new Error('百炼地址配置无效');
     endpoint = new URL(base + '/chat/completions');
     headers = { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
     body = {
-      model: process.env.GUGEMEI_AI_MODEL || 'qwen3.8-max', messages,
+      model: selected?.model || process.env.GUGEMEI_AI_MODEL || 'qwen3.8-max', messages,
+      ...(provider==='doubao'?{thinking:{type:'disabled'}}:{}),
       tools: tools.map(tool => ({ type: 'function', function: { name: tool.name, description: tool.description, parameters: tool.inputSchema } })),
       parallel_tool_calls: false, max_tokens: 1500,
     };
@@ -100,7 +103,7 @@ async function callModel(provider: Provider, messages: Message[]): Promise<Messa
     if (provider === 'codex') throw new Error('服务器暂时无法连接 OpenAI 官方接口，请检查服务器网络连接');
     throw error;
   });
-  if (!response.ok) throw new Error(`${provider === 'qwen' ? '百炼' : provider === 'codex' ? 'Codex' : 'Claude'} 调用失败（HTTP ${response.status}），请核对模型和 API Key`);
+  if (!response.ok) throw new Error(`${provider === 'doubao' ? '豆包' : provider === 'qwen' ? '百炼' : provider === 'codex' ? 'Codex' : 'Claude'} 调用失败（HTTP ${response.status}），请核对模型和 API Key`);
   const data = await response.json() as any;
   if (provider === 'codex') return codexMessage(data);
   if (provider !== 'claude') {
@@ -193,7 +196,7 @@ export async function POST(request: NextRequest) {
   }
   const question = typeof input.question === 'string' ? input.question.trim() : '';
   if (!question || question.length > 500) return Response.json({ error: '请输入不超过 500 字的问题' }, { status: 400, headers: noStore });
-  const provider: Provider = input.provider === 'claude' ? 'claude' : input.provider === 'codex' ? 'codex' : 'qwen';
+  const provider: Provider = input.provider === 'doubao' ? 'doubao' : input.provider === 'claude' ? 'claude' : input.provider === 'codex' ? 'codex' : 'qwen';
   const now = Date.now(), recent = (recentCalls.get(account.id) || []).filter(time => now - time < 60_000);
   if (recent.length >= 8 || activeCalls >= 3) return Response.json({ error: '请求较频繁，请稍后再试' }, { status: 429, headers: noStore });
   recent.push(now); recentCalls.set(account.id, recent); activeCalls++;

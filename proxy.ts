@@ -3,7 +3,7 @@ import { SESSION_COOKIE, sessionAccount } from './lib/local-auth';
 import { MANAGEMENT_OWNER_ID } from './lib/management-access';
 
 const publicPaths = new Set(['/login', '/api/auth/login', '/api/auth/sms/send', '/api/auth/sms/login', '/api/auth/forgot', '/api/shared-confirm']);
-const employeeApiPaths = new Set(['/api/manage', '/api/catalog', '/api/auth/me', '/api/auth/me/update', '/api/auth/password', '/api/project-sms', '/api/confirm']);
+const employeeApiPaths = new Set(['/api/drawing-recognition','/api/manage', '/api/catalog', '/api/auth/me', '/api/auth/me/update', '/api/auth/password', '/api/project-sms', '/api/confirm']);
 
 export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -13,7 +13,7 @@ export function proxy(request: NextRequest) {
   }
   const next = () => NextResponse.next({ request: { headers } });
   const staticAsset = path.startsWith('/_next/') || path.startsWith('/assets/') || path === '/favicon.ico' || /\.(?:svg|png|jpg|jpeg|webp|ico|css|js|woff2?)$/.test(path);
-  if ((/^\/s\/p\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-customer-payment'&&['GET','POST'].includes(request.method)) || staticAsset || publicPaths.has(path) || path.startsWith('/s/c/') || (/^\/s\/q\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-quote'&&['GET','POST'].includes(request.method))) return next();
+  if ((/^\/s\/m\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-material-selections'&&['GET','POST'].includes(request.method)) || (/^\/s\/p\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-customer-payment'&&['GET','POST'].includes(request.method)) || staticAsset || publicPaths.has(path) || path.startsWith('/s/c/') || (/^\/s\/q\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-quote'&&['GET','POST'].includes(request.method))) return next();
 
   const account = sessionAccount(request.cookies.get(SESSION_COOKIE)?.value);
   if (!account) {

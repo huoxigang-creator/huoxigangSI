@@ -360,6 +360,7 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
     {groups.length?(!customerMode||!chosen.quote)?<div className="qwCards">{customerMode?items.map(quote=>{
       const selected=quote.id===activeQuote?.id;
       return <article key={quote.id} className={'qwCard '+(selected?'current ':'')+(quote.adopted?'adopted':'')}>
+        {quote.adopted&&<span className="quoteCardRibbon" aria-label="已采纳">采纳</span>}
         <div className="qwCardTop"><SelectionCheckbox checked={selection.selectedIds.includes(quote.id)} label={'选择报价 '+quote.title} onChange={()=>selection.toggle(quote.id)} disabled={disabled}/><span className={'badge '+(quote.adopted?'green':'blue')}>{quote.adopted?'已采纳':'草稿'}</span><small>{quote.created?.slice(0,10)||''}</small></div>
         <button className="qwCardOpen" disabled={disabled} onClick={()=>setPickedQuote(quote.id)} onDoubleClick={()=>choose(quote)}>
           <h3>{quote.title||'报价方案'}</h3>
@@ -371,6 +372,7 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
     }):groups.map(group=>{
       const all=group.quotes.every(quote=>selection.selectedIds.includes(quote.id)),some=group.quotes.some(quote=>selection.selectedIds.includes(quote.id));
       return <article key={group.id} className={'qwCard '+(group.id===selectedGroup?.id?'current ':'')+(group.adopted?'adopted':'')}>
+        {group.adopted&&<span className="quoteCardRibbon" aria-label="已采纳">采纳</span>}
         <div className="qwCardTop"><SelectionCheckbox checked={all} mixed={some&&!all} label={'选择项目全部版本 '+group.name} onChange={()=>toggleGroup(group.quotes)} disabled={disabled}/><span className={'badge '+(group.adopted?'green':'blue')}>{group.adopted?'已采纳':'未采纳'}</span><small>{group.quotes.length} 个版本</small></div>
         <button className="qwCardOpen" disabled={disabled} onClick={()=>choose(group.adopted||group.quotes[0])}><h3>{group.name}</h3><strong>{money(group.adopted?group.total:group.quotes[0]?.total||0)}</strong><span>{group.adopted?'已采纳金额':'最新草稿金额'} · 查看明细</span></button>
       </article>;

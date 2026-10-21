@@ -1,0 +1,4 @@
+'use client';
+import type {SelectionVersion} from '../lib/material-selection-types';
+export function selectionTime(value?:string){return value?new Date(value).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'}):'—';}
+export function SelectionVersionView({version,imageUrl}:{version:SelectionVersion;imageUrl:(id:string)=>string}){return <><p>客户确认：{version.submitted_by} · {selectionTime(version.submitted_at)} · V{version.version}</p><div className="msSelectedGrid">{version.items.map(item=><article key={item.id} className="msSelectedCard"><img src={imageUrl(item.image_id)} alt={item.brand+' '+item.name}/><div><strong>{item.room} · {item.use}</strong><b>{item.brand} · {item.name}</b><p>{item.note||'无补充备注'}</p></div></article>)}</div>{!version.items.length&&<p>本版已清空全部选材。</p>}</>;}
