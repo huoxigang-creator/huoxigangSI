@@ -191,11 +191,12 @@
 .qwCustomerQuoteEditor .qwRoomEditorLayout{margin-top:0;margin-bottom:0;border-top:0;border-bottom:0}
 .qwCustomerQuoteEditor .qwRoomEditorMain .qwEditorHeading{margin-top:12px}
 @media(max-width:760px){.qwCustomerDialog .qwCustomerEditorHead{align-items:flex-start;gap:10px}.qwCustomerTitleBar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 10px}.qwCustomerTitleBar>h2{grid-column:1;grid-row:1}.qwHeaderVersion{grid-column:1/-1;grid-row:2;min-width:0;max-width:none}.qwHeaderVersion>span{font-size:11px}.qwHeaderVersion>input{font-size:12px;padding:7px 8px}.qwCustomerTitleBar>button{grid-column:2;grid-row:1;font-size:11px;padding:7px 9px}.qwCustomerQuoteEditor .qwEditorBody{padding-top:0;padding-bottom:0}.qwCustomerQuoteEditor .qwRoomEditorLayout{margin-top:0;margin-bottom:0}}
-.qwCategoryImportBar{display:flex;align-items:center;gap:10px;min-width:0;margin-bottom:12px;flex-shrink:0;flex-wrap:wrap}
-.qwEditorBody .qwCategoryImportBar>.qwCategoryTabs{flex:1;min-width:100%;margin-bottom:0;padding-bottom:0;border-bottom:0;display:flex;gap:6px;flex-wrap:wrap}
-.qwEditorBody .qwCategoryImportBar>.qwCategoryTabs button{border-radius:6px;padding:7px 13px;font-size:12px;background:#f0f4f8;color:#5a7ba0;border:1px solid #e0e8f2}
-.qwEditorBody .qwCategoryImportBar>.qwCategoryTabs button.selected{background:#245c9c;color:#fff;border-color:#245c9c}
-.qwCategoryImportBar>button{flex-shrink:0;white-space:nowrap}
+.qwCategoryBarInline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.qwCategoryBarInline>button{border-radius:6px;padding:8px 14px;font-size:12px;background:#245c9c;color:#fff;border:1px solid #245c9c;cursor:pointer}
+.qwCategoryBarInline>button:hover{background:#1d4a80}
+.qwCategoryBarInline>button.active{background:#1a3d6e;border-color:#1a3d6e}
+.qwCategoryBarInline>button:disabled{opacity:.5;cursor:default}
+.qwCategoryBarInline>button span{background:#ffffff26;border-radius:8px;padding:1px 5px;margin-left:6px;font-size:10px}
 .qwCardToolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding:0 0 12px;margin-bottom:12px;border-bottom:1px solid #e2e8f0}.qwCardToolbar button{font-size:12px;padding:8px 13px}
 .qwCardSubmitPay{display:block;text-align:right;font-style:normal;font-size:12px;color:#ff5722;margin-top:4px}
 .qwCustomerDialog .qwCategoryImportBar{position:sticky;top:0;z-index:4;background:#fff;padding-top:6px;padding-bottom:2px}
@@ -296,8 +297,10 @@
 .qwCustomerDialog.qwProjectDialog .qwEditorTable td{padding:2px 5px}
 .qwCustomerDialog.qwProjectDialog .qwEditorTable input{padding:11px 7px}
 .qwCustomerDialog.qwProjectDialog .qwEditorTable select{margin-bottom:3px;padding:10px 7px}
-.qwCustomerDialog.qwProjectDialog .qwDraftTotals{margin-top:2px;padding:6px 0;gap:16px}
-.qwCustomerDialog.qwProjectDialog .qwDraftTotals span{gap:2px}
+.qwCustomerDialog .qwCustomerQuoteEditor .qwEditorBody{display:flex;flex-direction:column;min-height:0;flex:1;overflow:hidden}
+.qwCustomerDialog .qwCustomerQuoteEditor .qwEditorMain{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.qwCustomerDialog .qwCustomerQuoteEditor .qwTableWrap{flex:1;min-height:200px;overflow:auto}
+.qwCustomerDialog .qwDraftTotals{margin-top:auto;padding:10px 0 4px;flex-shrink:0}
 .qwCustomerDialog.qwProjectDialog .qwNoteLabel{margin-top:0}
 .qwCustomerDialog.qwProjectDialog .qwNoteLabel textarea{min-height:48px}
 .qwCustomerDialog.qwProjectDialog .qwDialogFoot{padding:8px 18px}
@@ -322,7 +325,7 @@
 .qwDialog.qwCustomerDialog .qwRoomEditorLayout{margin:4px 0}
 .qwDialog.qwCustomerDialog .catalogSearchPanel{margin:4px 0}
 .qwDialog.qwCustomerDialog .qwImportActions{margin:0 0 4px}
-.qwDialog.qwCustomerDialog .qwDraftTotals{margin-top:2px;padding:6px 0;gap:16px}
+.qwDialog.qwCustomerDialog .qwDraftTotals{margin-top:auto;padding:10px 0 4px;gap:16px}
 .qwDialog.qwCustomerDialog .qwDraftTotals span{gap:2px}
 .qwDialog.qwCustomerDialog .qwNoteLabel{margin-top:0}
 .qwDialog.qwCustomerDialog .qwNoteLabel textarea{min-height:48px}
