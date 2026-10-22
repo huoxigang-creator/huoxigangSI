@@ -3,7 +3,7 @@ set -euo pipefail
 cd /opt/gugemei
 
 archive=gugemei-standalone-v1624.tar.gz
-expected=57ec77b5a71c5e16997cbf32a01dd6805a5e2ea9bc67412d5ee77e5edbb100d8
+expected=c230d1b170f23fef711726d58cb7f54e1006b90d9a79018c000ae3ffc48cc0ab
 actual=$(sha256sum "$archive" | cut -d " " -f 1)
 test "$actual" = "$expected"
 
@@ -25,11 +25,7 @@ grep -q "V-1-6-24" -r "$new/dist/client/_next/static/chunks/" || { echo "版本�
 
 systemctl stop gugemei
 if [ -d app ]; then
-  if [ -d app-prev2-v1624 ]; then
-    echo "app-prev2-v1624 已存在，跳过旧备份"
-  else
-    mv app app-prev2-v1624
-  fi
+  mv app app-prev2-v1624
 fi
 mv "$new" app
 systemctl start gugemei
