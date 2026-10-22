@@ -3,9 +3,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-22 V-1-6-27';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-22 V-1-6-28';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-6-28',date:'2026-10-22',items:['登录页底部版权信息去掉“版权所有”字样，版权年份由2020改为2050，保留ICP备案号。','锦木独立登录页同步升级最新登录背景，橱柜位于页面左侧、为登录框预留右侧空间。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-27',date:'2026-10-22',items:['导入全部料单时自动过滤"包装清单"文件，只读料单表格。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-26',date:'2026-10-22',items:['打印五金单标题改为客户地址（原来显示姓名）。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-24',date:'2026-10-22',items:['打印五金单改为新窗口打印，修复打印预览空白问题。','本次升级已上传阿里云服务器并同步GitHub。']},
