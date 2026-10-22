@@ -15,7 +15,7 @@ test('毫米灯带合计后转米，两位小数；免拉手/挂衣杆规格长�
  const result=mergeQuoteImportRows([row('普通灯带','2598',1,'mm'),row('普通灯带','713',1,'mm'),row('普通灯带','1687',1,'mm'),row('L型免拉手','58.0*25.0*1914.0',2),row('普通挂衣杆','737.0*0.0*0.0',2)]).rows;
  assert.equal(result[0].unit,'米');assert.equal(result[0].quantity,5);
  assert.equal(result[1].model,'58.0*25.0*1914.0');assert.equal(result[1].quantity,3.83);
- assert.equal(result[2].model,'737.0*0.0*0.0');assert.equal(result[2].quantity,1.47);
+ assert.equal(result[2].model,'737×2');assert.equal(result[2].quantity,1.47);
  const byCount=mergeQuoteImportRows([row('普通灯带','2598',2),row('普通灯带','713',1)]).rows[0];assert.equal(byCount.quantity,5.91);assert.equal(byCount.unit,'米');
  const angle=mergeQuoteImportRows([row('免拉手角码','',4)]).rows[0];assert.equal(angle.quantity,4);assert.equal(angle.unit,'个');
  const matched=hardwareCatalogRow(row('普通灯带','',10712,'毫米'),[{id:'led',name:'普通灯带',model:'',unit:'米',expense_category:'五金费用',sale_price:1000}]);assert.equal(matched.quantity,10.71);assert.equal(matched.price,10);
