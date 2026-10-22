@@ -76,7 +76,11 @@ export function buildOrderRows(projects: any[], quotes: any[], transactions: any
     const isCustomer = project.project_type === 'customer';
     const isGrouped = groupedProject(project, activeProjects, ownQuotes);
     const unallocated = unallocatedTotals(project, activeProjects, ownQuotes, ownTransactions, quotes).received;
-    const groups = isGrouped ? groupQuotes(ownQuotes) : [null];
+    const groups = isGrouped
+    ? groupQuotes(ownQuotes)
+    : (isCustomer && ownQuotes.length > 1
+        ? ownQuotes.map(quote => ({id: quote.id, name: quote.subproject_name || quote.title, adopted: quote.adopted || false, quotes: [quote], total: quote.total || 0}))
+        : [null]);
     // A parent without its own quotations is only a container, never an extra order.
     for (const group of groups) {
       const adopted = group ? group.adopted : (isCustomer

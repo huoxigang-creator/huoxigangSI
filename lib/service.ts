@@ -10,6 +10,7 @@ const EMPTY_PROJECT_STRUCTURE="NOT EXISTS (SELECT 1 FROM records AS related WHER
 const QUOTE_GROUP="COALESCE(NULLIF(json_extract(data, '$.subproject_id'), ''), 'legacy')";
 const UNUSED_QUOTE_GROUP="NOT EXISTS (SELECT 1 FROM records AS grouped WHERE grouped.kind = 'quote' AND json_extract(grouped.data, '$.subproject_id') = ? AND (grouped.owner <> ? OR grouped.project <> ?))";
 const ACTIVE_TRANSACTION_GROUP="EXISTS (SELECT 1 FROM records AS transaction_group WHERE transaction_group.owner = ? AND transaction_group.project = ? AND transaction_group.kind = 'quote' AND COALESCE(json_extract(transaction_group.data, '$.deleted'), 0) = 0 AND COALESCE(NULLIF(json_extract(transaction_group.data, '$.subproject_id'), ''), 'legacy') = ?)";
+const ACTIVE_CUSTOMER_QUOTE_GROUP="EXISTS (SELECT 1 FROM records AS customer_quote WHERE customer_quote.owner = ? AND customer_quote.project = ? AND customer_quote.kind = 'quote' AND customer_quote.id = ? AND COALESCE(json_extract(customer_quote.data, '$.deleted'), 0) = 0)";
 const SAFE_QUOTE_CONTRACT="(? + COALESCE((SELECT SUM(json_extract(other.data, '$.total')) FROM records AS other WHERE other.owner = ? AND other.project = ? AND other.kind = 'quote' AND COALESCE(json_extract(other.data, '$.deleted'), 0) = 0 AND json_extract(other.data, '$.adopted') = 1 AND COALESCE(NULLIF(json_extract(other.data, '$.subproject_id'), ''), 'legacy') <> ?), 0)) BETWEEN 0 AND 9007199254740991";
 const SAFE_QUOTE_SETTLEMENT="EXISTS (SELECT 1 FROM records AS customer WHERE customer.id = ? AND customer.owner = ? AND customer.kind = 'project' AND (COALESCE(json_extract(customer.data, '$.project_type'), 'project') <> 'customer' OR (COALESCE(json_extract(customer.data, '$.discount_amount'), 0) + COALESCE(json_extract(customer.data, '$.rounding_amount'), 0)) <= (? + COALESCE((SELECT SUM(json_extract(other.data, '$.total')) FROM records AS other WHERE other.owner = ? AND other.project = ? AND other.kind = 'quote' AND COALESCE(json_extract(other.data, '$.deleted'), 0) = 0 AND json_extract(other.data, '$.adopted') = 1 AND COALESCE(NULLIF(json_extract(other.data, '$.subproject_id'), ''), 'legacy') <> ?), 0))))";
 const SAFE_SETTLEMENT_CONTRACT="? <= COALESCE((SELECT SUM(json_extract(adopted.data, '$.total')) FROM records AS adopted WHERE adopted.owner = ? AND adopted.project = ? AND adopted.kind = 'quote' AND COALESCE(json_extract(adopted.data, '$.deleted'), 0) = 0 AND json_extract(adopted.data, '$.adopted') = 1), 0)";
@@ -167,8 +168,11 @@ export async function execute(owner:string,action:string,args:any,employee=false
   const old=await rawTransaction(owner,id);if(old)return matchingTransaction(old,data,project);
   if(data.subproject_id){
    const parent=get(project,'project');
-   if(parent.project_type==='customer')throw new BusinessError('终端客户收付款按整户归属，不能选择报价小项目');
-   if(!s.quotes.some(quote=>quote.project===project&&quoteGroupKey(quote)===data.subproject_id))throw new BusinessError('报价小项目不存在或不属于当前项目');
+   if(parent.project_type==='customer'){
+    if(!s.quotes.some(quote=>quote.project===project&&quote.id===data.subproject_id))throw new BusinessError('所选报价不存在或不属于当前客户');
+   }else{
+    if(!s.quotes.some(quote=>quote.project===project&&quoteGroupKey(quote)===data.subproject_id))throw new BusinessError('报价小项目不存在或不属于当前项目');
+   }
   }
   detail=data.type==='收款'?'登记收款':'登记付款';
  }
@@ -205,7 +209,7 @@ export async function execute(owner:string,action:string,args:any,employee=false
   // Reserve a subproject ID to one owner and one parent, including recycled versions.
   // The atomic guard also covers two requests that both passed the earlier lookup.
   if(kind==='quote'&&data.subproject_id){guard+=' AND '+UNUSED_QUOTE_GROUP;bindings.push(data.subproject_id,owner,project);}
-  if(action==='record_transaction'&&data.subproject_id){guard+=' AND '+ACTIVE_TRANSACTION_GROUP;bindings.push(owner,project,data.subproject_id);}
+  if(action==='record_transaction'&&data.subproject_id){guard+=' AND '+(get(project,'project').project_type==='customer'?ACTIVE_CUSTOMER_QUOTE_GROUP:ACTIVE_TRANSACTION_GROUP);bindings.push(owner,project,data.subproject_id);}
   mutation=db().prepare('INSERT INTO records(id,owner,kind,project,data,created) SELECT ?,?,?,?,?,?'+guard+' ON CONFLICT(id) DO NOTHING').bind(...bindings);
  }
  const mutationIndex=statements.length;statements.push(mutation);

@@ -82,7 +82,10 @@ export function TransactionList(props:SharedProps & {projects:RecordRow[]; quote
   function subprojectName(transaction:RecordRow){
     const project=props.projects.find(row=>row.id===transaction.project);
     if(project?.parent_id)return project.name;
-    if(project?.project_type==='customer')return '整户订单';
+    if(project?.project_type==='customer'){
+      if(transaction.subproject_id){const linked=(props.quotes||[]).find(quote=>quote.id===transaction.subproject_id&&!quote.deleted);return linked?.title||'原报价（已删除）';}
+      return '整户订单';
+    }
     const quotes=(props.quotes||[]).filter(quote=>quote.project===transaction.project&&!quote.deleted);
     const groupId=transactionGroupKey({project:transaction.project,subproject_id:transaction.subproject_id,source_quote_id:transaction.source_quote_id,owner:transaction.owner},quotes);
     if(groupId)return groupQuotes(quotes).find(group=>group.id===groupId)?.name||'原小项目（报价已删除）';

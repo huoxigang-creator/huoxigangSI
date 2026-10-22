@@ -17,7 +17,7 @@ export function transactionAssignmentOptions(record:Row,projects:Row[],quotes:Ro
  const targets=root?receiptTargets(root,projects,quotes,transactions.filter(row=>row.id!==record.id)).targets.filter(row=>row.projectId!==root.id||Boolean(row.subprojectId)):[];
  const group=transactionGroupKey(record,quotes);
  const current=targets.find(row=>row.projectId===record.project&&(row.subprojectId||'')===(group||''));
- const reason=record.void||record.deleted?'已作废或已删除的流水不能分配':!root?'所属项目已不可用':root.project_type==='customer'?'客户收付款按整户订单管理':record.source_quote_id||record.payment_provider||record.wechat_transaction_id||record.payment_order_id?'关联报价或线上收款的流水按原订单归属':!targets.length?'请先在该项目下添加小项目':'';
+ const reason=record.void||record.deleted?'已作废或已删除的流水不能分配':!root?'所属项目已不可用':root.project_type==='customer'?(record.subproject_id?'收款已按报价归属，如需调整请作废后重新登记':'客户收付款按整户订单管理'):record.source_quote_id||record.payment_provider||record.wechat_transaction_id||record.payment_order_id?'关联报价或线上收款的流水按原订单归属':!targets.length?'请先在该项目下添加小项目':'';
  return {root,targets,current,reason};
 }
 

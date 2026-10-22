@@ -17,12 +17,12 @@ export default function ReceiptProjectFields({projects,quotes,transactions,initi
  const initialTargets=initialRoot?receiptTargets(initialRoot,projects,quotes,transactions).targets:[];
  const defaultTarget=(targets:OrderRow[],projectId:string)=>{
   const own=targets.filter(target=>target.projectId===projectId);
-  return own.length===1?own[0].id:targets.length===1?targets[0].id:'';
+  return own.find(target=>target.receivable!==null&&target.receivable!==undefined)?.id||own.find(target=>Boolean(target.subprojectId))?.id||(own.length===1?own[0].id:targets.length===1?targets[0].id:'');
  };
  const [targetId,setTargetId]=useState(()=>defaultTarget(initialTargets,initialProjectId));
  const target=basis.targets.find(row=>row.id===targetId);
  const customer=root?.project_type==='customer';
- const hasSubprojects=Boolean(root&&!customer&&(basis.targets.length>1||basis.targets.some(row=>row.projectId!==root.id||row.subprojectId)));
+ const hasSubprojects=Boolean(root&&(customer?basis.targets.length>1:basis.targets.length>1||basis.targets.some(row=>row.projectId!==root.id||row.subprojectId)));
  const actualTarget=hasSubprojects?target:basis.targets[0];
  const pending=type==='收款'?(()=>{try{return paymentAmountCents(amount);}catch{return 0;}})():0;
  const balance=actualTarget?.remaining;
