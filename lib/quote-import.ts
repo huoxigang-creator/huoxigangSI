@@ -321,10 +321,10 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
           const isHandleRow = /免拉手/.test(row.name);
           const isRodRow = /挂衣杆/.test(row.name);
           if (qty > 0 && positiveNums.length > 0) {
-            // 挂衣杆取第一个数字；免拉手取最后一个数字；其他取第一个
+            // 免拉手：截面数字是小数字(25/57/58/73)，取最大数字为长度；挂衣杆取第一个数字
             let len;
             if (isHandleRow && positiveNums.length >= 2) {
-              len = positiveNums[positiveNums.length - 1];
+              len = Math.max(...positiveNums);
             } else {
               len = positiveNums[0];
             }
