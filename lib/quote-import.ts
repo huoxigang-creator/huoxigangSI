@@ -280,7 +280,7 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
     const row={...original};
     // 长度型五金：免拉手、灯带、挂衣杆（排除角码/封口/连接/堵头）。
     // 规格里的数字是毫米（支持 "2598mm*2、713mm*3" 这种长度×根数格式），合并时自动折算成米。
-    const lengthItem=/免拉手|灯带|挂衣杆/.test(row.name)&&!/角码|封口|连接|堵头/.test(row.name);
+    const lengthItem=/免拉手|灯带|挂衣杆|踢脚线/.test(row.name)&&!/角码|封口|连接|堵头/.test(row.name);
     if(!lengthItem&&/^(mm|毫米)$/i.test(row.unit.trim())){row.quantity=row.quantity===null?null:row.quantity/1000;row.unit='米';}
     const key = row.name.trim() || '（未命名）';
     let group = groups.get(key);
@@ -341,7 +341,8 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
     const isHandle = /免拉手/.test(row.name)&&!/角码|封口|连接|堵头/.test(row.name);
     const isLed = /灯带/.test(row.name);
     const isRod = /挂衣杆/.test(row.name);
-    const isLengthItem = isHandle || isLed || isRod;
+    const isToeKick = /踢脚线/.test(row.name);
+    const isLengthItem = isHandle || isLed || isRod || isToeKick;
     // 规格型号列汇总：长度型物料显示 "长度×根数" 格式，其他显示原始规格
     const specSource = isLengthItem && group.specs.length ? group.specs : models;
     const specText = specSource.join('、');
