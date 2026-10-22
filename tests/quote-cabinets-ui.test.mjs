@@ -61,7 +61,7 @@ test('图纸确认自动生成左侧房间，同名房间合并且保存前不�
  const importer=find(tree,node=>node.type?.name==='DrawingImport','Drawing import');
  importer.props.onApply([{source:'图纸一.png',room:'主卧室',name:'衣柜',width:'2373',height:'2480',price:'800',selected:true},{source:'图纸二.png',room:'儿童房',name:'书柜',width:'2000',height:'2400',price:'',selected:true},{source:'图纸三.png',room:'儿童房',name:'衣柜',width:'1000',height:'2400',price:'',selected:true}]);
  tree=app.render();const control=roomControl(tree);assert.equal(control.props.rooms.filter(r=>r.name==='主卧室').length,1);assert.equal(control.props.rooms.filter(r=>r.name==='儿童房').length,1);
- const added=control.props.lines.filter(r=>r.note?.startsWith('图纸尺寸'));assert.equal(added.length,3);assert.equal(added[0].quantity,5.885);assert.equal(added[1].room_id,added[2].room_id);assert.equal(added[0].room_id,roomA);assert.equal(app.mutations.length,0);
+ const added=control.props.lines.filter(r=>r.note?.startsWith('AI智能识别'));assert.equal(added.length,3);assert.equal(added[0].quantity,5.885);assert.equal(added[1].room_id,added[2].room_id);assert.equal(added[0].room_id,roomA);assert.equal(app.mutations.length,0);
 });
 function newCustomerQuote(app){let tree=app.render();button(tree,'新建客户报价').props.onClick();tree=app.render();find(tree,node=>node.type===app.dialogs.QuoteCreateDialog,'Type choice').props.onNew();tree=app.render();roomControl(tree).props.onAdd('厨房');return app.render();}
 async function save(app){const tree=app.render();find(tree,node=>node.type==='form','Draft form').props.onSubmit({preventDefault(){}});await nextTurn();assert.ok(app.mutations.length,'Draft was saved: '+text(tree));return app.mutations.at(-1);}

@@ -264,7 +264,7 @@
   .qwCustomerPrint>p{text-align:center;margin:4px 0}
   .qwCustomerPrint>p[role=alert]{color:#c00;padding:20px 0}
   .qwCustomerPrint table{border-collapse:collapse;width:100%;table-layout:fixed;margin:0 auto}
-  .qwCustomerPrint .c0{width:6%}.qwCustomerPrint .c1{width:13%}.qwCustomerPrint .c2{width:34%}.qwCustomerPrint .c3{width:6%}.qwCustomerPrint .c4{width:8%}.qwCustomerPrint .c5{width:11%}.qwCustomerPrint .c6{width:12%}.qwCustomerPrint .c7{width:10%}
+  .qwCustomerPrint .c0{width:6%}.qwCustomerPrint .c1{width:32%}.qwCustomerPrint .c2{width:6%}.qwCustomerPrint .c3{width:8%}.qwCustomerPrint .c4{width:11%}.qwCustomerPrint .c5{width:15%}.qwCustomerPrint .c6{width:12%}
   .qwCustomerPrint td{border:1px solid #000;padding:6px 5px;text-align:center;vertical-align:middle;height:auto;word-break:break-all;overflow-wrap:anywhere;white-space:normal}
   .qwCustomerPrint tr{break-inside:avoid}
   .qwCustomerPrint .qwXlsTitle td{background:#99CCFF;font-weight:700;font-size:18px;padding:12px}
@@ -492,3 +492,12 @@
  .qwDialog .qwTableWrap>.managedTableViewport{flex:1;min-height:0}
  .qwDialog .qwTableWrap .managedTable>thead,.qwDialog .qwTableWrap .managedTable>thead>tr>th{top:0!important}
 }
+/* V-1-6-29: 报价草稿明细按房间分组显示 */
+.qwRoomGroups{display:flex;flex-direction:column;gap:12px}
+.qwRoomGroup{border:1px solid #e2e8f0;border-radius:8px;background:#fff;overflow:hidden}
+.qwRoomGroupHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#f1f5f9;border-bottom:1px solid #e2e8f0}
+.qwRoomGroupName{color:#1e3a8a;font-weight:600;font-size:14px}
+.qwRoomGroupMeta{color:#64748b;font-size:12px;font-weight:400}
+.qwRoomGroup .managedTableViewport{max-height:none!important;height:auto!important;overflow:visible!important}
+.qwRoomGroup .managedTable>thead,.qwRoomGroup .managedTable>thead>tr>th{position:static!important}
+.qwRoomGroup .qwTableEmpty{margin:0;padding:10px 12px}

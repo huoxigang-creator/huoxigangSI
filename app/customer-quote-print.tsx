@@ -32,7 +32,7 @@ export default function CustomerQuotePrint({title,customer,phone,address,company
   const printLines=orphan.length?lines.map(line=>({...line,room_id:line.room_id&&rooms.some(room=>room.id===line.room_id)?line.room_id:'unassigned'})):lines;
   let sheet:QuoteExportSheet|null=null,printError='';
   try{
-    sheet=buildQuoteExportSheets(exportInput||{project:{id:'print',name:title,project_type:'customer',customer,phone,address,...(settlement||{})},companyName:company,quote:{subproject_name:title,title,rooms:printRooms,cabinets,items:printLines,total,adopted:settlement?.adopted===true,note}})[0];
+    sheet=buildQuoteExportSheets(exportInput||{project:{id:'print',name:title,project_type:'customer',customer,phone,address,...(settlement||{})},companyName:company,quote:{subproject_name:title,title,rooms:printRooms,cabinets,items:printLines,total,adopted:settlement?.adopted===true,note}},{hideCabinetSection:true})[0];
   }catch(reason){printError=reason instanceof Error?reason.message:'报价信息无效，请核对后打印。';}
   if(printError||!sheet)return createPortal(<main className="qwCustomerPrint"><h1>{title}</h1><p>{company}</p><p>客户：{customer||'—'}　电话：{phone||'—'}　地址：{address||'—'}</p><p role="alert">{printError||'报价信息无效，请核对后打印。'}</p></main>,document.body);
   const {rows,sectionRows,subtotalRows,yellowRows,photoRows}=sheet;
@@ -42,20 +42,20 @@ export default function CustomerQuotePrint({title,customer,phone,address,company
   const fmt=(value:string|number|null)=>typeof value==='number'?value.toFixed(2):(value==null?'':String(value));
   const body=rows.map((row,r)=>{
     const tail=r>lastMoneyRow?' qwXlsTail':'';
-    if(r===0)return <tr key={r} className="qwXlsTitle"><td colSpan={8}>{row[0]}</td></tr>;
-    if(r===1)return <tr key={r} className={'qwXlsCustomer'+tail}><td colSpan={8}>{row[0]}</td></tr>;
+    if(r===0)return <tr key={r} className="qwXlsTitle"><td colSpan={7}>{row[0]}</td></tr>;
+    if(r===1)return <tr key={r} className={'qwXlsCustomer'+tail}><td colSpan={7}>{row[0]}</td></tr>;
     if(r===2)return <tr key={r} className={'qwXlsHead'+tail}>{row.map((value,c)=><td key={c}>{value}</td>)}</tr>;
-    if(yellowRows?.includes(r))return <tr key={r} className={'qwXlsYellow'+tail}><td colSpan={8}>{row[0]}</td></tr>;
-    if(row[0]==='项目'&&row[6]==='金额')return <tr key={r} className={'qwXlsHead'+tail}><td colSpan={6}>项目</td><td>金额</td><td>备注</td></tr>;
-    if(sectionRows.includes(r)&&row[6]!==undefined&&row[6]!==null)return <tr key={r} className={'qwXlsSection'+tail}><td colSpan={6}>{row[0]}</td><td className="qwXlsMoney">{fmt(row[6])}</td><td></td></tr>;
-    if(sectionRows.includes(r))return <tr key={r} className={'qwXlsSection'+tail}><td colSpan={8}>{row[0]}</td></tr>;
-    if(subtotalRows.includes(r))return <tr key={r} className={'qwXlsSubtotal'+tail}><td colSpan={6}>{row[0]}</td><td className="qwXlsMoney">{fmt(row[6])}</td><td></td></tr>;
+    if(yellowRows?.includes(r))return <tr key={r} className={'qwXlsYellow'+tail}><td colSpan={7}>{row[0]}</td></tr>;
+    if(row[0]==='项目'&&row[5]==='金额')return <tr key={r} className={'qwXlsHead'+tail}><td colSpan={5}>项目</td><td>金额</td><td>备注</td></tr>;
+    if(sectionRows.includes(r)&&row[5]!==undefined&&row[5]!==null)return <tr key={r} className={'qwXlsSection'+tail}><td colSpan={5}>{row[0]}</td><td className="qwXlsMoney">{fmt(row[5])}</td><td></td></tr>;
+    if(sectionRows.includes(r))return <tr key={r} className={'qwXlsSection'+tail}><td colSpan={7}>{row[0]}</td></tr>;
+    if(subtotalRows.includes(r))return <tr key={r} className={'qwXlsSubtotal'+tail}><td colSpan={5}>{row[0]}</td><td className="qwXlsMoney">{fmt(row[5])}</td><td></td></tr>;
     if(typeof row[0]==='number'){const photos=photosByRow.get(r);
-      return <tr key={r} className={'qwXlsItem'+tail}><td>{row[0]}</td><td className="qwXlsLeft">{row[1]}</td><td className="qwXlsLeft">{row[2]}</td><td>{row[3]}</td><td>{fmt(row[4])}</td><td className="qwXlsMoney">{fmt(row[5])}</td><td className="qwXlsMoney">{fmt(row[6])}</td><td className="qwXlsPhotos">{photos?photos.map((photo,index)=><img key={index} src={photo.src} alt={photo.name}/>):''}</td></tr>;}
+      return <tr key={r} className={'qwXlsItem'+tail}><td>{row[0]}</td><td className="qwXlsLeft">{row[1]}</td><td>{row[2]}</td><td>{fmt(row[3])}</td><td className="qwXlsMoney">{fmt(row[4])}</td><td className="qwXlsMoney">{fmt(row[5])}</td><td className="qwXlsPhotos">{photos?photos.map((photo,index)=><img key={index} src={photo.src} alt={photo.name}/>):''}</td></tr>;}
     const label=String(row[0]||'');
-    if(label.startsWith('备注：')||label.startsWith('报价备注：'))return <tr key={r} className={'qwXlsNote'+tail}><td colSpan={8}>{label}</td></tr>;
-    if(label.startsWith('乙方：')||label==='时间：')return <tr key={r} className={'qwXlsSign'+tail}><td colSpan={3} className="qwXlsLeft">{label}</td><td colSpan={5} className="qwXlsLeft">{label.startsWith('乙方：')?'甲方：':'时间：'}</td></tr>;
-    return <tr key={r} className={tail.trim()||undefined}><td colSpan={8}>{label}</td></tr>;
+    if(label.startsWith('备注：')||label.startsWith('报价备注：'))return <tr key={r} className={'qwXlsNote'+tail}><td colSpan={7}>{label}</td></tr>;
+    if(label.startsWith('乙方：')||label==='时间：')return <tr key={r} className={'qwXlsSign'+tail}><td colSpan={3} className="qwXlsLeft">{label}</td><td colSpan={4} className="qwXlsLeft">{label.startsWith('乙方：')?'甲方：':'时间：'}</td></tr>;
+    return <tr key={r} className={tail.trim()||undefined}><td colSpan={7}>{label}</td></tr>;
   });
-  return createPortal(<main className="qwCustomerPrint"><table><colgroup><col className="c0"/><col className="c1"/><col className="c2"/><col className="c3"/><col className="c4"/><col className="c5"/><col className="c6"/><col className="c7"/></colgroup><tbody>{body}</tbody></table></main>,document.body);
+  return createPortal(<main className="qwCustomerPrint"><table><colgroup><col className="c0"/><col className="c1"/><col className="c2"/><col className="c3"/><col className="c4"/><col className="c5"/><col className="c6"/></colgroup><tbody>{body}</tbody></table></main>,document.body);
 }
