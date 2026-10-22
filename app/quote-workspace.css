@@ -447,23 +447,24 @@
 /* V-1-5-99: 五金统计单打印视图（去掉单价金额列，每页20条） */
 .qwHardwarePrint{display:none}
 @media print{
-  body:has(>.qwHardwarePrint){overflow:visible!important;height:auto!important}
-  body:has(>.qwHardwarePrint)>:not(.qwHardwarePrint){display:none!important}
-  .qwHardwarePrint{display:block!important;background:#fff}
-  .qwHardwarePrint table{border-collapse:collapse;width:100%;font:11px/1.5 '宋体','Microsoft YaHei',sans-serif;color:#173858;table-layout:fixed}
-  .qwHardwarePrint td{border:1px solid #bcc9d7;padding:5px 6px;vertical-align:middle;word-break:break-all;overflow-wrap:anywhere;height:auto}
+  @page{size:A4 portrait;margin:10mm}
+  html,body{width:210mm;margin:0;padding:0;overflow:visible!important;height:auto!important}
+  body>:not(.qwHardwarePrint){display:none!important}
+  .qwHardwarePrint{display:block!important;background:#fff;width:190mm;margin:0 auto;font:11px/1.5 '宋体','Microsoft YaHei',sans-serif;color:#173858}
+  .qwHardwarePrint table{border-collapse:collapse;width:100%;table-layout:fixed}
+  .qwHardwarePrint td{border:1px solid #bcc9d7;padding:4px 5px;vertical-align:middle;word-break:break-all;overflow-wrap:anywhere;height:auto;font-size:11px}
   .qwHardwarePrint tr{break-inside:avoid}
-  .qwHardwarePrint .qwPrTitle td{background:#99CCFF;border:1px solid #bcc9d7;text-align:center;font-size:18px;font-weight:700;height:34px;padding:8px 6px}
-  .qwHardwarePrint .qwPrCustomer td{background:#99CCFF;text-align:left;padding:7px 10px}
-  .qwHardwarePrint .qwPrHead td{background:#f6f8fb;text-align:center;font-weight:600;padding:6px 4px}
+  .qwHardwarePrint .qwPrTitle td{background:#99CCFF;border:1px solid #bcc9d7;text-align:center;font-size:16px;font-weight:700;height:30px;padding:6px}
+  .qwHardwarePrint .qwPrCustomer td{background:#99CCFF;text-align:left;padding:5px 8px}
+  .qwHardwarePrint .qwPrHead td{background:#f6f8fb;text-align:center;font-weight:600;padding:5px 4px}
   .qwHardwarePrint .qwPrNum,.qwHardwarePrint .qwPrQty{text-align:right}
   .qwHardwarePrint .qwPrUnit{text-align:center}
   .qwHardwarePrint .qwPrName,.qwHardwarePrint .qwPrModel{text-align:left}
-  .qwHardwarePrint .qwPrSign td{border:0;padding:10px 6px;text-align:left}
+  .qwHardwarePrint .qwPrSign td{border:0;padding:8px 5px;text-align:left}
   .qwHardwarePrint .qwPageBreak td{border:0;height:0;padding:0;break-after:page}
   .qwHardwarePrint td:nth-child(1){width:8%}
-  .qwHardwarePrint td:nth-child(2){width:32%}
-  .qwHardwarePrint td:nth-child(3){width:38%}
+  .qwHardwarePrint td:nth-child(2){width:30%}
+  .qwHardwarePrint td:nth-child(3){width:40%}
   .qwHardwarePrint td:nth-child(4){width:10%}
   .qwHardwarePrint td:nth-child(5){width:12%}
 }
