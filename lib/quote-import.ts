@@ -277,6 +277,8 @@ type MergeGroup = { row: QuoteImportRow; models: Set<string>; units: Set<string>
 export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteImportRow[]; notices: string[] } {
   const groups = new Map<string, MergeGroup>();
   for (const original of allRows) {
+    // 过滤不需要统计的五金件
+    if (/小角码|小角铁|U型柜体免拉手封口/.test(original.name)) continue;
     const row={...original};
     // 长度型五金：免拉手、灯带、挂衣杆（排除角码/封口/连接/堵头）。
     // 规格里的数字是毫米（支持 "2598mm*2、713mm*3" 这种长度×根数格式），合并时自动折算成米。
