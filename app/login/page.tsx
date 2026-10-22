@@ -123,6 +123,6 @@ export default function Login() {
           : <button type="button" style={link} onClick={() => switchTo('password')}>← 返回账号密码登录</button>}
       </div>
     </form></section>
-    <footer className="loginFooter"><p>©2050连云港固美格家具有限公司 | <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">苏ICP备2026079938号-1</a></p><p className="loginOperations">数字化运营中心</p></footer>
+    <footer className="loginFooter"><p>©2020连云港固美格家具有限公司 版权所有 | <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">苏ICP备2026079938号-1</a></p><p className="loginOperations">数字化运营中心</p></footer>
   </main>;
 }
