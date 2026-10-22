@@ -293,11 +293,29 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
       if (row.unit.trim()) group.units.add(row.unit.trim());
     }
     if (lengthItem) {
-      if(/^(mm|毫米)$/i.test(row.unit.trim())){group.lengthMm+=(row.quantity??0);continue;}
-      if(/^(m|米)$/i.test(row.unit.trim())){group.lengthMm+=(row.quantity??0)*1000;continue;}
+      // 从规格列解析长度（毫米）。规格格式：
+      //   "737*3"  → A*B = 长度×根数，B 已含根数，直接用
+      //   "1687"   → 纯数字 = 长度，数量列是根数，需乘 quantity
+      //   "58.0*25.0*1914.0" → 三维尺寸，取最长边，数量列是根数
       const mm = specToMm(row.model);
-      if (mm !== null) group.lengthMm += (row.quantity ?? 0) * mm;
-      else group.missingSpec++;
+      if (mm !== null) {
+        const parts = row.model.split(/[、,，;；]/).map(s => s.trim()).filter(Boolean);
+        const allInlineCount = parts.length > 0 && parts.every(part => {
+          const nums = [...part.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => Number(m[1])).filter(n => Number.isFinite(n) && n > 0);
+          return nums.length === 2;
+        });
+        if (allInlineCount) {
+          group.lengthMm += mm;
+        } else {
+          group.lengthMm += (row.quantity ?? 0) * mm;
+        }
+      } else if(/^(mm|毫米)$/i.test(row.unit.trim())) {
+        group.lengthMm += (row.quantity ?? 0);
+      } else if(/^(m|米)$/i.test(row.unit.trim())) {
+        group.lengthMm += (row.quantity ?? 0) * 1000;
+      } else {
+        group.missingSpec++;
+      }
     }
   }
   const rows: QuoteImportRow[] = [];

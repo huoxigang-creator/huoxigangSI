@@ -12,7 +12,7 @@ const basic = () => parseQuoteImportRows([header, [1, '匿名配件', 'A', '个'
 
 test('毫米灯带合计后转米，两位小数；免拉手/挂衣杆规格长度折算为米',()=>{
  const row=(name,model,quantity,unit='个')=>({...basic().rows[0],name,model,quantity,unit});
- const result=mergeQuoteImportRows([row('普通灯带','2598mm',2598,'毫米'),row('普通灯带','713mm',713,'mm'),row('普通灯带','1687mm',1687,'毫米'),row('L型免拉手','58.0*25.0*1914.0',2),row('普通挂衣杆','737.0*0.0*0.0',2)]).rows;
+ const result=mergeQuoteImportRows([row('普通灯带','2598',1,'mm'),row('普通灯带','713',1,'mm'),row('普通灯带','1687',1,'mm'),row('L型免拉手','58.0*25.0*1914.0',2),row('普通挂衣杆','737.0*0.0*0.0',2)]).rows;
  assert.equal(result[0].unit,'米');assert.equal(result[0].quantity,5);
  assert.equal(result[1].model,'58.0*25.0*1914.0');assert.equal(result[1].quantity,3.83);
  assert.equal(result[2].model,'737.0*0.0*0.0');assert.equal(result[2].quantity,1.47);
