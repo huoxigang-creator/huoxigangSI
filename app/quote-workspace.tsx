@@ -34,7 +34,7 @@ type QuoteRecord = {id:string; title:string; items:any[]; total:number; adopted:
 type DraftItem = Omit<QuoteItem, 'quantity'|'price'> & {key:string;auto?:boolean; quantity:number|''; price:number|'';room_id?:string;cabinet_id?:string};
 type QuoteDraft = {targetProjectId?:string;mode:'create'|'update'; id?:string; subproject_id?:string; subproject_name:string; title:string; note:string; items:DraftItem[];rooms:QuoteRoom[];cabinets:QuoteCabinet[];copyOrigin?:string};
 type ProfitSnapshot={name:string;budget:number;items:(Omit<Partial<QuoteItem>,'quantity'|'price'>&{quantity?:number|'';price?:number|''})[];rooms:QuoteRoom[];catalog:MaterialRecord[]|null;loading:boolean;error?:string;draft:boolean};
-export type QuoteWorkspaceProps = {employeeMode?:boolean;focusGroupId?:string;focusGroupRevision?:number;onReceipt?:()=>void;onSettlement?:()=>void;onConfirmSheet?:()=>void;copySources?:QuoteCopySource[];customerMode?:boolean;initialNew?:boolean;projectOptions?:{id:string;name:string}[];onSavedProject?:(id:string)=>void;projectId:string; projectName:string; companyName?:string; project?:{id:string;name:string;customer?:string;phone?:string;address?:string;discount_amount?:number;rounding_amount?:number;receivable?:number}; items:QuoteRecord[]; busy:boolean; mutate:(action:string,args:any)=>Promise<boolean>; onDeleted:(ids:string[])=>Promise<void>};
+export type QuoteWorkspaceProps = {employeeMode?:boolean;focusGroupId?:string;focusGroupRevision?:number;onReceipt?:(quote?:QuoteRecord)=>void;onSettlement?:(quote?:QuoteRecord)=>void;onConfirmSheet?:()=>void;copySources?:QuoteCopySource[];customerMode?:boolean;initialNew?:boolean;projectOptions?:{id:string;name:string}[];onSavedProject?:(id:string)=>void;projectId:string; projectName:string; companyName?:string; project?:{id:string;name:string;customer?:string;phone?:string;address?:string;discount_amount?:number;rounding_amount?:number;receivable?:number}; items:QuoteRecord[]; busy:boolean; mutate:(action:string,args:any)=>Promise<boolean>; onDeleted:(ids:string[])=>Promise<void>};
 const money = (amount = 0) => <span className="moneyValue">{new Intl.NumberFormat('zh-CN',{style:'currency',currency:'CNY'}).format(amount / 100)}</span>;
 const amountOf = (item:{quantity:number|''|null; price:number|''|null}) => Number.isFinite(item.quantity) && Number.isFinite(item.price) ? Math.round(Number(item.quantity) * Math.round(Number(item.price) * 100)) : 0;
 const sumItems = (items:{quantity:number|''|null;price:number|''|null}[]) => items.reduce((sum,item)=>sum+amountOf(item),0);
@@ -387,7 +387,7 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
           <h3>{quote.title||'报价方案'}</h3>
           <strong>{money(quote.total)}</strong>
           <span>{quote.adopted?'已采纳金额':'草稿金额'} · 双击查看明细</span>
-          <span className="qwCardPayActions"><em className="qwCardSubmitPay" onClick={e=>{e.stopPropagation();onReceipt?.();}}>收款</em><em className="qwCardSettle" onClick={e=>{e.stopPropagation();onSettlement?.();}}>结算</em></span>
+          <span className="qwCardPayActions"><em className="qwCardSubmitPay" onClick={e=>{e.stopPropagation();onReceipt?.(quote);}}>收款</em><em className="qwCardSettle" onClick={e=>{e.stopPropagation();onSettlement?.(quote);}}>结算</em></span>
         </button>
       </article>;
     }):groups.map(group=>{

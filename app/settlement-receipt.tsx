@@ -17,13 +17,15 @@ type Props = {
   busy: boolean;
   mutate: (action: string, args: any) => Promise<any>;
   onClose: () => void;
+  initialTargetId?: string;
 };
 
 /** 结算收款弹窗：显示应收/已收/待收，可输入收款金额、抹零金额与收款名称，确认后登记尾款收款并同步保存抹零。 */
-export default function SettlementReceipt({project, projects, quotes, transactions, busy, mutate, onClose}: Props) {
+export default function SettlementReceipt({project, projects, quotes, transactions, busy, mutate, onClose, initialTargetId}: Props) {
   const root = useMemo(() => project?.parent_id ? (projects.find(p => p.id === project.parent_id) || project) : project, [project, projects]);
   const basis = useMemo(() => root ? receiptTargets(root, projects, quotes, transactions) : {targets: [], unallocated: 0}, [root, projects, quotes, transactions]);
-  const [targetId, setTargetId] = useState('');
+  const presetTarget = initialTargetId && basis.targets.some((row: any) => row.id === initialTargetId) ? initialTargetId : '';
+  const [targetId, setTargetId] = useState(presetTarget);
   const target = basis.targets.find((row: any) => row.id === targetId) || basis.targets[0];
   const hasSubprojects = Boolean(root && root.project_type !== 'customer' && (basis.targets.length > 1 || basis.targets.some((row: any) => row.projectId !== root.id || row.subprojectId)));
   const [amount, setAmount] = useState('');

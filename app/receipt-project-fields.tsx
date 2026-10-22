@@ -6,9 +6,9 @@ import {paymentAmountCents} from '../lib/payment-details';
 import './receipt-project-fields.css';
 
 const money=(amount:number)=>new Intl.NumberFormat('zh-CN',{style:'currency',currency:'CNY'}).format(amount/100);
-type Props={projects:any[];quotes:any[];transactions:any[];initialProjectId:string;type:string;amount:string};
+type Props={projects:any[];quotes:any[];transactions:any[];initialProjectId:string;initialTargetId?:string;type:string;amount:string};
 
-export default function ReceiptProjectFields({projects,quotes,transactions,initialProjectId,type,amount}:Props){
+export default function ReceiptProjectFields({projects,quotes,transactions,initialProjectId,initialTargetId,type,amount}:Props){
  const initial=projects.find(project=>project.id===initialProjectId);
  const initialRoot=initial?.parent_id?projects.find(project=>project.id===initial.parent_id):initial;
  const [rootId,setRootId]=useState(initialRoot?.id||'');
@@ -19,7 +19,7 @@ export default function ReceiptProjectFields({projects,quotes,transactions,initi
   const own=targets.filter(target=>target.projectId===projectId);
   return own.find(target=>target.receivable!==null&&target.receivable!==undefined)?.id||own.find(target=>Boolean(target.subprojectId))?.id||(own.length===1?own[0].id:targets.length===1?targets[0].id:'');
  };
- const [targetId,setTargetId]=useState(()=>defaultTarget(initialTargets,initialProjectId));
+ const [targetId,setTargetId]=useState(()=>{if(initialTargetId&&initialTargets.some(row=>row.id===initialTargetId))return initialTargetId;return defaultTarget(initialTargets,initialProjectId);});
  const target=basis.targets.find(row=>row.id===targetId);
  const customer=root?.project_type==='customer';
  const hasSubprojects=Boolean(root&&(customer?basis.targets.length>1:basis.targets.length>1||basis.targets.some(row=>row.projectId!==root.id||row.subprojectId)));
