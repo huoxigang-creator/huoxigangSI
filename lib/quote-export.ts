@@ -31,8 +31,8 @@ export function buildQuoteExportSheets(input:QuoteExportInput,options?:{hideCabi
  if(cabinets.some((cabinet:any)=>!rooms?.some((room:any)=>room.id===cabinet.room_id)))throw new Error('报价柜体未关联有效房间，请核对并保存后再下载。');
  items.forEach((item:any,index:number)=>{const id=quote.items[index]?.cabinet_id;if(id===undefined)return;const cabinet=cabinets.find((value:any)=>value.id===id);if(!cabinet)throw new Error('报价明细未关联有效柜体，请核对并保存后再下载。');if(item.room_id!==cabinet.room_id)throw new Error('报价明细与柜体所属房间不一致，请核对并保存后再下载。');});
  const settlement=input.project.project_type==='customer'?getQuoteSettlement(total,{...input.project,adopted:quote.adopted===true}):null;
- const rows:QuoteExportSheet['rows']=[[quoteName(input)+'的清单报价'],['客户姓名：'+(input.project.customer||'')+'  客户地址：'+(input.project.address||'')+'  客户电话：'+(input.project.phone||'')],['编号','项目','单位','数量','单价','金额','上传附件']];
-  const merges:QuoteExportSheet['merges']=[0,1].map(r=>({s:{r,c:0},e:{r,c:6}})),sectionRows:number[]=[],subtotalRows:number[]=[],yellowRows:number[]=[];
+ const rows:QuoteExportSheet['rows']=[[input.companyName||''],[quoteName(input)+'的清单报价'],['客户姓名：'+(input.project.customer||'')+'  客户地址：'+(input.project.address||'')+'  客户电话：'+(input.project.phone||'')],['编号','项目','单位','数量','单价','金额','上传附件']];
+  const merges:QuoteExportSheet['merges']=[0,1,2].map(r=>({s:{r,c:0},e:{r,c:6}})),sectionRows:number[]=[],subtotalRows:number[]=[],yellowRows:number[]=[];
   const photoRows:{src:string;name:string;row:number}[]=[];
   const appendCategories=(groupItems:typeof items)=>{for(const category of QUOTE_CATEGORIES){const entries=groupItems.filter((item:any)=>item.category===category);if(!entries.length)continue;if(category!=='柜体'||!options?.hideCabinetSection){const r=rows.length;sectionRows.push(r);merges.push({s:{r,c:0},e:{r,c:4}});rows.push([category,null,null,null,null,entries.reduce((sum:number,item:any)=>sum+item.amountCents,0)/100,null]);}entries.forEach((item:any,index:number)=>{rows.push([index+1,item.name,item.unit,item.quantity,item.priceCents/100,item.amountCents/100,null]);const itemRow=rows.length-1;(item.photos||[]).slice(0,3).forEach((photo:any)=>photoRows.push({src:'/api/quote-item-photos?key='+encodeURIComponent(photo.key),name:photo.name,row:itemRow}));if(item.note){const r=rows.length;rows.push(['备注：'+item.note]);merges.push({s:{r,c:0},e:{r,c:6}});}});}};
  const appendSection=(label:string)=>{const r=rows.length;rows.push([label]);sectionRows.push(r);merges.push({s:{r,c:0},e:{r,c:6}});};
@@ -51,37 +51,37 @@ export function buildQuoteExportSheets(input:QuoteExportInput,options?:{hideCabi
  if(settlement){appendSubtotal('原报价',settlement.gross);appendSubtotal('优惠',settlement.discount);appendSubtotal('抹零',settlement.rounding);appendSubtotal('应收金额',settlement.receivable);}
  if(quote.note){r=rows.length;rows.push(['报价备注：'+String(quote.note)]);merges.push({s:{r,c:0},e:{r,c:6}});}
  r=rows.length;rows.push(['乙方：'+input.companyName,null,null,'甲方：']);merges.push({s:{r,c:0},e:{r,c:2}},{s:{r,c:3},e:{r,c:6}});
- r=rows.length;rows.push(['时间：',null,null,'时间：']);merges.push({s:{r,c:0},e:{r,c:2}},{s:{r,c:3},e:{r,c:6}});
-  return [{name:'报价清单',rows,widths:[7,24,6,9,10,14,12],merges,headerRow:2,totalRow,quantityColumn:3,priceColumn:4,amountColumn:5,sectionRows,subtotalRows,yellowRows,photoRows}];
+ r=rows.length;rows.push(['时间：',null,null,'时间：']);merges.push({s:{r,c:0},e:{r,c:2}},{s:{r,c:3},e:{r,c:6}});r=rows.length;rows.push([new Date().getFullYear()+'/'+String(new Date().getMonth()+1).padStart(2,'0')+'/'+String(new Date().getDate()).padStart(2,'0')+' · SI超级智能平台 · https://www.si助手.com']);merges.push({s:{r,c:0},e:{r,c:6}});
+  return [{name:'报价清单',rows,widths:[7,24,6,9,10,14,12],merges,headerRow:3,totalRow,quantityColumn:3,priceColumn:4,amountColumn:5,sectionRows,subtotalRows,yellowRows,photoRows}];
 }
 
 export async function createQuoteWorkbook(input:QuoteExportInput):Promise<WorkBook>{
  const module=await import('xlsx'),XLSX=module.default||module,workbook=XLSX.utils.book_new();workbook.Props={Title:quoteName(input)+'的清单报价',Company:input.companyName};workbook.Workbook={Names:[]};
- for(const data of buildQuoteExportSheets(input)){const sheet=XLSX.utils.aoa_to_sheet(data.rows);sheet['!merges']=data.merges;sheet['!cols']=data.widths.map(wch=>({wch}));sheet['!rows']=data.rows.map((row,index)=>({hpt:index===0?38.4:row[0]?.toString().includes('备注')?Math.max(25.6,Math.ceil(String(row[0]).length/55)*18):25.6}));sheet['!margins']={left:0.25,right:0.25,top:0.4,bottom:0.4,header:0.15,footer:0.15};
+ for(const data of buildQuoteExportSheets(input)){const sheet=XLSX.utils.aoa_to_sheet(data.rows);sheet['!merges']=data.merges;sheet['!cols']=data.widths.map(wch=>({wch}));sheet['!rows']=data.rows.map((row,index)=>({hpt:index===0?46:row[0]?.toString().includes('备注')?Math.max(25.6,Math.ceil(String(row[0]).length/55)*18):25.6}));sheet['!margins']={left:0.25,right:0.25,top:0.4,bottom:0.4,header:0.15,footer:0.15};
  // Fill the grid so borders and category bars include empty cells.
  for(let r=0;r<data.rows.length;r++)for(let c=0;c<7;c++){const address=XLSX.utils.encode_cell({r,c});if(!sheet[address])sheet[address]={t:'s',v:''};}
- XLSX.utils.book_append_sheet(workbook,sheet,data.name);workbook.Workbook!.Names!.push({Name:'_xlnm.Print_Area',Sheet:0,Ref:"'报价清单'!$A$1:$G$"+data.rows.length},{Name:'_xlnm.Print_Titles',Sheet:0,Ref:"'报价清单'!$1:$3"});}return workbook;
+ XLSX.utils.book_append_sheet(workbook,sheet,data.name);workbook.Workbook!.Names!.push({Name:'_xlnm.Print_Area',Sheet:0,Ref:"'报价清单'!$A$1:$G$"+data.rows.length},{Name:'_xlnm.Print_Titles',Sheet:0,Ref:"'报价清单'!$1:$4"});}return workbook;
 }
 
 /** SheetJS CE omits styles/page setup; apply standard OOXML to the browser ZIP. */
 export async function applyQuoteExcelStyling(data:QuoteExportSheet,props?:{title:string;company?:string},photos?:QuoteExcelPhoto[]):Promise<Uint8Array>{
   const module=await import('xlsx'),XLSX=module.default||module;
   const zip=XLSX.CFB.read(new Uint8Array(XLSX.write(await workbookFromSheet(data,props),{bookType:'xlsx',type:'array'})),{type:'buffer'}),encode=new TextEncoder(),decode=new TextDecoder();
-  const fonts='<fonts count="3"><font><sz val="11"/><name val="宋体"/></font><font><b/><sz val="18"/><name val="宋体"/></font><font><b/><sz val="11"/><color rgb="FFFF5722"/><name val="宋体"/></font></fonts>';
+  const fonts='<fonts count="5"><font><sz val="11"/><name val="宋体"/></font><font><b/><sz val="18"/><name val="宋体"/></font><font><b/><sz val="11"/><color rgb="FFFF5722"/><name val="宋体"/></font><font><b/><sz val="24"/><name val="宋体"/></font><font><b/><sz val="14"/><name val="宋体"/></font></fonts>';
   const fills='<fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF99CCFF"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFC0C0C0"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFFF00"/><bgColor indexed="64"/></patternFill></fill></fills>';
   // WPS/Excel 惯例：borders[0] 必须是空边框，自定义边框从索引 1 开始，否则 WPS 会把 borderId=0 视为无边框。
   // borderId=1 黑色细线（表体）；borderId=2 浅灰细线（报价合计之后的落款区——参照桌面xls：黑框只到合计行）。
   const border='<borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border><border>'+['left','right','top','bottom'].map(side=>`<${side} style="thin"><color rgb="FF000000"/></${side}>`).join('')+'<diagonal/></border><border>'+['left','right','top','bottom'].map(side=>`<${side} style="thin"><color rgb="FFD9D9D9"/></${side}>`).join('')+'<diagonal/></border></borders>';
   const xf=(font:number,fill:number,num:number,align='center',borderId=1)=>`<xf numFmtId="${num}" fontId="${font}" fillId="${fill}" borderId="${borderId}" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="${align}" vertical="center" wrapText="1"/></xf>`;
-  const baseXfs=xf(0,0,0)+xf(1,2,0)+xf(0,0,0,'left')+xf(0,3,0,'left')+xf(2,0,2,'right')+xf(2,3,2,'right')+xf(0,0,2)+xf(0,4,0,'left');
-  const styles='<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+fonts+fills+border+'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="16">'+baseXfs+baseXfs.replaceAll('borderId="1"','borderId="2"')+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  const baseXfs=xf(0,0,0)+xf(3,1,0)+xf(0,0,0,'left')+xf(0,3,0,'left')+xf(2,0,2,'right')+xf(2,3,2,'right')+xf(0,0,2)+xf(0,4,0,'left')+xf(4,0,0);
+  const styles='<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+fonts+fills+border+'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="18">'+baseXfs+baseXfs.replaceAll('borderId="1"','borderId="2"')+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
   const styleEntry=XLSX.CFB.find(zip,'/xl/styles.xml')!;styleEntry.content=encode.encode(styles) as any;styleEntry.size=styleEntry.content.length;
   const entry=XLSX.CFB.find(zip,'/xl/worksheets/sheet1.xml');if(!entry)throw new Error('报价工作表生成失败');
   let xml=decode.decode(entry.content as Uint8Array);
   // 报价合计（或应收金额）之后的落款区（报价备注/乙方甲方/时间）用浅灰边框（样式+8），表体保持黑框。
   // 表格区域之外（第 9 列起 / 末行之后）统一铺浅灰细线样式 8：WPS 若仍显示网格线，表外线条即呈浅灰；打印区域仅限表格本身。
   const lastMoneyRow=data.subtotalRows.length?Math.max(...data.subtotalRows):-1;
-  xml=xml.replace(/<c\b([^>]*\br="([A-Z]+)(\d+)"[^>]*)>/g,(_all,attributes,col,row)=>{const r=Number(row)-1,c=XLSX.utils.decode_col(col),value=data.rows[r]?.[c],section=data.sectionRows.includes(r),yellow=data.yellowRows?.includes(r)===true;let style=r===0?1:r===1?2:yellow?7:section?3:c===1?2:0;if(typeof value==='number'&&(c===5||c===6))style=section?5:4;else if(typeof value==='number'&&c===4)style=6;if(r===data.signatureRow&&c===3)style=2;if(r>=data.rows.length||c>6)style=8;else if(r>lastMoneyRow)style+=8;return '<c'+attributes.replace(/\s+s="\d+"/g,'')+` s="${style}">`;});
+  xml=xml.replace(/<c\b([^>]*\br="([A-Z]+)(\d+)"[^>]*)>/g,(_all,attributes,col,row)=>{const r=Number(row)-1,c=XLSX.utils.decode_col(col),value=data.rows[r]?.[c],section=data.sectionRows.includes(r),yellow=data.yellowRows?.includes(r)===true;let style=r===0?1:r===1?8:r===2?2:yellow?7:section?3:c===1?2:0;if(typeof value==='number'&&(c===5||c===6))style=section?5:4;else if(typeof value==='number'&&c===4)style=6;if(r===data.signatureRow&&c===3)style=2;if(r>=data.rows.length||c>6)style=8;else if(r>lastMoneyRow)style+=8;return '<c'+attributes.replace(/\s+s="\d+"/g,'')+` s="${style}">`;});
   xml=xml.replace('<sheetView workbookViewId="0"/>','<sheetView workbookViewId="0" showGridLines="0"/>');
   xml=xml.replace('</sheetPr>','<pageSetUpPr fitToPage="1"/></sheetPr>');if(!xml.includes('<sheetPr>'))xml=xml.replace(/(<worksheet\b[^>]*>)/,'$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
   xml=xml.replace(/(<pageMargins\b[^>]*\/>) /,'$1');
@@ -187,12 +187,12 @@ async function workbookFromSheet(data:QuoteExportSheet,props?:{title:string;comp
   const module=await import('xlsx'),XLSX=module.default||module,workbook=XLSX.utils.book_new();workbook.Props={Title:props?.title||String(data.rows[0]?.[0]||'报价清单'),Company:props?.company};workbook.Workbook={Names:[]};
   const widths=autoColumnWidths(data,[6,14,5,7,8,10,10],[7,30,7,9,10,14,16]);
   const mergeWidths=rowMergeWidthMap({...data,widths});
-  const sheet=XLSX.utils.aoa_to_sheet(data.rows);sheet['!merges']=data.merges;sheet['!cols']=widths.map(wch=>({wch}));sheet['!rows']=data.rows.map((row,index)=>({hpt:data.rowHeightOverrides?.[index]??(index===0?38.4:rowHeightPt(row,widths,mergeWidths.get('r'+index)))}));sheet['!margins']={left:0.25,right:0.25,top:0.4,bottom:0.4,header:0.15,footer:0.15};
+  const sheet=XLSX.utils.aoa_to_sheet(data.rows);sheet['!merges']=data.merges;sheet['!cols']=widths.map(wch=>({wch}));sheet['!rows']=data.rows.map((row,index)=>({hpt:data.rowHeightOverrides?.[index]??(index===0?46:rowHeightPt(row,widths,mergeWidths.get('r'+index)))}));sheet['!margins']={left:0.25,right:0.25,top:0.4,bottom:0.4,header:0.15,footer:0.15};
   // Fill the grid so borders and category bars include empty cells; extend to columns A..Z and
   // 15 rows past the table so the area outside the table carries the light-gray line style.
   for(let r=0;r<data.rows.length+15;r++)for(let c=0;c<26;c++){const address=XLSX.utils.encode_cell({r,c});if(!sheet[address])sheet[address]={t:'s',v:''};}
   sheet['!ref']='A1:'+XLSX.utils.encode_cell({r:data.rows.length+14,c:25});
-  XLSX.utils.book_append_sheet(workbook,sheet,data.name);workbook.Workbook!.Names!.push({Name:'_xlnm.Print_Area',Sheet:0,Ref:"'"+data.name+"'!$A$1:$G$"+data.rows.length},{Name:'_xlnm.Print_Titles',Sheet:0,Ref:"'"+data.name+"'!$1:$3"});
+  XLSX.utils.book_append_sheet(workbook,sheet,data.name);workbook.Workbook!.Names!.push({Name:'_xlnm.Print_Area',Sheet:0,Ref:"'"+data.name+"'!$A$1:$G$"+data.rows.length},{Name:'_xlnm.Print_Titles',Sheet:0,Ref:"'"+data.name+"'!$1:$4"});
   return workbook;
 }
 
@@ -208,8 +208,8 @@ export type DraftQuoteExcelInput={title:string;companyName?:string;customer?:str
 export async function downloadDraftQuoteExcel(input:DraftQuoteExcelInput):Promise<void>{
   if(!input.items.length)throw new Error('当前草稿没有明细，无法导出 Excel。');
   const cents=(item:DraftQuoteExcelInput['items'][number])=>Math.round(item.quantity*Math.round(item.price*100));
-  const rows:QuoteExportSheet['rows']=[[input.title],['客户姓名：'+(input.customer||'')+'  客户地址：  客户电话：'],['编号','项目','单位','数量','单价','金额','上传附件']];
-  const merges:QuoteExportSheet['merges']=[0,1].map(r=>({s:{r,c:0},e:{r,c:6}})),sectionRows:number[]=[],subtotalRows:number[]=[],yellowRows:number[]=[];
+  const rows:QuoteExportSheet['rows']=[[input.companyName||''],[input.title],['客户姓名：'+(input.customer||'')+'  客户地址：  客户电话：'],['编号','项目','单位','数量','单价','金额','上传附件']];
+  const merges:QuoteExportSheet['merges']=[0,1,2].map(r=>({s:{r,c:0},e:{r,c:6}})),sectionRows:number[]=[],subtotalRows:number[]=[],yellowRows:number[]=[];
   const photos:{src:string;name:string;row:number}[]=[];
   for(const category of QUOTE_CATEGORIES){
     const entries=input.items.filter(item=>item.category===category);
@@ -224,8 +224,8 @@ export async function downloadDraftQuoteExcel(input:DraftQuoteExcelInput):Promis
   r=rows.length;rows.push(['报价合计',null,null,null,null,total/100,null]);subtotalRows.push(r);merges.push({s:{r,c:0},e:{r,c:4}});
   if(input.note){r=rows.length;rows.push(['报价备注：'+String(input.note)]);merges.push({s:{r,c:0},e:{r,c:6}});}
   r=rows.length;rows.push(['乙方：'+(input.companyName||''),null,null,'甲方：']);merges.push({s:{r,c:0},e:{r,c:2}},{s:{r,c:3},e:{r,c:6}});
-  r=rows.length;rows.push(['时间：',null,null,'时间：']);merges.push({s:{r,c:0},e:{r,c:2}},{s:{r,c:3},e:{r,c:6}});
-  const data:QuoteExportSheet={name:'报价清单',rows,widths:[7,24,6,9,10,14,12],merges,headerRow:2,totalRow:rows.length-3,quantityColumn:3,priceColumn:4,amountColumn:5,sectionRows,subtotalRows,yellowRows,photoRows:photos};
+  r=rows.length;rows.push(['时间：',null,null,'时间：']);merges.push({s:{r,c:0},e:{r,c:2}},{s:{r,c:3},e:{r,c:6}});r=rows.length;rows.push([new Date().getFullYear()+'/'+String(new Date().getMonth()+1).padStart(2,'0')+'/'+String(new Date().getDate()).padStart(2,'0')+' · SI超级智能平台 · https://www.si助手.com']);merges.push({s:{r,c:0},e:{r,c:6}});
+  const data:QuoteExportSheet={name:'报价清单',rows,widths:[7,24,6,9,10,14,12],merges,headerRow:3,totalRow:rows.length-4,quantityColumn:3,priceColumn:4,amountColumn:5,sectionRows,subtotalRows,yellowRows,photoRows:photos};
   const bytes=await applyQuoteExcelStyling(data,{title:input.title,company:input.companyName},photos.slice(0,60));
   const url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})),link=document.createElement('a');
   try{link.href=url;link.download=(input.title.replace(/[<>:"/\\|?*\u0000-\u001F]/g,'_').trim()||'报价草稿')+'.xlsx';document.body.appendChild(link);link.click();}finally{link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}

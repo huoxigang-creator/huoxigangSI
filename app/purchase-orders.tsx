@@ -108,11 +108,11 @@ export default function PurchaseOrders({projectId, projectName, companyName, quo
     if(!editor||busy||scanBusy||!files.length)return;
     setScanBusy(true);setScanNotice('');setFormError('');
     try{
-      const all:{brand:string;name:string;model:string;quantity:string;unit:string;type:'board'|'edge'|'arc'|'other'}[]=[];
+      const all:{brand:string;name:string;model:string;quantity:string;unit:string;price:string;type:'board'|'edge'|'arc'|'other'}[]=[];
       for(const file of files){
         const image=await recognitionImage(file);
         const response=await fetch('/api/purchase-scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image,source:file.name.slice(0,240)})});
-        const result=await response.json() as {error?:string;result?:Array<{brand:string;name:string;model:string;quantity:string;unit:string;type:'board'|'edge'|'arc'|'other'}>};
+        const result=await response.json() as {error?:string;result?:Array<{brand:string;name:string;model:string;quantity:string;unit:string;price:string;type:'board'|'edge'|'arc'|'other'}>};
         if(!response.ok||!result.result)throw new Error(result.error||'识别失败');
         all.push(...result.result);
       }
@@ -132,11 +132,11 @@ export default function PurchaseOrders({projectId, projectName, companyName, quo
         if(nameCmp!==0)return nameCmp;
         return thicknessRank(a)-thicknessRank(b);
       });
-      const imported=sorted.map(row=>({rowId:crypto.randomUUID(),material_id:'',expense_category:purchaseCategory,name:row.name,brand:row.brand,model:row.model,code:'',attribute:'主材' as const,unit:row.unit||'个',quantity:row.quantity||'1',price:'0',batch:''}));
+      const imported=sorted.map(row=>({rowId:crypto.randomUUID(),material_id:'',expense_category:purchaseCategory,name:row.name,brand:row.brand,model:row.model,code:'',attribute:'主材' as const,unit:row.unit||'个',quantity:row.quantity||'1',price:row.price||'0',batch:''}));
       const placeholder=editor.draft.items.find(item=>importPlaceholder(item));
       if(editor.draft.items.length-(placeholder?1:0)+imported.length>200){setFormError('识别后将超过每张采购单200条明细，请减少图片数量后重试。');return;}
       setEditor({...editor,draft:{...editor.draft,items:[...editor.draft.items.filter(item=>item.rowId!==placeholder?.rowId),...imported]}});
-      setScanNotice(`识别成功，已自动添加 ${imported.length} 条明细，请核对品牌、名称、型号和数量。`);
+      setScanNotice(`识别成功，已自动添加 ${imported.length} 条明细，请核对品牌、名称、型号、数量和单价。`);
     }catch(reason){setFormError(reason instanceof Error?reason.message:'扫描识别失败，请重试或手动填写');}
     finally{setScanBusy(false);if(scanInputRef.current)scanInputRef.current.value='';}
   }

@@ -42,9 +42,10 @@ export default function CustomerQuotePrint({title,customer,phone,address,company
   const fmt=(value:string|number|null)=>typeof value==='number'?value.toFixed(2):(value==null?'':String(value));
   const body=rows.map((row,r)=>{
     const tail=r>lastMoneyRow?' qwXlsTail':'';
-    if(r===0)return <tr key={r} className="qwXlsTitle"><td colSpan={7}>{row[0]}</td></tr>;
-    if(r===1)return <tr key={r} className={'qwXlsCustomer'+tail}><td colSpan={7}>{row[0]}</td></tr>;
-    if(r===2)return <tr key={r} className={'qwXlsHead'+tail}>{row.map((value,c)=><td key={c}>{value}</td>)}</tr>;
+    if(r===0)return <tr key={r} className="qwXlsCompany"><td colSpan={7}>{row[0]}</td></tr>;
+    if(r===1)return <tr key={r} className="qwXlsTitle"><td colSpan={7}>{row[0]}</td></tr>;
+    if(r===2)return <tr key={r} className={'qwXlsCustomer'+tail}><td colSpan={7}>{row[0]}</td></tr>;
+    if(r===3)return <tr key={r} className={'qwXlsHead'+tail}>{row.map((value,c)=><td key={c}>{value}</td>)}</tr>;
     if(yellowRows?.includes(r))return <tr key={r} className={'qwXlsYellow'+tail}><td colSpan={7}>{row[0]}</td></tr>;
     if(row[0]==='项目'&&row[5]==='金额')return <tr key={r} className={'qwXlsHead'+tail}><td colSpan={5}>项目</td><td>金额</td><td>备注</td></tr>;
     if(sectionRows.includes(r)&&row[5]!==undefined&&row[5]!==null)return <tr key={r} className={'qwXlsSection'+tail}><td colSpan={5}>{row[0]}</td><td className="qwXlsMoney">{fmt(row[5])}</td><td></td></tr>;
