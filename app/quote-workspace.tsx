@@ -309,7 +309,7 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
     if(!files||!draft||disabled)return;
     setImporting(true);setImportError('');setError('');
     try{
-      const list=[...files].filter(file=>/\.(xlsx|xls|csv)$/i.test(file.name));
+      const list=[...files].filter(file=>/\.(xlsx|xls|csv)$/i.test(file.name)&&!/包装清单|雕刻机|\.hgk$/i.test(file.name));
       if(!list.length)throw new Error('所选文件夹中没有 .xlsx、.xls 或 .csv 表格文件。');
       const previews:QuoteImportPreview[]=[];const errors:string[]=[];
       for(const file of list){try{previews.push(await parseQuoteImport(file,{catalogPrices:true,hardwareSectionsOnly:true}));}catch(reason){errors.push(`${file.name}：${reason instanceof Error?reason.message:'无法解析'}`);}}
