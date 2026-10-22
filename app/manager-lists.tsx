@@ -49,12 +49,24 @@ export function ProjectList(props:SharedProps & {onSelect:(row:any)=>void; allRo
 
 export function TaskList(props:SharedProps & {projects:RecordRow[]; mutate:(action:string,args:any)=>Promise<any>}) {
   const {selection,disabled,message,remove}=useRecords(props), one=selection.selectedRows.length===1?selection.selectedRows[0]:null;
+  const [sms,setSms]=useState<{id:string;status:'sending'|'ok'|'err';message?:string}>();
+  async function sendTaskSms(task:any){
+    if(sms?.id===task.id&&sms.status==='sending')return;
+    setSms({id:task.id,status:'sending'});
+    try{
+      const response=await fetch('/api/task-sms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({task_id:task.id})});
+      const body=await response.json() as {error?:string;phone?:string};
+      if(!response.ok)throw new Error(body.error||'短信发送失败');
+      setSms({id:task.id,status:'ok',message:body.phone});
+      setTimeout(()=>setSms(current=>current?.id===task.id?undefined:current),4000);
+    }catch(reason){setSms({id:task.id,status:'err',message:reason instanceof Error?reason.message:'发送失败'});}
+  }
   return <><SelectionToolbar selection={selection.selectedIds.length} count={props.items.length} busy={disabled} onClear={selection.clear}>
     <SelectionCheckbox checked={selection.allSelected} mixed={selection.partiallySelected} label="全选当前任务" onChange={selection.toggleAll} disabled={disabled||!props.items.length}/>
     <button className="primary" disabled={disabled} onClick={()=>props.open('任务')}><Plus size={15}/>新建任务</button>
     <button disabled={disabled||!one} onClick={()=>one&&props.open('任务',one)}><Settings2 size={15}/>编辑</button>
     <button className="dangerLink" disabled={disabled||!selection.selectedIds.length} onClick={()=>void remove()}><Trash2 size={15}/>删除所选</button>
-  </SelectionToolbar><Feedback message={message}/>{props.items.length?<div className="taskList">{props.items.map(t=><div className={'taskRow '+(selection.selectedIds.includes(t.id)?'selectionRowSelected':'')} key={t.id}><SelectionCheckbox checked={selection.selectedIds.includes(t.id)} label={'选择任务 '+t.title} onChange={()=>selection.toggle(t.id)} disabled={disabled}/><button aria-label={t.done?'标记未完成 '+t.title:'标记完成 '+t.title} disabled={disabled} className={'check '+(t.done?'checked':'')} onClick={()=>props.mutate('update_task',{id:t.id,project_id:t.project,title:t.title,note:t.note||'',assignee:t.assignee,date:t.date,due_at:t.due_at||'',done:!t.done})}>{t.done&&<Check size={14}/>}</button><div><b className={t.done?'strike':''}>{t.title}</b>{t.note&&<p>{t.note}</p>}<small>{props.projects.find(p=>p.id===t.project)?.name||'独立待办'} · {t.assignee||'未指定负责人'} · {t.due_at?new Date(t.due_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'}):t.date||'未设时间'}</small></div></div>)}</div>:<p className="sectionNote">暂无任务</p>}</>;
+  </SelectionToolbar><Feedback message={message}/>{props.items.length?<div className="taskList">{props.items.map(t=><div className={'taskRow '+(selection.selectedIds.includes(t.id)?'selectionRowSelected':'')} key={t.id}><SelectionCheckbox checked={selection.selectedIds.includes(t.id)} label={'选择任务 '+t.title} onChange={()=>selection.toggle(t.id)} disabled={disabled}/><button aria-label={t.done?'标记未完成 '+t.title:'标记完成 '+t.title} disabled={disabled} className={'check '+(t.done?'checked':'')} onClick={()=>props.mutate('update_task',{id:t.id,project_id:t.project,title:t.title,note:t.note||'',assignee:t.assignee,date:t.date,due_at:t.due_at||'',done:!t.done})}>{t.done&&<Check size={14}/>}</button><div><b className={t.done?'strike':''}>{t.title}</b>{t.note&&<p>{t.note}</p>}<small>{props.projects.find(p=>p.id===t.project)?.name||'独立待办'} · {t.assignee||'未指定负责人'} · {t.due_at?new Date(t.due_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'}):t.date||'未设时间'}</small></div><button type="button" className="taskSmsButton" disabled={disabled||!props.projects.find(p=>p.id===t.project)?.phone} title={sms?.id===t.id&&sms.status==='err'?sms.message||'发送失败，点击重试':props.projects.find(p=>p.id===t.project)?.phone?('给客户 '+props.projects.find(p=>p.id===t.project)?.phone+' 发送提醒短信（到访 / 测量提醒）'):'任务未关联客户手机号，无法发送短信'} onClick={()=>void sendTaskSms(t)}>{sms?.id===t.id&&sms.status==='sending'?'发送中…':sms?.id===t.id&&sms.status==='ok'?'已发送✓':sms?.id===t.id&&sms.status==='err'?'重试':'短信提醒'}</button></div>)}</div>:<p className="sectionNote">暂无任务</p>}</>;
 }
 
 export function TransactionList(props:SharedProps & {projects:RecordRow[]; quotes?:RecordRow[]; transactions?:RecordRow[]; fundType?:string; showProject?:boolean; preferenceScope?:string; allRowOrder?:string[]; mutate:(action:string,args:any)=>Promise<any>}) {

@@ -1,0 +1,5 @@
+.settlementReceiptModal{width:540px;max-width:100%}
+.settlementReceiptBalance{display:flex;gap:18px;flex-wrap:wrap;padding:14px 16px;border:1px solid #dfe8f4;border-radius:8px;background:#f7fafd;font-size:12px;color:#6d849d;margin-bottom:18px;line-height:1.6}
+.settlementReceiptBalance span{color:#506b8b;font-variant-numeric:tabular-nums}
+.settlementReceiptBalance strong{color:#c05c1f;font-size:14px;font-variant-numeric:tabular-nums;margin-left:4px}
+.settlementReceiptError{font-size:12px;padding:12px 16px;line-height:1.8;color:#b4533c;background:#fff4ef;border:1px solid #f3d7ca;border-radius:6px;margin:16px 0 0}
