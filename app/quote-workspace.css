@@ -448,8 +448,8 @@
 .qwHardwarePrint{display:none}
 @media print{
   @page{size:A4 portrait;margin:10mm}
-  html,body{width:210mm;margin:0;padding:0;overflow:visible!important;height:auto!important}
-  body>:not(.qwHardwarePrint){display:none!important}
+  body:has(>.qwHardwarePrint){overflow:visible!important;height:auto!important}
+  body:has(>.qwHardwarePrint)>:not(.qwHardwarePrint){display:none!important}
   .qwHardwarePrint{display:block!important;background:#fff;width:190mm;margin:0 auto;font:11px/1.5 '宋体','Microsoft YaHei',sans-serif;color:#173858}
   .qwHardwarePrint table{border-collapse:collapse;width:100%;table-layout:fixed}
   .qwHardwarePrint td{border:1px solid #bcc9d7;padding:4px 5px;vertical-align:middle;word-break:break-all;overflow-wrap:anywhere;height:auto;font-size:11px}
