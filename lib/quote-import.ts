@@ -361,6 +361,13 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
     } else {
       if(isLengthItem&&group.lengthMm>0&&group.missingSpec){row.quantity=null;notices.push('「'+row.name+'」部分规格缺少长度，不能混合件数与米数，请补齐长度后核对。');}
       row.unit = units[0] ?? '';
+      // 非长度型物料但规格是纯数字，也显示 "数字×数量"（如防水铝箔1000×1、阳台一体盆1350×1）
+      if (!isLengthItem && row.quantity && Number.isInteger(row.quantity) && row.quantity > 0) {
+        const parts = row.model.split(/[、,，;；]/).map(s => s.trim()).filter(Boolean);
+        if (parts.length > 0 && parts.every(p => /^\d+(?:\.\d+)?$/.test(p))) {
+          row.model = parts.map(p => p + '×' + row.quantity).join('、');
+        }
+      }
       if (units.length > 1) notices.push(`「${row.name}」原单位不一致（${units.join('、')}），已合并数量并保留单位「${row.unit}」，请核对。`);
     }
     if(/^(mm|毫米)$/i.test(row.unit.trim())){row.quantity=(row.quantity??0)/1000;row.unit='米';}
