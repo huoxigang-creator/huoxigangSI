@@ -27,7 +27,7 @@ import {getCabinetOptions,isBuiltinCabinetOption} from '../lib/cabinet-catalog';
 import QuoteShare from './quote-confirm-share';
 import DocumentImport from './document-import';
 import DrawingImport from './drawing-import';
-import {drawingArea,type DrawingRow} from '../lib/drawing-import';
+import {drawingArea,drawingMeters,type DrawingRow} from '../lib/drawing-import';
 import {documentImportNumber,type DocumentImportRow} from '../lib/document-import';
 
 type QuoteRecord = {id:string; title:string; items:any[]; total:number; adopted:boolean; created:string; subproject_id?:string; subproject_name?:string; note?:string;rooms?:QuoteRoom[];cabinets?:QuoteCabinet[]; [key:string]:any};
@@ -165,11 +165,11 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
     if(retained.length+rows.length>500)throw Error('加入后超过每份报价500条明细，请分批处理。');
     const rooms=[...draft.rooms];
     const added=rows.map(row=>{
-      const quantity=drawingArea(row.width,row.height);
-      if(!row.room.trim()||!row.name.trim()||quantity===null)throw Error('请补充房间、柜名和有效宽高。');
+      const area=drawingArea(row.width,row.height),meters=area===null?drawingMeters(row.width):null;
+      if(!row.room.trim()||!row.name.trim()||area===null&&meters===null)throw Error('请补充房间、柜名和有效宽高。');
       let room=rooms.find(value=>value.name.trim()===row.room.trim());
       if(!room){room={id:crypto.randomUUID(),name:row.room.trim()};rooms.push(room);}
-      return {key:crypto.randomUUID(),category:'柜体' as const,name:row.name.trim(),model:`${row.width}×${row.height} mm`,unit:'㎡',quantity,price:row.price.trim()===''?'' as const:Number(row.price),room_id:room.id,note:('AI智能识别；投影面积；来源：'+row.source).slice(0,500)};
+      return {key:crypto.randomUUID(),category:'柜体' as const,name:row.name.trim(),model:area!==null?`${row.width}×${row.height} mm`:(row.width.trim()?`${row.width} mm 延米`:''),unit:area!==null?'㎡':'m',quantity:area!==null?area:meters,price:row.price.trim()===''?'' as const:Number(row.price),room_id:room.id,note:((area!==null?'AI智能识别；投影面积；来源：':'AI智能识别；延米；来源：')+row.source).slice(0,500)};
     });
     if(rooms.length>100)throw Error('空间数量超过100个，请合并房间后重试。');
     setDraft({...draft,rooms,items:[...retained,...added]});setEditorRoom(added[0].room_id);setEditorAll(false);setEditorCategory('柜体');setDocImportNotice(`已加入 ${added.length} 个柜体，按房间归类；请填写单价并保存草稿。`);
