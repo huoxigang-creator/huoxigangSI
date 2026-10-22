@@ -3,7 +3,7 @@ set -euo pipefail
 cd /opt/gugemei
 
 archive=gugemei-standalone-v1622.tar.gz
-expected=c7628948ce0b65c588db7c8b9ff944000ced8b7ae3d9d198c3c03bc6bb772a2a
+expected=d79c59425106acccfa1d6a26b3dd7676e47805ff6ece2fbb768fecdaaea62132
 actual=$(sha256sum "$archive" | cut -d " " -f 1)
 test "$actual" = "$expected"
 test -d app

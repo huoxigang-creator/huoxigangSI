@@ -248,7 +248,7 @@ export function specLastMm(model: string): number | null {
  */
 export function specToMm(model: string): number | null {
   if (!model) return null;
-  const parts = model.split(/[、,，;；]/).map(s => s.trim()).filter(Boolean);
+  const parts = model.split(/[、,，;；\s]+/).map(s => s.trim()).filter(Boolean);
   if (!parts.length) return null;
   let total = 0;
   let hasNumber = false;
@@ -282,7 +282,7 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
     const row={...original};
     // 长度型五金：免拉手、灯带、挂衣杆（排除角码/封口/连接/堵头）。
     // 规格里的数字是毫米（支持 "2598mm*2、713mm*3" 这种长度×根数格式），合并时自动折算成米。
-    const lengthItem=/免拉手|灯带|挂衣杆|踢脚线/.test(row.name)&&!/角码|封口|连接|堵头/.test(row.name);
+    const lengthItem=/免拉手|灯带|挂衣杆|踢脚线|圆弧/.test(row.name)&&!/角码|封口|连接|堵头/.test(row.name);
     if(!lengthItem&&/^(mm|毫米)$/i.test(row.unit.trim())){row.quantity=row.quantity===null?null:row.quantity/1000;row.unit='米';}
     const key = row.name.trim() || '（未命名）';
     let group = groups.get(key);
@@ -301,7 +301,7 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
       //   "58.0*25.0*1914.0" → 三维尺寸，取最长边，数量列是根数
       const mm = specToMm(row.model);
       if (mm !== null) {
-        const parts = row.model.split(/[、,，;；]/).map(s => s.trim()).filter(Boolean);
+        const parts = row.model.split(/[、,，;；\s]+/).map(s => s.trim()).filter(Boolean);
         const allInlineCount = parts.length > 0 && parts.every(part => {
           const nums = [...part.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => Number(m[1])).filter(n => Number.isFinite(n) && n > 0);
           return nums.length === 2;
@@ -354,7 +354,8 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
     const isLed = /灯带/.test(row.name);
     const isRod = /挂衣杆/.test(row.name);
     const isToeKick = /踢脚线/.test(row.name);
-    const isLengthItem = isHandle || isLed || isRod || isToeKick;
+    const isArc = /圆弧/.test(row.name);
+    const isLengthItem = isHandle || isLed || isRod || isToeKick || isArc;
     // 规格型号列汇总：长度型物料显示 "长度×根数" 格式，其他显示原始规格
     const specSource = isLengthItem && group.specs.length ? group.specs : models;
     const specText = specSource.join('、');
@@ -363,8 +364,17 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
       const divisor = 1000;
       row.unit = '米';
       row.quantity = Number((group.lengthMm / divisor).toFixed(2));
+      // 双重验证：从 specs 反算总mm，和累加值对比，不一致则警告
+      let verifyMm = 0;
+      for (const s of group.specs) {
+        const m = s.match(/(\d+(?:\.\d+)?)\s*×\s*(\d+(?:\.\d+)?)/);
+        if (m) verifyMm += Number(m[1]) * Number(m[2]);
+      }
       if (group.missingSpec === 0) {
         notices.push(`「${row.name}」已按规格长度（毫米）折算为 ${row.quantity} 米（共 ${group.lengthMm} 毫米）。`);
+        if (Math.abs(verifyMm - group.lengthMm) > 1) {
+          notices.push(`⚠️「${row.name}」验证不一致：累加=${group.lengthMm}mm，规格反算=${verifyMm}mm，请核对！`);
+        }
       } else {
         notices.push(`「${row.name}」有 ${group.missingSpec} 行规格缺少长度数字，未计入${isHandle ? '米' : '毫米'}汇总，请核对。`);
       }
@@ -373,7 +383,7 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
       row.unit = units[0] ?? '';
       // 非长度型物料但规格是纯数字，也显示 "数字×数量"（如防水铝箔1000×1、阳台一体盆1350×1）
       if (!isLengthItem && row.quantity && Number.isInteger(row.quantity) && row.quantity > 0) {
-        const parts = row.model.split(/[、,，;；]/).map(s => s.trim()).filter(Boolean);
+        const parts = row.model.split(/[、,，;；\s]+/).map(s => s.trim()).filter(Boolean);
         if (parts.length > 0 && parts.every(p => /^\d+(?:\.\d+)?$/.test(p))) {
           row.model = parts.map(p => p + '×' + row.quantity).join('、');
         }
