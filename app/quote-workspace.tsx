@@ -355,7 +355,16 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
       <button disabled={disabled} onClick={()=>{setCopyError('');setCreateDialog('copy');}}><Copy size={14}/>复制新增</button>
       {!employeeMode&&<button className="dangerLink" disabled={disabled||(!selection.selectedIds.length&&!activeQuote)} onClick={()=>{if(selection.selectedIds.length)void remove();else void removePicked();}}><Trash2 size={14}/>删除</button>}
       <button disabled={disabled||!activeQuote} onClick={()=>void exportExcel()}><FileSpreadsheet size={14}/>下载Excel</button>
-      <button disabled={disabled||!activeQuote} onClick={()=>{setHardwarePrint(true);setTimeout(()=>window.print(),50);}}><Printer size={14}/>打印五金单</button>
+      <button disabled={disabled||!activeQuote} onClick={()=>{
+        const hw=activeItems.filter(item=>item.category==='五金费用');
+        const w=window.open('','_blank','width=800,height=600');
+        if(!w)return;
+        const rows=hw.map((item,i)=>`<tr><td style="text-align:center">${i+1}</td><td style="text-align:left">${item.name||'—'}</td><td style="text-align:left">${item.model||'—'}</td><td style="text-align:center">${item.unit}</td><td style="text-align:right">${Number(item.quantity).toFixed(2)}</td></tr>`).join('');
+        w.document.write(`<html><head><title>${projectName} 五金统计单</title><style>@page{size:A4 portrait;margin:10mm}body{font:12px/1.5 '宋体',sans-serif;color:#173858}table{border-collapse:collapse;width:100%;table-layout:fixed}td{border:1px solid #bcc9d7;padding:5px 6px}tr{break-inside:avoid}.title{background:#99CCFF;text-align:center;font-size:18px;font-weight:bold;padding:8px}.cust{background:#99CCFF;padding:6px 10px}.head{background:#f6f8fb;text-align:center;font-weight:bold}</style></head><body><table><colgroup><col style="width:8%"><col style="width:30%"><col style="width:40%"><col style="width:10%"><col style="width:12%"></colgroup><tbody><tr><td colspan="5" class="title">${projectName} 五金统计单</td></tr><tr><td colspan="5" class="cust">客户地址：${project?.address||''}　电话：${project?.phone||''}</td></tr><tr class="head"><td>编号</td><td>名称</td><td>规格型号</td><td>单位</td><td>数量</td></tr>${rows}<tr><td colspan="5" style="border:0;padding-top:15px">乙方：${companyName}　　甲方：</td></tr></tbody></table></body></html>`);
+        w.document.close();
+        w.focus();
+        setTimeout(()=>{w.print();},200);
+      }}><Printer size={14}/>打印五金单</button>
       <button disabled={disabled||!activeQuote} onClick={()=>window.print()}><Printer size={14}/>打印整户报价</button>
       {!employeeMode&&<button disabled={disabled||!activeQuote} onClick={()=>{if(activeQuote)setSharingQuote({id:activeQuote.id,title:activeQuote.title,total:activeQuote.total,receivable:project?.receivable??activeQuote.total});}}><FileCheck2 size={14}/>客户签字确定</button>}
     </div>}
