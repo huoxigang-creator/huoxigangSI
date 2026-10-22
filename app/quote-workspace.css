@@ -504,3 +504,18 @@
 .qwRoomGroup .managedTableViewport{max-height:none!important;height:auto!important;overflow:visible!important}
 .qwRoomGroup .managedTable>thead,.qwRoomGroup .managedTable>thead>tr>th{position:static!important}
 .qwRoomGroup .qwTableEmpty{margin:0;padding:10px 12px}
+/* V-1-6-32: 添加配置说明弹窗：左侧常用配置点选 + 分类表格 */
+.qwConfigNoteDialog{max-width:780px}
+.qwConfigNoteBody{display:flex;gap:14px;align-items:stretch}
+.qwConfigNotePresets{width:230px;flex:none;border:1px solid #e2e8f0;border-radius:8px;padding:10px;max-height:340px;overflow:auto;background:#f8fafc}
+.qwConfigNotePresetGroup{margin-bottom:10px}
+.qwConfigNotePresetGroup h4{margin:0 0 6px;font-size:13px;color:#334155}
+.qwConfigNotePresetGroup button{display:block;width:100%;text-align:left;padding:6px 8px;margin:2px 0;border:1px solid #dbe4ee;border-radius:6px;background:#fff;font-size:12px;color:#1e293b;cursor:pointer;line-height:1.4}
+.qwConfigNotePresetGroup button:hover{background:#e9f1f9;border-color:#c9ddf3}
+.qwConfigNotePresetGroup button.chosen{background:#2F75B5;color:#fff;border-color:#2F75B5}
+.qwConfigNoteTable{width:100%;flex:1;border-collapse:collapse}
+.qwConfigNoteTable th,.qwConfigNoteTable td{border:1px solid #dbe4ee;padding:6px 8px;font-size:13px;text-align:left;vertical-align:top}
+.qwConfigNoteTable th{background:#f8fafc;font-weight:600;white-space:nowrap}
+.qwConfigNoteTable td:first-child{white-space:nowrap;color:#1e3a8a;font-weight:600}
+.qwConfigNoteTable textarea{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.5}
+.qwConfigNoteTable textarea:focus{outline:none;border-color:#2F75B5}
