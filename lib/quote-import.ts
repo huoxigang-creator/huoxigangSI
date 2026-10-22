@@ -282,7 +282,7 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
     const row={...original};
     // 长度型五金：免拉手、灯带、挂衣杆（排除角码/封口/连接/堵头）。
     // 规格里的数字是毫米（支持 "2598mm*2、713mm*3" 这种长度×根数格式），合并时自动折算成米。
-    const lengthItem=/免拉手|灯带|挂衣杆|踢脚线|圆弧/.test(row.name)&&!/角码|封口|连接|堵头/.test(row.name);
+    const lengthItem=/免拉手|灯带|挂衣杆|踢脚线|圆弧|防水铝箔/.test(row.name)&&!/角码|封口|连接|堵头/.test(row.name);
     if(!lengthItem&&/^(mm|毫米)$/i.test(row.unit.trim())){row.quantity=row.quantity===null?null:row.quantity/1000;row.unit='米';}
     const key = row.name.trim() || '（未命名）';
     let group = groups.get(key);
@@ -355,7 +355,8 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
     const isRod = /挂衣杆/.test(row.name);
     const isToeKick = /踢脚线/.test(row.name);
     const isArc = /圆弧/.test(row.name);
-    const isLengthItem = isHandle || isLed || isRod || isToeKick || isArc;
+    const isWaterproof = /防水铝箔/.test(row.name);
+    const isLengthItem = isHandle || isLed || isRod || isToeKick || isArc || isWaterproof;
     // 规格型号列汇总：长度型物料显示 "长度×根数" 格式，其他显示原始规格
     const specSource = isLengthItem && group.specs.length ? group.specs : models;
     const specText = specSource.join('、');
@@ -381,6 +382,18 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
     } else {
       if(isLengthItem&&group.lengthMm>0&&group.missingSpec){row.quantity=null;notices.push('「'+row.name+'」部分规格缺少长度，不能混合件数与米数，请补齐长度后核对。');}
       row.unit = units[0] ?? '';
+      // 规格是 A×B 格式（如0.8×1），数量列=总面积/总长（第一个数字×第二个数字的累加）
+      if (!isLengthItem && row.model) {
+        const xParts = row.model.split(/[、,，;；\s]+/).map(s => s.trim()).filter(Boolean);
+        if (xParts.length > 0 && xParts.every(p => /^\d+(?:\.\d+)?\s*[×*]\s*\d+(?:\.\d+)?$/.test(p))) {
+          let total = 0;
+          for (const p of xParts) {
+            const m = p.match(/(\d+(?:\.\d+)?)\s*[×*]\s*(\d+(?:\.\d+)?)/);
+            if (m) total += Number(m[1]) * Number(m[2]);
+          }
+          row.quantity = Number(total.toFixed(2));
+        }
+      }
       // 非长度型物料但规格是纯数字，也显示 "数字×数量"（如防水铝箔1000×1、阳台一体盆1350×1）
       if (!isLengthItem && row.quantity && Number.isInteger(row.quantity) && row.quantity > 0) {
         const parts = row.model.split(/[、,，;；\s]+/).map(s => s.trim()).filter(Boolean);
