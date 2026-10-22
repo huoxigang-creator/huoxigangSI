@@ -269,7 +269,7 @@ export function specToMm(model: string): number | null {
   return hasNumber ? total : null;
 }
 
-type MergeGroup = { row: QuoteImportRow; models: Set<string>; units: Set<string>; lengthMm: number; missingSpec: number };
+type MergeGroup = { row: QuoteImportRow; models: Set<string>; units: Set<string>; lengthMm: number; missingSpec: number; specs: string[] };
 
 /** 按名称合并五金明细：相同名称的所有规格汇总为一行（规格列列出全部规格、数量合计）。
  *  免拉手（名称含「免拉手」）按规格最后数字（毫米）折算为米，单位改为「米」；
@@ -285,7 +285,7 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
     const key = row.name.trim() || '（未命名）';
     let group = groups.get(key);
     if (!group) {
-      group = { row: { ...row }, models: new Set(row.model ? [row.model] : []), units: new Set(row.unit.trim() ? [row.unit.trim()] : []), lengthMm: 0, missingSpec: 0 };
+      group = { row: { ...row }, models: new Set(row.model ? [row.model] : []), units: new Set(row.unit.trim() ? [row.unit.trim()] : []), lengthMm: 0, missingSpec: 0, specs: [] };
       groups.set(key, group);
     } else {
       group.row.quantity = (group.row.quantity ?? 0) + (row.quantity ?? 0);
@@ -294,8 +294,8 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
     }
     if (lengthItem) {
       // 从规格列解析长度（毫米）。规格格式：
-      //   "737*3"  → A*B = 长度×根数，B 已含根数，直接用
-      //   "1687"   → 纯数字 = 长度，数量列是根数，需乘 quantity
+      //   "737*3"  → A*B = 长度×根数，B 已含根数
+      //   "1687"   → 纯数字 = 长度，数量列是根数
       //   "58.0*25.0*1914.0" → 三维尺寸，取最长边，数量列是根数
       const mm = specToMm(row.model);
       if (mm !== null) {
@@ -306,13 +306,27 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
         });
         if (allInlineCount) {
           group.lengthMm += mm;
+          // 规格列已经是 A*B 格式，直接用（把 * 换成 ×）
+          for (const part of parts) {
+            group.specs.push(part.replace(/\*/g, '×'));
+          }
         } else {
-          group.lengthMm += (row.quantity ?? 0) * mm;
+          const qty = row.quantity ?? 0;
+          group.lengthMm += qty * mm;
+          // 纯数字长度 → "长度×根数"；多段尺寸（如 58.0*25.0*1914.0）→ 保留原始规格
+          const allNums = parts[0] ? [...parts[0].matchAll(/(\d+(?:\.\d+)?)/g)].map(m => Number(m[1])).filter(n => Number.isFinite(n)) : [];
+          if (allNums.length === 1 && qty > 0) {
+            group.specs.push(allNums[0] + '×' + qty);
+          } else {
+            group.specs.push(row.model);
+          }
         }
       } else if(/^(mm|毫米)$/i.test(row.unit.trim())) {
         group.lengthMm += (row.quantity ?? 0);
+        group.specs.push((row.quantity ?? 0) + 'mm');
       } else if(/^(m|米)$/i.test(row.unit.trim())) {
         group.lengthMm += (row.quantity ?? 0) * 1000;
+        group.specs.push((row.quantity ?? 0) + 'm');
       } else {
         group.missingSpec++;
       }
@@ -328,9 +342,10 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
     const isLed = /灯带/.test(row.name);
     const isRod = /挂衣杆/.test(row.name);
     const isLengthItem = isHandle || isLed || isRod;
-    // 规格型号列汇总全部规格（避免超过 100 字校验上限）
-    const specText = models.join('、');
-    row.model = specText.length > 90 ? specText.slice(0, 90) + '…等' + models.length + '种规格' : specText;
+    // 规格型号列汇总：长度型物料显示 "长度×根数" 格式，其他显示原始规格
+    const specSource = isLengthItem && group.specs.length ? group.specs : models;
+    const specText = specSource.join('、');
+    row.model = specText.length > 90 ? specText.slice(0, 90) + '…等' + specSource.length + '种规格' : specText;
     if (isLengthItem&&group.missingSpec===0) {
       const divisor = 1000;
       row.unit = '米';
