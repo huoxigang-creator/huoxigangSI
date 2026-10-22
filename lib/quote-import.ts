@@ -317,11 +317,17 @@ export function mergeQuoteImportRows(allRows: QuoteImportRow[]): { rows: QuoteIm
           group.lengthMm += qty * mm;
           // 提取长度数字用于显示 "长度×根数"
           const nums = parts[0] ? [...parts[0].matchAll(/(\d+(?:\.\d+)?)/g)].map(m => Number(m[1])).filter(n => Number.isFinite(n)) : [];
-          // 纯数字，或只有第一个数字>0其余为0（如406.5×0.0×0.0）→ 取第一个数字×根数
-          // 所有数字都>0的三维截面尺寸（如58.0*25.0*1914.0）→ 保留原始规格
           const positiveNums = nums.filter(n => n > 0);
-          if (qty > 0 && positiveNums.length <= 2) {
-            const len = positiveNums[0] ?? nums[0];
+          const isHandleRow = /免拉手/.test(row.name);
+          const isRodRow = /挂衣杆/.test(row.name);
+          if (qty > 0 && positiveNums.length > 0) {
+            // 挂衣杆取第一个数字；免拉手取最后一个数字；其他取第一个
+            let len;
+            if (isHandleRow && positiveNums.length >= 2) {
+              len = positiveNums[positiveNums.length - 1];
+            } else {
+              len = positiveNums[0];
+            }
             group.specs.push(len + '×' + qty);
           } else {
             group.specs.push(row.model);
