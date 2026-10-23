@@ -3,9 +3,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-23 V-1-6-66';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-23 V-1-6-67';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-6-67',date:'2026-10-23',items:['AI识别弹窗加统计：显示共几个图、已勾选几个，未勾选的橙色提示。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-66',date:'2026-10-23',items:['已核对按钮优化：去掉前面方框，未核对显示橙色"请核对"，点完变绿色框白字"已核对"。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-65',date:'2026-10-23',items:['导出Excel文件名改用客户地址命名，不再用客户姓名。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-64',date:'2026-10-23',items:['规格型号输入自动统一格式：手动输入的*星号自动转成×乘号，和AI自动识别的样式一致。','本次升级已上传阿里云服务器并同步GitHub。']},
