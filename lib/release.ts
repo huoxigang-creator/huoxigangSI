@@ -3,9 +3,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-23 V-1-6-85';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-23 V-1-6-86';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-6-86',date:'2026-10-23',items:['配置说明弹窗优化：顶部加搜索框快速找配置，右边每行前面加×可删除，不用再进文本框编辑。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-85',date:'2026-10-23',items:['修复房间表头全选框点了不起作用的问题，现在点一下就能全选/全不选。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-84',date:'2026-10-23',items:['刷新页面保持在当前页面，不返回首页，下次打开还是上次看的页面。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-83',date:'2026-10-23',items:['批量配置说明改回勾选模式：先勾选柜子再点批量添加，配置到勾选的柜子配置说明列，没勾选配不上。','本次升级已上传阿里云服务器并同步GitHub。']},
