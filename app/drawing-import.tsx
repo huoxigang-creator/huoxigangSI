@@ -10,6 +10,7 @@ export default function DrawingImport({disabled,onApply}:{disabled:boolean;onApp
  const [open,setOpen]=useState(false),[busy,setBusy]=useState(false),[rows,setRows]=useState<DrawingRow[]>([]),[error,setError]=useState(''),[progress,setProgress]=useState(''),[images,setImages]=useState<string[]>([]),[confirmed,setConfirmed]=useState(false),[preview,setPreview]=useState<number|null>(null);
  const picker=useRef<HTMLInputElement>(null),controller=useRef<AbortController|null>(null),urls=useRef<string[]>([]),dialog=useRef<HTMLDivElement>(null),filesRef=useRef<File[]>([]);
  function close(){filesRef.current=[];controller.current?.abort();controller.current=null;urls.current.forEach(URL.revokeObjectURL);urls.current=[];setImages([]);setPreview(null);setOpen(false);setBusy(false);setRows([]);setConfirmed(false);picker.current?.focus();}
+ function dedupSelected(rows:DrawingRow[]){const seen=new Set<string>();return rows.map(r=>{const key=(r.room.trim()+'|'+r.name.trim()).toLowerCase();if(!key||key==='|')return r;if(seen.has(key))return {...r,selected:false};seen.add(key);return r;});}
  useEffect(()=>()=>{controller.current?.abort();urls.current.forEach(URL.revokeObjectURL);},[]);
  useEffect(()=>{if(open)dialog.current?.focus();},[open]);
  async function read(files:File[],local=false){
@@ -18,8 +19,9 @@ export default function DrawingImport({disabled,onApply}:{disabled:boolean;onApp
    if(!files.length||files.length>5||files.some(f=>!/^image\/(png|jpeg|webp)$/.test(f.type)||!f.size||f.size>10*1024*1024))throw Error('请选择1至5张10MB以内PNG、JPG或WebP图纸截图。');
    if(filesRef.current!==files){urls.current.forEach(URL.revokeObjectURL);urls.current=files.map(f=>URL.createObjectURL(f));setImages([...urls.current]);filesRef.current=files;}
    const result=files.map(file=>({source:file.name,room:'',name:'',width:'',height:'',price:'',selected:true} as DrawingRow));setRows(result);
-   if(local){setProgress('正在使用本地OCR，首次需要加载中文字库…');const recognized:DrawingRow[]=[];await readDocumentFiles(files,{mode:'quote',defaultCategory:'柜体',drawingRows:recognized,signal:abort.signal,onProgress:message=>setProgress(message)});if(!abort.signal.aborted)setRows(recognized);}
+   if(local){setProgress('正在使用本地OCR，首次需要加载中文字库…');const recognized:DrawingRow[]=[];await readDocumentFiles(files,{mode:'quote',defaultCategory:'柜体',drawingRows:recognized,signal:abort.signal,onProgress:message=>setProgress(message)});if(!abort.signal.aborted)setRows(dedupSelected(recognized));}
    else for(let i=0;i<files.length;i++){setProgress(`正在AI识别第${i+1}/${files.length}张图纸，最长约45秒…`);try{result[i]=await requestImageRecognition(files[i],'drawing',abort.signal);if(!abort.signal.aborted)setRows(result.map(r=>({...r})));}catch(e){if(abort.signal.aborted)throw e;setError((e instanceof Error?e.message:'图纸识别失败')+'。已保留可填写的明细，可重试、本地识别或手动补充。');}}
+   if(!abort.signal.aborted)setRows(prev=>dedupSelected(prev));
   }catch(e){if(!abort.signal.aborted)setError(e instanceof Error?e.message:'图纸识别失败');}
   finally{if(controller.current===abort){setBusy(false);controller.current=null;}}
  }
