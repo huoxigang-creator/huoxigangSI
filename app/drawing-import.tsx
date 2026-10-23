@@ -16,7 +16,7 @@ export default function DrawingImport({disabled,onApply}:{disabled:boolean;onApp
  async function read(files:File[],local=false,append=false){
   controller.current?.abort();const abort=new AbortController();controller.current=abort;setOpen(true);setBusy(true);setError('');setConfirmed(false);
   try{
-   if(!files.length||files.length>5||files.some(f=>!/^image\/(png|jpeg|webp)$/.test(f.type)||!f.size||f.size>10*1024*1024))throw Error('请选择1至5张10MB以内PNG、JPG或WebP图纸截图。');
+   if(!files.length||files.length>20||files.some(f=>!/^image\/(png|jpeg|webp)$/.test(f.type)||!f.size||f.size>10*1024*1024))throw Error('请选择1至20张10MB以内PNG、JPG或WebP图纸截图。');
    if(!append){urls.current.forEach(URL.revokeObjectURL);urls.current=[];setImages([]);setRows([]);}
    const newUrls=files.map(f=>URL.createObjectURL(f));urls.current=[...urls.current,...newUrls];setImages([...urls.current]);filesRef.current=append?[...filesRef.current,...files]:[...files];
    const result=files.map(file=>({source:file.name,room:'',name:'',width:'',height:'',price:'',selected:true} as DrawingRow));
