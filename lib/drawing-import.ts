@@ -1,4 +1,4 @@
-export type DrawingRow={source:string;room:string;name:string;width:string;height:string;price:string;selected:boolean;config?:string};
+export type DrawingRow={source:string;room:string;name:string;width:string;height:string;price:string;selected:boolean;config?:string;note?:string};
 type Word={text:string;bbox:{x0:number;y0:number;x1:number;y1:number}};
 /** 把 "1800+1500+700"、"1800 1500 700" 或 "1800、1500" 这类多段宽度求和为一个数字（毫米）。 */
 export function sumWidthMm(width:string):number{if(!width.trim())return NaN;const direct=Number(width);if(Number.isFinite(direct))return direct;const nums=width.match(/\d+(?:\.\d+)?/g);if(!nums||!nums.length)return NaN;return nums.reduce((s,n)=>s+Number(n),0);}
