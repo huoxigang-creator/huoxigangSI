@@ -3,9 +3,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-23 V-1-6-40';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-23 V-1-6-41';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-6-41',date:'2026-10-23',items:['AI识别报价弹窗新增"继续上传图纸"按钮：识别完一批后不关闭弹窗，可再选更多图追加识别，新行自动追加到表格末尾并参与去重。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-40',date:'2026-10-23',items:['AI识别结果自动去重：相同房间+柜体名称的重复行默认不勾选，避免重复加入报价；用户可手动勾选确认。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-39',date:'2026-10-23',items:['AI识别报价弹窗支持点击图纸缩略图放大查看原图，再点一次或按ESC关闭预览。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-38',date:'2026-10-23',items:['厨房柜体AI识别特殊规则：房间为厨房时一律按延米计价，图上所有尺寸数字自动相加作为总延米长度，不再提取高度；手动把房间改成厨房也会自动清空高度并切换延米计价。','本次升级已上传阿里云服务器并同步GitHub。']},
