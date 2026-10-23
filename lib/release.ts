@@ -3,9 +3,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-23 V-1-6-52';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-23 V-1-6-53';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-6-53',date:'2026-10-23',items:['AI识别弹窗检测到重复柜体时在该行直接标注"⚠与第N张重复"，方便人工检查是和哪张重复，决定保留或删除。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-52',date:'2026-10-23',items:['AI识别弹窗右侧预览面板加右上角×关闭按钮；预览改为右侧面板不再全屏居中。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-51',date:'2026-10-23',items:['AI识别弹窗点击图片放大预览改为右侧面板显示（不再全屏居中遮罩），方便左侧看识别结果、右侧对照原图数字；底部已核对复选框改为文字按钮。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-50',date:'2026-10-23',items:['AI识别弹窗底部"已核对"复选框改为文字按钮：未核对显示灰色"点此确认已核对"，点击后变绿色"✓已核对，可确认加入"。','本次升级已上传阿里云服务器并同步GitHub。']},
