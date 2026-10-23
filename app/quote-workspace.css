@@ -202,7 +202,7 @@
 .qwCategoryBarInline>button.active span{background:#ffffff26}
 .qwCardToolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding:0 0 12px;margin-bottom:12px;border-bottom:1px solid #e2e8f0}.qwCardToolbar button{font-size:12px;padding:8px 13px}
 .qwCardSubmitPay{display:block;font-style:normal;font-size:12px;color:#ff5722}
-.qwCardPayActions{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:auto;width:100%}.qwCardSubmitPay,.qwCardSettle{display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:14px;font-weight:600;min-height:38px;padding:9px 24px;border-radius:6px;cursor:pointer;line-height:1;border:1px solid}.qwCardSubmitPay{background:#fff2ec;color:#ff5722;border-color:#ffd9cc}.qwCardSubmitPay:hover{background:#ff5722;color:#fff}.qwCardSettle{background:#e8f0fa;color:#2c639f;border-color:#c9ddf3}.qwCardSettle:hover{background:#2c639f;color:#fff}
+.qwCardPayActions{display:flex;justify-content:flex-end;align-items:center;gap:14px;margin-top:auto;width:100%}.qwCardSubmitPay,.qwCardSettle{display:inline;font-style:normal;font-size:12px;cursor:pointer;line-height:1;border:none;background:none;padding:0}.qwCardSubmitPay{color:#ff5722}.qwCardSubmitPay:hover{text-decoration:underline}.qwCardSettle{color:#2c639f}.qwCardSettle:hover{text-decoration:underline}
 .qwCustomerDialog .qwCategoryImportBar{position:sticky;top:0;z-index:4;background:#fff;padding-top:6px;padding-bottom:2px}
 .qwCustomerDialog .managedTable>thead>tr>th{top:46px}
 .qwDocumentImportNotice{font-size:12px;line-height:1.8;color:#355d85;background:#eef5fd;border:1px solid #d9e6f4;border-radius:5px;padding:9px 12px;margin:0 0 12px;flex-shrink:0;max-height:86px;overflow:auto}
