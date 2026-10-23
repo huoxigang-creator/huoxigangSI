@@ -172,7 +172,7 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
       if(!row.room.trim()||!row.name.trim()||area===null&&meters===null)throw Error('请补充房间、柜名和有效宽高。');
       let room=rooms.find(value=>value.name.trim()===row.room.trim());
       if(!room){room={id:crypto.randomUUID(),name:row.room.trim()};rooms.push(room);}
-      added.push({key:crypto.randomUUID(),category:'柜体' as const,name:row.name.trim(),model:area!==null?`${row.width}×${row.height} mm`:(row.width.trim()?`${row.width} mm 延米`:''),unit:area!==null?'㎡':'m',quantity:area!==null?area:meters,price:row.price.trim()===''?'' as const:Number(row.price),room_id:room.id,note:((area!==null?'AI智能识别；投影面积；来源：':'AI智能识别；延米；来源：')+row.source).slice(0,500)});
+      added.push({key:crypto.randomUUID(),category:'柜体' as const,name:row.name.trim(),model:area!==null?`${row.width}×${row.height} mm`:(row.width.trim()?`${row.width} mm 延米`:''),unit:area!==null?'㎡':'m',quantity:area!==null?area:meters,price:row.price.trim()===''?'' as const:Number(row.price),room_id:room.id,note:''});
       if(row.config){for(const line of row.config.split(/\r?\n/).map(value=>value.trim()).filter(Boolean)){const title=line.split(/[：:]/)[0].trim();added.push({key:crypto.randomUUID(),category:'柜体' as const,name:(title.endsWith('配置')?title:'配置说明').slice(0,40),model:'',quantity:1,unit:'项',price:0,room_id:room.id,note:(line.slice(title.length+1).trim()||line).slice(0,500)});}}
     }
     if(rooms.length>100)throw Error('空间数量超过100个，请合并房间后重试。');
