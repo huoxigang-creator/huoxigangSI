@@ -502,7 +502,7 @@
 .qwRoomGroupName{color:#1e3a8a;font-weight:600;font-size:14px}
 .qwRoomGroupMeta{color:#64748b;font-size:12px;font-weight:400}
 .qwRoomGroup .managedTableViewport{max-height:none!important;height:auto!important;overflow:visible!important}
-.qwRoomGroup .managedTable>thead,.qwRoomGroup .managedTable>thead>tr>th{position:static!important}
+.qwRoomGroup .managedTable>thead>tr>th{position:sticky;top:0;z-index:2;background:#f6f8fb;box-shadow:0 1px 0 #d7e1ee}
 .qwRoomGroup .qwTableEmpty{margin:0;padding:10px 12px}
 /* V-1-6-32: 添加配置说明弹窗：左侧常用配置点选 + 分类表格 */
 .qwConfigNoteDialog{max-width:780px}
