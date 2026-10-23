@@ -3,9 +3,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-23 V-1-6-57';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-23 V-1-6-58';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-6-58',date:'2026-10-23',items:['添加配置说明对话框左侧常用配置改为平铺不滚动，每个分类下加"+ 添加"按钮可自定义新增配置项（自动记住）。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-57',date:'2026-10-23',items:['报价草稿按房间分组时每个房间表头加全选复选框；勾选多行后可点"批量修改"按钮统一改数量/单价/单位。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-57',date:'2026-10-23',items:['报价草稿按房间分组时，每个房间表头最左边加全选复选框，可一键勾选该房间所有明细，然后点删除批量删除。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-56',date:'2026-10-23',items:['报价卡片上"收款""结算"按钮改为纯文字链接（去掉按钮框和背景色，字号调小为12px，hover下划线）。','本次升级已上传阿里云服务器并同步GitHub。']},
