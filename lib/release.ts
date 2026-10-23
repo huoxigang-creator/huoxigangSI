@@ -3,9 +3,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-23 V-1-6-79';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-23 V-1-6-80';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-6-80',date:'2026-10-23',items:['默认Lite模型，点重新识别自动切Pro再识别一次，识别完自动切回Lite，下次打开还是默认Lite。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-79',date:'2026-10-23',items:['AI识别弹窗优化：识别完右边自动显示大图，左边滚动时右边自动跟随切换，不用点击。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-78',date:'2026-10-23',items:['豆包设置里加模型选择下拉，一键切换Lite（便宜快速）和Pro（旗舰最强），不用手动输模型ID。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-69',date:'2026-10-23',items:['面积公式也代码验算：宽*高公式里的数字和宽高输入框自动核对，不一致用公式数字，双重校验避免识别错误。','本次升级已上传阿里云服务器并同步GitHub。']},
