@@ -18,6 +18,7 @@ export type QuoteItem = {
   internal_price?: number;
   contract_price?: number;
   note: string;
+  config_note?: string;
   photos?: { key: string; name: string; mime: string; size: number }[];
 };
 export type QuoteRecord = {
@@ -57,6 +58,7 @@ export function normalizeQuoteItem(raw: Partial<QuoteItem> | null | undefined): 
     price: typeof item.price === 'number' ? item.price : 0,
     ...Object.fromEntries(['sale_price','internal_price','contract_price'].flatMap(field=>{const value=(item as any)[field];return typeof value==='number'&&Number.isFinite(value)&&value>=0?[[field,value]]:[];})),
     note: typeof item.note === 'string' ? item.note : '',
+    ...(typeof item.config_note === 'string' ? {config_note: item.config_note} : {}),
     photos: Array.isArray(item.photos) ? item.photos.filter(photo => photo && typeof photo.key === 'string' && typeof photo.name === 'string').map(photo => ({ key: photo.key, name: photo.name, mime: typeof photo.mime === 'string' ? photo.mime : '', size: typeof photo.size === 'number' ? photo.size : 0 })) : [],
   };
 }
