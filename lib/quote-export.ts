@@ -5,7 +5,7 @@ export type QuoteSettlementInput={adopted?:boolean;discount_amount?:number;round
 export type QuoteExportInput={project:{id:string;name:string;project_type?:'project'|'customer';customer?:string;phone?:string;address?:string;discount_amount?:number;rounding_amount?:number;receivable?:number};companyName:string;quote:any};
 export type QuoteExcelPhoto={src:string;name:string;row?:number;column?:number;width?:number;height?:number};
 export type QuoteExportSheet={name:string;rows:Array<Array<string|number|null>>;widths:number[];merges:Array<{s:{r:number;c:number};e:{r:number;c:number}}>;headerRow:number;totalRow:number;quantityColumn:number;priceColumn:number;amountColumn:number;sectionRows:number[];subtotalRows:number[];yellowRows?:number[];photoRows?:Array<{src:string;name:string;row:number}>;rowHeightOverrides?:Record<number,number>;signatureRow?:number};
-const quoteName=(input:QuoteExportInput)=>String(input.quote.subproject_name||input.quote.title||input.project.name);
+const quoteName=(input:QuoteExportInput)=>String(input.quote.subproject_name||input.quote.title||input.project.address||input.project.name);
 /** Project concessions apply only to the currently adopted household quotation. */
 export function getQuoteSettlement(total:number,settlement?:QuoteSettlementInput){
  if(!settlement?.adopted||(settlement.discount_amount===undefined&&settlement.rounding_amount===undefined))return null;
@@ -67,7 +67,7 @@ export async function createQuoteWorkbook(input:QuoteExportInput):Promise<WorkBo
 export async function applyQuoteExcelStyling(data:QuoteExportSheet,props?:{title:string;company?:string},photos?:QuoteExcelPhoto[]):Promise<Uint8Array>{
   const module=await import('xlsx'),XLSX=module.default||module;
   const zip=XLSX.CFB.read(new Uint8Array(XLSX.write(await workbookFromSheet(data,props),{bookType:'xlsx',type:'array'})),{type:'buffer'}),encode=new TextEncoder(),decode=new TextDecoder();
-  const fonts='<fonts count="6"><font><sz val="11"/><name val="宋体"/></font><font><b/><sz val="18"/><name val="宋体"/></font><font><b/><sz val="11"/><color rgb="FFFF5722"/><name val="宋体"/></font><font><b/><sz val="24"/><name val="宋体"/></font><font><b/><sz val="14"/><name val="宋体"/></font><font><sz val="10"/><name val="宋体"/></font></fonts>';
+  const fonts='<fonts count="6"><font><sz val="11"/><name val="宋体"/></font><font><b/><sz val="18"/><name val="宋体"/></font><font><b/><sz val="11"/><color rgb="FFFF5722"/><name val="宋体"/></font><font><b/><sz val="24"/><color rgb="FF2F75B5"/><name val="宋体"/></font><font><b/><sz val="14"/><name val="宋体"/></font><font><sz val="10"/><name val="宋体"/></font></fonts>';
   const fills='<fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF2F75B5"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFC0C0C0"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFFF00"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/><bgColor indexed="64"/></patternFill></fill></fills>';
   // WPS/Excel 惯例：borders[0] 必须是空边框，自定义边框从索引 1 开始，否则 WPS 会把 borderId=0 视为无边框。
   // borderId=1 黑色细线（表体）；borderId=2 浅灰细线（报价合计之后的落款区——参照桌面xls：黑框只到合计行）。
@@ -200,7 +200,7 @@ export async function createQuoteExcelBytes(input:QuoteExportInput):Promise<Uint
   const sheets=buildQuoteExportSheets(input);
   return applyQuoteExcelStyling(sheets[0],{title:quoteName(input)+'的清单报价',company:input.companyName},(sheets[0].photoRows||[]).slice(0,60));
 }
-export function quoteExcelFileName(input:QuoteExportInput):string{return ([input.project.name,quoteName(input),'报价清单'].join('_').replace(/[<>:"/\\|?*\u0000-\u001F]/g,'_').trim().replace(/[. ]+$/g,'').slice(0,150)||'项目报价')+'.xlsx';}
+export function quoteExcelFileName(input:QuoteExportInput):string{return ([input.project.address||input.project.name,quoteName(input),'报价清单'].join('_').replace(/[<>:"/\\|?*\u0000-\u001F]/g,'_').trim().replace(/[. ]+$/g,'').slice(0,150)||'项目报价')+'.xlsx';}
 export async function downloadQuoteExcel(input:QuoteExportInput):Promise<void>{const bytes=await createQuoteExcelBytes(input),url=URL.createObjectURL(new Blob([bytes as BlobPart],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})),link=document.createElement('a');try{link.href=url;link.download=quoteExcelFileName(input);document.body.appendChild(link);link.click();}finally{link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}}
 
 export type DraftQuoteExcelInput={title:string;companyName?:string;customer?:string;items:Array<{name:string;model:string;quantity:number;price:number;unit:string;note:string;config_note?:string;category:string;photos?:Array<{key:string;name:string}>}>;note?:string};

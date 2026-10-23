@@ -3,9 +3,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-23 V-1-6-64';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-23 V-1-6-65';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-6-65',date:'2026-10-23',items:['导出Excel文件名改用客户地址命名，不再用客户姓名。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-64',date:'2026-10-23',items:['规格型号输入自动统一格式：手动输入的*星号自动转成×乘号，和AI自动识别的样式一致。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-63',date:'2026-10-23',items:['柜体名称下拉选择修正：只有点右边小箭头才弹出候选列表，点输入框本身不弹出，方便直接打字输入。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-62',date:'2026-10-23',items:['AI识别尺寸公式标签简化：按平方写"宽*高"如1636*2396，延米写"数字+数字"如1636+2396，去掉多余说明文字。','本次升级已上传阿里云服务器并同步GitHub。']},
