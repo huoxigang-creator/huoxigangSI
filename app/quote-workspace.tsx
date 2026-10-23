@@ -168,7 +168,7 @@ export default function QuoteWorkspace({active=true,employeeMode=false,focusGrou
     const rooms=[...draft.rooms];
     const added:any[]=[];
     for(const row of rows){
-      const area=drawingArea(row.width,row.height),meters=area===null?drawingMeters(row.width):null;
+      const isKitchen=row.room.includes('厨房');const area=!isKitchen?drawingArea(row.width,row.height):null,meters=area===null?drawingMeters(row.width):null;
       if(!row.room.trim()||!row.name.trim()||area===null&&meters===null)throw Error('请补充房间、柜名和有效宽高。');
       let room=rooms.find(value=>value.name.trim()===row.room.trim());
       if(!room){room={id:crypto.randomUUID(),name:row.room.trim()};rooms.push(room);}
