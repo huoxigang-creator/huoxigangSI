@@ -16,6 +16,20 @@ async function recognizeImage(image:string,source:string,mode:'drawing'|'text'|'
  const value=await response.json() as any,content=value.choices?.[0]?.message?.content;if(typeof content!=='string'||content.length>24000)throw new DrawingVisionError('未收到有效识别文字，请重试',502);if(mode==='drawing')return drawingVisionRow(content,source);if(mode==='purchase')return parsePurchaseItems(content,source);return content;
 }
 
-export async function recognizeDrawing(image:string,source:string,config:{key?:string;base?:string;model?:string;provider?:'qwen'|'doubao'},signal?:AbortSignal,fetcher:typeof fetch=fetch){return await recognizeImage(image,source,'drawing',config,signal,fetcher) as DrawingRow;}
+export async function recognizeDrawing(image:string,source:string,config:{key?:string;base?:string;model?:string;provider?:'qwen'|'doubao'},signal?:AbortSignal,fetcher:typeof fetch=fetch){
+  const [first,second]=await Promise.all([
+    recognizeImage(image,source,'drawing',config,signal,fetcher) as Promise<DrawingRow>,
+    recognizeImage(image,source,'drawing',config,signal,fetcher) as Promise<DrawingRow>
+  ]);
+  const diffs:string[]=[];
+  if(first.room!==second.room)diffs.push(`房间:${first.room||'空'} vs ${second.room||'空'}`);
+  if(first.name!==second.name)diffs.push(`柜名:${first.name||'空'} vs ${second.name||'空'}`);
+  if(first.width!==second.width)diffs.push(`宽:${first.width||'空'} vs ${second.width||'空'}`);
+  if(first.height!==second.height)diffs.push(`高:${first.height||'空'} vs ${second.height||'空'}`);
+  if(diffs.length){
+    first.source=first.source+'（⚠两次识别不一致：'+diffs.join('；')+'，请对照原图核对）';
+  }
+  return first;
+}
 export async function recognizeImageText(image:string,source:string,config:{key?:string;base?:string;model?:string;provider?:'qwen'|'doubao'},signal?:AbortSignal,fetcher:typeof fetch=fetch){return await recognizeImage(image,source,'text',config,signal,fetcher) as string;}
 export async function recognizePurchaseItems(image:string,source:string,config:{key?:string;base?:string;model?:string;provider?:'qwen'|'doubao'},signal?:AbortSignal,fetcher:typeof fetch=fetch){return await recognizeImage(image,source,'purchase',config,signal,fetcher) as PurchaseScanItem[];}
