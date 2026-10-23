@@ -3,9 +3,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-23 V-1-6-59';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-23 V-1-6-60';export const DEFAULT_COMPANY_NAME = '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-6-60',date:'2026-10-23',items:['今日待办新增短信提醒：待办到了设定时间自动发短信到老板手机（每分钟检查一次，不重复发）。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-59',date:'2026-10-23',items:['报价明细表格滚动时表头固定不动（sticky），一直显示在顶部方便对照。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-58',date:'2026-10-23',items:['添加配置说明对话框左侧常用配置改为平铺不滚动，每个分类下加"+ 添加"按钮可自定义新增配置项（自动记住）。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-57',date:'2026-10-23',items:['报价草稿按房间分组时每个房间表头加全选复选框；勾选多行后可点"批量修改"按钮统一改数量/单价/单位。','本次升级已上传阿里云服务器并同步GitHub。']},
