@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE, sessionAccount } from './lib/local-auth';
 import { MANAGEMENT_OWNER_ID } from './lib/management-access';
 
-const publicPaths = new Set(['/login', '/api/auth/login', '/api/auth/sms/send', '/api/auth/sms/login', '/api/auth/forgot', '/api/shared-confirm', '/api/register-client', '/api/register-ocr', '/api/register-speech']);
+const publicPaths = new Set(['/login', '/api/auth/login', '/api/auth/sms/send', '/api/auth/sms/login', '/api/auth/forgot', '/api/shared-confirm', '/api/register-client', '/api/register-ocr', '/api/register-speech', '/api/asr-tmp']);
 const employeeApiPaths = new Set(['/api/drawing-recognition','/api/manage', '/api/catalog', '/api/auth/me', '/api/auth/me/update', '/api/auth/password', '/api/auth/security-question', '/api/project-sms', '/api/confirm', '/api/customer-ocr', '/api/customer-speech']);
 
 export function proxy(request: NextRequest) {

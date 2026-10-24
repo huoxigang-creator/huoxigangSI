@@ -1,5 +1,7 @@
 import { createHmac, randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdirSync, writeFileSync, unlinkSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { dataDirectory } from './local-env';
 
 // 阿里云智能语音交互（ISI）一句话识别：RESTful /stream/v1/asr + POP API CreateToken 获取 Token。
 // 凭证管理沿用 lib/aliyun-ocr.ts 的规矩：环境变量优先、服务器 env 文件兜底，密钥绝不进代码库。
@@ -107,12 +109,116 @@ export function qwenAsrConfigured(): boolean {
 
 export const QWEN_ASR_SETUP_HINT = '语音大模型未配置：请在服务器 /etc/gugemei/ai.env 写入 GUGEMEI_AI_API_KEY 与 GUGEMEI_AI_BASE_URL（阿里云百炼业务空间专属域名），重启 gugemei 服务后生效。';
 
-/** 任一语音通道可用（百炼语音大模型 或 ISI 一句话识别）即视为已配置。 */
-export function speechConfigured(): boolean {
-  return qwenAsrConfigured() || aliyunAsrConfigured();
+// ========== 豆包语音识别大模型（火山引擎 豆包语音·录音文件识别2.0） ==========
+// 接口：提交任务 submit（POST /api/v3/auc/bigmodel/submit，音频走公网 URL）+ 查询结果 query
+// （POST /api/v3/auc/bigmodel/query，同 X-Api-Request-Id）。资源 ID = volc.seedasr.auc（豆包录音文件识别模型 2.0）。
+// 凭证从 /etc/gugemei/asr.env 读取 DOUBAO_ASR_API_KEY（豆包语音控制台 API Key 管理里创建）
+// 与 DOUBAO_ASR_RESOURCE（默认 volc.seedasr.auc，无需填写）。
+type DoubaoAsrConfig = { apiKey: string; resource: string };
+
+function doubaoAsrEnv(): DoubaoAsrConfig {
+  const values: Record<string, string> = {
+    API_KEY: process.env.DOUBAO_ASR_API_KEY || '',
+    RESOURCE: process.env.DOUBAO_ASR_RESOURCE || 'volc.seedasr.auc',
+  };
+  const path = process.env.GUGEMEI_ASR_ENV_FILE || (process.platform === 'linux' ? '/etc/gugemei/asr.env' : '');
+  if (path) {
+    try {
+      for (const line of readFileSync(path, 'utf8').split(/\r?\n/)) {
+        const match = /^\s*([A-Za-z0-9_]+)\s*=\s*(.*?)\s*$/.exec(line);
+        if (match && !match[1].startsWith('#')) values[match[1]] = match[2];
+      }
+    } catch { /* 配置文件不存在时忽略 */ }
+  }
+  return { apiKey: values.API_KEY, resource: values.RESOURCE };
 }
 
-export const SPEECH_SETUP_HINT = '语音识别未配置：请配置阿里云百炼语音大模型（GUGEMEI_AI_API_KEY + GUGEMEI_AI_BASE_URL）或在服务器 /etc/gugemei/asr.env 写入 ALIYUN_ASR_ACCESS_KEY_ID、ALIYUN_ASR_ACCESS_KEY_SECRET 与 ALIYUN_ASR_APP_KEY（文件权限 600），重启 gugemei 服务后生效。';
+export function doubaoAsrConfigured(): boolean {
+  return Boolean(doubaoAsrEnv().apiKey);
+}
+
+export const DOUBAO_ASR_SETUP_HINT = '豆包语音识别未配置：请在豆包语音控制台「API Key 管理」创建密钥，然后在服务器 /etc/gugemei/asr.env 写入 DOUBAO_ASR_API_KEY=你的豆包语音API Key（文件权限 600），重启 gugemei 服务后生效。';
+
+const ASR_TMP_DIR = () => join(dataDirectory, 'asr-tmp');
+
+/**
+ * 豆包录音文件识别2.0：先把录音落到本地临时文件，通过公网 URL 交给豆包异步识别，
+ * 完成后立即删除临时文件（识别失败或超时同样清理）。
+ */
+export async function recognizeSpeechDoubao(bytes: Uint8Array, publicBase: string): Promise<string> {
+  const config = doubaoAsrEnv();
+  if (!config.apiKey) throw new Error(DOUBAO_ASR_SETUP_HINT);
+  if (!bytes.length || bytes.length > 2 * 1024 * 1024) throw new Error('语音文件过大或为空（不超过 2MB / 60 秒）');
+  let base: URL;
+  try { base = new URL(publicBase); } catch { throw new Error('服务地址无效'); }
+  if (base.protocol !== 'https:' && base.hostname !== 'localhost' && base.hostname !== '127.0.0.1') {
+    throw new Error('服务地址无效：豆包语音识别要求录音临时地址必须为 HTTPS 公网地址');
+  }
+  const fileId = randomUUID();
+  const dir = ASR_TMP_DIR();
+  const filePath = join(dir, fileId + '.wav');
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  writeFileSync(filePath, Buffer.from(bytes), { mode: 0o600 });
+  const audioUrl = base.origin + '/api/asr-tmp?id=' + fileId;
+  const headers: Record<string, string> = {
+    'X-Api-Key': config.apiKey,
+    'X-Api-Resource-Id': config.resource,
+    'X-Api-Request-Id': fileId,
+    'X-Api-Sequence': '-1',
+    'Content-Type': 'application/json',
+  };
+  try {
+    const submit = await fetch('https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        audio: { url: audioUrl, format: 'wav', rate: 16000, bits: 16, channel: 1 },
+        request: { model_name: 'bigmodel', enable_itn: true, enable_punc: true },
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+    const submitCode = submit.headers.get('x-api-status-code');
+    if (submitCode !== '20000000') {
+      const submitBody = await submit.text().catch(() => '');
+      if (/45000030|not granted|资源|授权/i.test(submitCode + ' ' + submitBody)) {
+        throw new Error('豆包语音识别资源未开通：请在豆包语音控制台开通「录音文件识别2.0」后重试；也可先手动填写');
+      }
+      throw new Error('豆包语音识别提交失败（' + (submitCode || 'HTTP ' + submit.status) + '），请重试；也可先手动填写');
+    }
+    // 轮询查询结果（同 X-Api-Request-Id），最长约 40 秒
+    let lastBody = '';
+    for (let i = 0; i < 20; i++) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const query = await fetch('https://openspeech.bytedance.com/api/v3/auc/bigmodel/query', {
+        method: 'POST',
+        headers,
+        body: '{}',
+        signal: AbortSignal.timeout(30000),
+      });
+      const queryCode = query.headers.get('x-api-status-code');
+      lastBody = await query.text().catch(() => '');
+      if (queryCode === '20000000') {
+        const payload = JSON.parse(lastBody) as any;
+        const text = nlsText(payload?.result?.text).trim();
+        if (text) return text;
+        continue;
+      }
+      if (queryCode && queryCode !== '20000001' && queryCode !== '20000002') {
+        break;
+      }
+    }
+    throw new Error('豆包语音识别超时或未识别到内容，请靠近麦克风重试；也可先手动填写');
+  } finally {
+    try { unlinkSync(filePath); } catch { /* 忽略清理失败 */ }
+  }
+}
+
+/** 任一语音通道可用（豆包 或 百炼语音大模型 或 ISI 一句话识别）即视为已配置。 */
+export function speechConfigured(): boolean {
+  return doubaoAsrConfigured() || qwenAsrConfigured() || aliyunAsrConfigured();
+}
+
+export const SPEECH_SETUP_HINT = '语音识别未配置：请在服务器 /etc/gugemei/asr.env 写入 DOUBAO_ASR_API_KEY=豆包语音API Key（推荐，豆包录音文件识别2.0）；或配置阿里云百炼语音大模型（GUGEMEI_AI_API_KEY + GUGEMEI_AI_BASE_URL）；或写入 ALIYUN_ASR_ACCESS_KEY_ID、ALIYUN_ASR_ACCESS_KEY_SECRET 与 ALIYUN_ASR_APP_KEY（文件权限 600），重启 gugemei 服务后生效。';
 
 function nlsText(content: unknown): string {
   if (typeof content === 'string') return content;
@@ -157,14 +263,17 @@ export async function recognizeSpeechQwen(bytes: Uint8Array): Promise<string> {
   return text;
 }
 
-/** 语音识别总入口：优先百炼语音大模型，失败或未配置时自动回退 ISI 一句话识别。 */
-export async function recognizeSpeechSmart(bytes: Uint8Array): Promise<string> {
+/** 语音识别总入口：优先豆包语音识别大模型（录音文件识别2.0），失败或未配置时自动回退百炼语音大模型，再回退 ISI 一句话识别。 */
+export async function recognizeSpeechSmart(bytes: Uint8Array, publicBase?: string): Promise<string> {
   let lastError: unknown = null;
+  if (doubaoAsrConfigured() && publicBase) {
+    try { return await recognizeSpeechDoubao(bytes, publicBase); } catch (error) { lastError = error; }
+  }
   if (qwenAsrConfigured()) {
     try { return await recognizeSpeechQwen(bytes); } catch (error) { lastError = error; }
   }
   try { return await recognizeSpeech(bytes); } catch (error) {
-    if (lastError) console.error('[asr] qwen speech failed:', lastError);
+    if (lastError) console.error('[asr] doubao/qwen speech failed:', lastError);
     throw error;
   }
 }
