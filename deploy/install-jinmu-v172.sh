@@ -4,10 +4,13 @@ cd /opt/gugemei/cust-friend
 new=/opt/gugemei/cust-friend/app-new-v172
 previous=/opt/gugemei/cust-friend/app-prev-brand-v172
 test -d "$new"
+test -x /opt/gugemei/tools/dwg2dxf-limited
 test ! -e "$previous"
 grep -rq '©2025连云港锦木全屋定制家居有限公司' "$new/dist/client/"
 grep -rq 'V-1-7-2' "$new/dist/client/"
 python3 /opt/gugemei/preserve-static-assets.py /opt/gugemei/cust-friend/app "$new"
+GUGEMEI_DATA_DIR=/var/lib/gugemei-cust-friend /opt/gugemei/runtime/node-v24.20.0-linux-x64/bin/node /opt/gugemei/tools/backup-local.mjs
+python3 /opt/gugemei/cust-friend/configure-jinmu-v172.py
 rollback(){
  systemctl stop gugemei-cust-friend || true
  if [ -d "$previous" ]; then

@@ -1,4 +1,4 @@
-"""Brand an isolated existing Jinmu deployment without copying main-site functions or data."""
+"""Brand an isolated latest application build for Jinmu; never copy business data."""
 from pathlib import Path
 import re,sys,json
 root=Path(sys.argv[1]).resolve()
@@ -11,7 +11,6 @@ for p in files:
  s=p.read_text(encoding='utf-8');new=s
  new=new.replace('连云港固美格家具有限公司','连云港锦木全屋定制家居有限公司').replace('连云港锦木家具有限公司','连云港锦木全屋定制家居有限公司').replace('固美格','锦木')
  new=new.replace('©2020连云港锦木全屋定制家居有限公司 版权所有','©2025连云港锦木全屋定制家居有限公司')
- new=new.replace('2026-10-24 V-1-6-88','2026-10-24 V-1-7-2')
  for old,name in mapping.items():new=new.replace(old,name)
  if new!=s:p.write_text(new,encoding='utf-8');changed+=1
 for old,new in mapping.items():(client/old).rename(client/new)
