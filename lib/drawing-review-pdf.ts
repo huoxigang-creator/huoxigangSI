@@ -1,51 +1,62 @@
-import {PDFDocument,rgb} from 'pdf-lib';
+import {PDFDocument,rgb,type PDFPage} from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import {CONTRACT_CJK_FONT_BASE64} from '../assets/fonts/contract-cjk-font';
 import {drawingMeasure,type DrawingRow} from './drawing-import';
 
 export type ReviewEntry={row:DrawingRow;image?:string};
-/** One cabinet per A4 page. Images are loaded sequentially to bound browser memory. */
+/** Each drawing is followed by its complete editable-row information; totals occur once at the end. */
 export async function generateDrawingReviewPdf(entries:ReviewEntry[],loadImage:(src:string)=>Promise<Uint8Array>){
  if(!entries.length)throw new Error('请先勾选需要导出的柜体');
  const pdf=await PDFDocument.create();pdf.registerFontkit(fontkit);
  const compressed=Uint8Array.from(atob(CONTRACT_CJK_FONT_BASE64),c=>c.charCodeAt(0));
  const bytes=new Uint8Array(await new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
  const font=await pdf.embedFont(bytes,{subset:false}),supported=new Set(font.getCharacterSet());
- const ink=rgb(.12,.2,.29),blue=rgb(.16,.36,.57),muted=rgb(.4,.45,.51),red=rgb(.7,.15,.12);
- const clean=(s:string)=>s.slice(0,600).replace(/[\x00-\x1f\x7f]/g,' ').trim();
- const wrap=(value:string,size:number,width=507)=>{
-  const text=clean(value);const unknown=[...text].filter(c=>!supported.has(c.codePointAt(0)!));
+ const ink=rgb(.12,.2,.29),blue=rgb(.16,.36,.57),muted=rgb(.4,.45,.51),red=rgb(.7,.15,.12),shade=rgb(.95,.97,.99),border=rgb(.8,.85,.9);
+ const clean=(s:string)=>s.replace(/\r\n?/g,'\n').replace(/\t/g,' ').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g,'').trim();
+ const wrap=(value:string,size:number,width=487)=>{
+  const text=clean(value),unknown=[...text].filter(c=>c!=='\n'&&!supported.has(c.codePointAt(0)!));
   if(unknown.length)throw new Error('PDF字体暂不支持字符：'+[...new Set(unknown)].slice(0,8).join(''));
-  const lines:string[]=[];let line='';for(const c of text){if(line&&font.widthOfTextAtSize(line+c,size)>width){lines.push(line);line=c;}else line+=c;}if(line)lines.push(line);return lines;
+  const lines:string[]=[];for(const paragraph of text.split('\n')){let line='';for(const c of paragraph){if(line&&font.widthOfTextAtSize(line+c,size)>width){lines.push(line);line=c;}else line+=c;}lines.push(line);}return lines;
  };
  let area=0,meters=0,pending=0;for(const {row} of entries){const m=drawingMeasure(row);if(m.area!==null)area+=m.area;else if(m.meters!==null)meters+=m.meters;else pending++;}
- const totals=`合计：${area.toFixed(2)} ㎡ + ${meters.toFixed(2)} 延米`+(pending?`；${pending} 项尺寸待补充`:'');
- const date=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  pdf.setTitle('柜体图纸尺寸核对单');pdf.setCreator('固美格图纸识别');
+ let page!:PDFPage,y=0,current=0;
+ const addPage=(continued=false)=>{
+  page=pdf.addPage([595.28,841.89]);
+  page.drawText('柜体图纸尺寸核对单',{x:44,y:796,size:20,font,color:blue});
+  page.drawText(`柜体 ${current+1} / ${entries.length}${continued?'（信息续页）':''}`,{x:44,y:772,size:10,font,color:muted});y=748;
+ };
+ const ensure=(height:number)=>{if(y-height<140)addPage(true);};
+ const info=(value:string,size=10,color=ink)=>{
+  for(const line of wrap(value,size)){const h=size*1.5+7;ensure(h);page.drawRectangle({x:44,y:y-h,width:507,height:h,color:shade,borderColor:border,borderWidth:.3});page.drawText(line,{x:54,y:y-size-3,size,font,color});y-=h;}
+ };
  for(let i=0;i<entries.length;i++){
-  const {row,image}=entries[i],page=pdf.addPage([595.28,841.89]);let y=796;
-  const text=(value:string,size=11,color=ink)=>{for(const line of wrap(value,size)){page.drawText(line,{x:44,y,size,font,color});y-=size*1.5;}};
-  text('柜体图纸尺寸核对单',21,blue);text(`第 ${i+1} / ${entries.length} 个柜体 · ${date}`,10,muted);y-=10;
-  text(`${i+1}. ${row.room||'房间待填写'} / ${row.name||'柜名待填写'}`,16);
-  text('来源：'+row.source.slice(0,240),9,muted);
-  const m=drawingMeasure(row),measure=m.area!==null?`${m.area.toFixed(2)} ㎡`:m.meters!==null?`${m.meters.toFixed(2)} 延米`:'待补充尺寸';
-  text(`当前核对尺寸（毫米）：宽 ${row.width||'待补充'}`+(row.height?` × 高 ${row.height}`:'；高度未填写'),12);
-  text('当前核对数量：'+measure,14,m.area===null&&m.meters===null?red:blue);
-  if(row.note)text('原图识别参考：'+row.note.slice(0,400),10,muted);
-  y-=12;const bottom=180,boxHeight=Math.max(120,y-bottom),boxWidth=507;
-  page.drawRectangle({x:44,y:bottom,width:boxWidth,height:boxHeight,color:rgb(1,1,1),borderColor:rgb(.78,.83,.88),borderWidth:.7});
+  current=i;const {row,image}=entries[i];addPage();
+  const height=360,bottom=y-height;
+  page.drawRectangle({x:44,y:bottom,width:507,height,color:rgb(1,1,1),borderColor:border,borderWidth:.7});
   if(image){
    let png:Uint8Array;try{png=await loadImage(image);}catch{throw new Error(`第${i+1}个柜体图形读取失败，请重新导入后导出`);}
-   const picture=await pdf.embedPng(png),scale=Math.min((boxWidth-20)/picture.width,(boxHeight-20)/picture.height);
-   page.drawImage(picture,{x:44+(boxWidth-picture.width*scale)/2,y:bottom+(boxHeight-picture.height*scale)/2,width:picture.width*scale,height:picture.height*scale});
-  }else page.drawText('此项暂无可用图形，请补充原图后核对',{x:100,y:bottom+boxHeight/2,size:12,font,color:red});
-  y=160;
-  text('图形保留原图标注；手动修改的名称、尺寸及数量以本页上方核对值为准。',9,muted);
-  if(row.previewWarning)text(row.previewWarning,8,muted);
-  y=Math.min(y-8,111);text(totals,12,blue);
-  text('客户核对：________________   日期：________________',10);
-  page.drawText(`尺寸单位：毫米（mm）    数量单位：㎡ / 延米        第 ${i+1} / ${entries.length} 页`,{x:44,y:35,size:9,font,color:muted});
+   const picture=await pdf.embedPng(png),scale=Math.min(487/picture.width,(height-20)/picture.height);
+   page.drawImage(picture,{x:44+(507-picture.width*scale)/2,y:bottom+(height-picture.height*scale)/2,width:picture.width*scale,height:picture.height*scale});
+  }else page.drawText('此项暂无可用图形，请补充原图后核对',{x:100,y:bottom+height/2,size:12,font,color:red});
+  y=bottom-10;
+  if(row.previewWarning)info(row.previewWarning,8,muted);
+  info('来源文件：'+row.source,9,muted);
+  info(`房间：${row.room||'待填写'}    柜名：${row.name||'待填写'}`,12,blue);
+  info(`宽：${row.width||'待补充'} mm    高：${row.height||'未标注'}${row.height?' mm':''}`,11);
+  info('计算公式（原图识别参考）：'+(row.note||'未提供'),10);
+  const m=drawingMeasure(row),unit=m.area!==null?'㎡':m.meters!==null?'延米':'待核对';
+  const measure=m.area!==null?m.area.toFixed(2):m.meters!==null?m.meters.toFixed(2):'待补充尺寸';
+  info(`当前数量：${measure}${unit==='待核对'?'':` ${unit}`}    单价：${row.price.trim()||'未填写'}${row.price.trim()?` 元/${unit}`:''}`,12,m.area===null&&m.meters===null?red:blue);
+  info('识别方式：'+(/\.(dxf|dwg)(?:[（(]|$)/i.test(row.source)?'CAD解析':'截图识别'),9,muted);
+  if(row.config?.trim())info('配置说明：'+row.config,10);
+  info('图形及公式保留原图标注；手动修改以本图下方的当前尺寸、名称和数量为准。',8,muted);
  }
+ // The overall square meters and linear meters appear only after all cabinet details.
+ page.drawLine({start:{x:44,y:122},end:{x:551,y:122},color:border,thickness:.8});
+ page.drawText(`全部 ${entries.length} 个柜体合计：${area.toFixed(2)} ㎡ + ${meters.toFixed(2)} 延米`,{x:44,y:99,size:14,font,color:blue});
+ if(pending)page.drawText(`其中 ${pending} 项尺寸待补充，未计入数量合计`,{x:44,y:78,size:10,font,color:red});
+ pdf.getPages().forEach((p,i)=>p.drawText(`尺寸单位：毫米（mm）    数量单位：㎡ / 延米        第 ${i+1} / ${pdf.getPageCount()} 页`,{x:44,y:24,size:9,font,color:muted}));
  return pdf.save();
 }
 

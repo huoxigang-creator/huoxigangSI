@@ -14,9 +14,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-24 V-1-6-96';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-24 V-1-6-97';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-6-97',date:'2026-10-24',items:['图纸核对PDF改为每幅图形下方完整显示来源、房间、柜名、宽高、公式、数量、单价、识别方式及配置说明；长内容自动续页。','总平方数和总延米只在全部柜体内容之后的最后一页底部汇总，不再每页重复合计。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-96',date:'2026-10-24',items:['服务器安装LibreDWG转换工具，DWG可直接上传转换成DXF后识别柜体与尺寸，不消耗AI额度。','修正DWG转换命令参数，增加单任务资源限制、转换结果大小检查及转换失败提示。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-95',date:'2026-10-24',items:['“上传图纸AI智能识别报价”按钮直接打开智能识别弹窗，不再先打开文件选择框；支持进入后截图自动接收及Ctrl+V粘贴。','手动选择图片入口保留在弹窗内，空列表显示“选择图片上传”，已有图片时显示“继续上传图纸”。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-94',date:'2026-10-24',items:['智能识别弹窗支持Ctrl+V直接粘贴截图，追加到现有图片下面自动识别；识别过程中截图排队，不打断当前任务。','新增截图自动接收：允许剪贴板访问后，弹窗打开且返回当前窗口时接收新截图；关闭弹窗立即停止，忽略开启前的旧剪贴板图片，重复截图不重复上传。','本次升级已上传阿里云服务器并同步GitHub。']},
