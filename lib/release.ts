@@ -1,11 +1,23 @@
+// ==========================================
+// 【部署注意事项】每次更新前必读！！！
+// ==========================================
+// 1. 固美格站：/opt/gugemei，端口3700，systemd: gugemei
+// 2. 锦木站：/opt/gugemei/cust-friend，端口3710，systemd: gugemei-cust-friend
+// 3. 部署锦木站后，必须跑 jinmu-brand.sh 把公司名从"固美格"改成"锦木"
+//    （否则锦木站会显示成固美格的公司名）
+// 4. 锦木站替换路径是整个 dist/ 目录下的所有 js 文件（client + server 都要替换）
+// 5. 每次发布必须升版本号 + CHANGELOG 顶部加条目（含"本次升级已上传阿里云服务器并同步GitHub"）
+// ==========================================
+
 // 功能或界面更新发布时递增版本；业务数据的录入和修改不改变软件版本。
 // 仅修正版本号常量本身等元改动不递增；递增次数 = 功能/界面发布次数。
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-23 V-1-6-87';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-24 V-1-6-88';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-6-88',date:'2026-10-24',items:['新增上传CAD文件直接识别报价：不用再截图，直接上传DXF或DWG文件，自动读取每个大框内的尺寸标注相加（如1044+2682+1054），文字"房间/柜名"自动拆分，一个CAD里多个柜体独立计算，不消耗AI额度。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-87',date:'2026-10-23',items:['锦木站公司名自动替换：部署后自动把固美格改成锦木，不用手动改了。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-86',date:'2026-10-23',items:['配置说明弹窗优化：顶部加搜索框快速找配置，右边每行前面加×可删除，不用再进文本框编辑。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-6-85',date:'2026-10-23',items:['修复房间表头全选框点了不起作用的问题，现在点一下就能全选/全不选。','本次升级已上传阿里云服务器并同步GitHub。']},
