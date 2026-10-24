@@ -14,9 +14,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-25 V-1-7-22';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-25 V-1-7-23';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-7-23',date:'2026-10-25',items:['修复智能识别建档的字段解析：兼容千问视觉大模型返回的中文键名（客户订单名称/客户姓名/电话/地址等），确保识别结果正常填入核对清单。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-22',date:'2026-10-25',items:['图片识别建档升级：默认用千问视觉大模型「智能识别」（看图理解语义，直接输出订单名称、姓名、电话、地址，识别更准），识别不准可切换「备用OCR」重新识别。','语音识别建档升级：优先用阿里云百炼语音大模型（Qwen3-ASR-Flash）识别，口语数字如「一三八一二三四五六七八」自动规整为「13812345678」，识别更准；未配置时自动回退原语音识别。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-21',date:'2026-10-25',items:['修复图片识别建档与客户扫码建档的OCR识别：识别参数改为正确格式（Type走地址参数、图片二进制直接上传），识别更稳更快；服务器已配置阿里云文字识别OCR凭证（复用短信AccessKey，控制台已开通全文识别高精版，每月200次免费额度）。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-20',date:'2026-10-25',items:['我的客户页「图片识别建档」「语音识别建档」按钮样式与「扫码建档」统一为同色主按钮；页面右上角不再单独显示「新建客户」入口（建档统一走扫码/图片/语音三种方式）。','本次升级已上传阿里云服务器并同步GitHub。']},

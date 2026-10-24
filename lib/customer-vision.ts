@@ -60,7 +60,7 @@ export function parseCustomerVisionFields(raw: string): CustomerOcrFields {
   }
   const first = (...keys: string[]) => { for (const k of keys) { const v = (value as any)[k]; if (typeof v === 'string' && v.trim()) return v; } return ''; };
   const fields: CustomerOcrFields = {
-    orderName: textOf(first('orderName', 'order_name', '订单名称', 'orderName2'), 60),
+    orderName: textOf(first('orderName', 'order_name', '客户订单名称', '订单名称'), 60),
     name: textOf(first('name', 'customer', '客户姓名', '姓名'), 20),
     phone: pickPhone(first('phone', 'mobile', '联系电话', '手机号', '电话')),
     address: textOf(first('address', 'addr', '客户地址', '地址'), 180),
