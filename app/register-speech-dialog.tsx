@@ -56,6 +56,7 @@ export default function RegisterSpeechDialog({ onClose, onCreated }: { onClose: 
       const recorder = new MediaRecorder(stream);
       chunksRef.current = [];
       recorder.ondataavailable = event => { if (event.data.size) chunksRef.current.push(event.data); };
+      recorder.onerror = () => { setRecording(false); setError('录音出错，请重试'); };
       recorder.onstop = () => {
         stream.getTracks().forEach(track => track.stop());
         if (timerRef.current) window.clearInterval(timerRef.current);
@@ -73,8 +74,10 @@ export default function RegisterSpeechDialog({ onClose, onCreated }: { onClose: 
   }
 
   function stopRecording() {
-    recorderRef.current?.stop();
+    const recorder = recorderRef.current;
+    if (!recorder) return;
     setRecording(false);
+    try { recorder.stop(); } catch { setRecording(false); setError('停止录音失败，请重试'); }
   }
 
   async function submitAudio(blob: Blob) {

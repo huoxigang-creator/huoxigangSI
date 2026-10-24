@@ -50,6 +50,7 @@ export default function RegisterClient({ token }: { token: string }) {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const mimeRef = useRef('');
 
   useEffect(() => {
     let cancelled = false;
@@ -95,6 +96,11 @@ export default function RegisterClient({ token }: { token: string }) {
     } finally { setRecognizing('idle'); }
   }
 
+  function stopTracks() {
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+  }
+
   async function startRecord() {
     if (recognizing !== 'idle') return;
     setError('');
@@ -102,33 +108,50 @@ export default function RegisterClient({ token }: { token: string }) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       chunksRef.current = [];
-      const recorder = new MediaRecorder(stream);
+      // 移动浏览器录音格式不一致（iPhone/微信 是 mp4，安卓/电脑 是 webm）：按支持情况自动选择
+      const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', ''];
+      const mimeType = candidates.find(mt => !mt || (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(mt))) || '';
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       recorderRef.current = recorder;
+      mimeRef.current = recorder.mimeType || mimeType || '';
       recorder.ondataavailable = event => { if (event.data && event.data.size) chunksRef.current.push(event.data); };
-      recorder.onstop = () => { stream.getTracks().forEach(track => track.stop()); };
+      recorder.onstop = () => { stopTracks(); void finishRecord(); };
+      recorder.onerror = () => { stopTracks(); recorderRef.current = null; setRecognizing('idle'); setRecognizeHint(''); setError('录音出错，请重试'); };
       recorder.start();
       setRecognizing('recording');
       setRecognizeHint('正在录音，请说出：姓名、电话、地址。说完点击「停止并识别」。');
-      setTimeout(() => { if (recorderRef.current?.state === 'recording') recorderRef.current.stop(); }, 58000);
+      // 兜底防卡死：55 秒自动停止；65 秒强制恢复界面（即使手机端停止异常也不会一直卡在录音中）
+      setTimeout(() => { try { if (recorderRef.current?.state === 'recording') recorderRef.current.stop(); } catch { /* 忽略 */ } }, 55000);
+      setTimeout(() => { setRecognizing(current => current === 'recording' ? 'idle' : current); }, 65000);
     } catch {
       setError('无法使用麦克风，请允许录音权限，或改用截图识别/手动填写。');
     }
   }
 
-  async function stopRecord() {
+  function stopRecord() {
     const recorder = recorderRef.current;
-    if (!recorder || recorder.state === 'inactive') return;
+    if (!recorder) { setRecognizing('idle'); return; }
+    if (recorder.state === 'inactive') { stopTracks(); recorderRef.current = null; setRecognizing('idle'); return; }
+    try { recorder.stop(); } catch { stopTracks(); recorderRef.current = null; setRecognizing('idle'); setRecognizeHint(''); setError('停止录音失败，请重试'); }
+  }
+
+  // 录音停止后统一入口：无论用户点击停止、自动超时还是浏览器触发的 stop，都走这里，不会卡死
+  async function finishRecord() {
+    recorderRef.current = null;
+    if (!chunksRef.current.length) {
+      setRecognizing('idle'); setRecognizeHint('');
+      setError('没有录到声音：请检查手机麦克风权限，靠近说话后再试一次');
+      return;
+    }
     setRecognizing('asr');
     setRecognizeHint('正在识别语音…');
-    const stopped = new Promise<void>(resolve => { recorder.onstop = () => resolve(); });
-    recorder.stop();
-    await stopped;
     await recognizeAudio();
   }
 
   async function recognizeAudio() {
     try {
-      const blob = new Blob(chunksRef.current, { type: recorderRef.current?.mimeType || 'audio/webm' });
+      const mime = mimeRef.current || chunksRef.current[0]?.type || 'audio/webm';
+      const blob = new Blob(chunksRef.current, { type: mime });
       if (!blob.size) throw new Error('没有录到声音，请重试');
       const arrayBuffer = await blob.arrayBuffer();
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;

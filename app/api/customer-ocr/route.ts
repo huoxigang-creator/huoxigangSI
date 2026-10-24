@@ -31,8 +31,8 @@ export async function POST(request: Request) {
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (engine === 'qwen') {
       const dataUrl = 'data:' + file.type + ';base64,' + Buffer.from(bytes).toString('base64');
-      const fields = await recognizeCustomerFieldsQwen(dataUrl);
-      return Response.json({ ok: true, engine: 'qwen', result: { fields, lines: [] } }, { headers });
+      const candidates = await recognizeCustomerFieldsQwen(dataUrl);
+      return Response.json({ ok: true, engine: 'qwen', result: { fields: candidates[0], candidates, lines: [] } }, { headers });
     }
     const lines = await recognizeTextLines(bytes);
     return Response.json({ ok: true, engine: 'ocr', result: { fields: parseCustomerOcrFields(lines), lines: lines.slice(0, 60) } }, { headers });

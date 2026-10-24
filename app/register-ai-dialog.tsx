@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { Images, Mic, Square, X, Upload, Trash2, UserPlus, AudioLines, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Images, Mic, Square, X, Upload, Trash2, UserPlus, AudioLines, Sparkles, MonitorUp, CheckCircle2 } from 'lucide-react';
+import { createScreenshotWatcher, pastedScreenshotFiles } from '../lib/drawing-clipboard';
 
 const EMPTY_IMAGE_FIELDS = { orderName: '', name: '', phone: '', address: '', orderDate: '', budget: '' };
 const EMPTY_SPEECH_FIELDS = { name: '', phone: '', address: '', note: '' };
@@ -49,6 +50,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
   const [engine, setEngine] = useState<Engine>('qwen');
   const [preview, setPreview] = useState('');
   const [imageFields, setImageFields] = useState<typeof EMPTY_IMAGE_FIELDS | null>(null);
+  const [candidates, setCandidates] = useState<typeof EMPTY_IMAGE_FIELDS[] | null>(null);
   const [imageLines, setImageLines] = useState<string[]>([]);
   // 语音识别状态
   const [recording, setRecording] = useState(false);
@@ -61,6 +63,85 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // 截图自动接收（与报价页同款）：开启后截图回到本窗口或按 Ctrl+V，图片自动上传识别
+  const [autoScreenshot, setAutoScreenshot] = useState(false);
+  const [clipboardStatus, setClipboardStatus] = useState('截图后可按 Ctrl+V，直接粘贴识别。');
+  const clipboardWatcher = useRef<ReturnType<typeof createScreenshotWatcher> | null>(null);
+  const liveOpen = useRef(true);
+  const handleRef = useRef(handleImageFile);
+  handleRef.current = handleImageFile;
+
+  async function enableScreenshotAuto() {
+    if (!navigator.clipboard?.read || !window.isSecureContext) { setClipboardStatus('此浏览器不能自动读取截图，请截图后回到本页按 Ctrl+V。'); return; }
+    clipboardWatcher.current?.stop();
+    const watcher = createScreenshotWatcher({
+      read: () => navigator.clipboard.read(),
+      isFocused: () => liveOpen.current && document.visibilityState === 'visible' && document.hasFocus(),
+      onFiles: files => { for (const file of files) handleRef.current(file); },
+      onError: () => {
+        if (clipboardWatcher.current !== watcher) return;
+        watcher.stop(); setAutoScreenshot(false); setClipboardStatus('自动读取被浏览器限制，请点开启重试，或按 Ctrl+V 粘贴截图。');
+      },
+    });
+    clipboardWatcher.current = watcher;
+    try {
+      await watcher.prime();
+      if (clipboardWatcher.current !== watcher) { watcher.stop(); return; }
+      setAutoScreenshot(true);
+      setClipboardStatus('自动接收已开启：截图后回到本窗口，会自动识别建档。');
+    } catch {
+      watcher.stop();
+      if (clipboardWatcher.current === watcher) { setAutoScreenshot(false); setClipboardStatus('未获剪贴板读取权限，请允许后重试；也可以按 Ctrl+V 粘贴截图。'); }
+    }
+  }
+
+  function toggleScreenshotAuto() {
+    if (autoScreenshot) {
+      clipboardWatcher.current?.stop(); clipboardWatcher.current = null;
+      setAutoScreenshot(false); setClipboardStatus('截图后可按 Ctrl+V，直接粘贴识别。');
+      return;
+    }
+    void enableScreenshotAuto();
+  }
+
+  useEffect(() => {
+    liveOpen.current = true;
+    const paste = (event: ClipboardEvent) => {
+      const files = pastedScreenshotFiles(event.clipboardData);
+      if (!files.length) return;
+      event.preventDefault();
+      for (const file of files) handleRef.current(file);
+    };
+    document.addEventListener('paste', paste);
+    // 之前已授权剪贴板读取时自动开启（不主动弹权限框）
+    void navigator.permissions?.query({ name: 'clipboard-read' as PermissionName }).then(permission => {
+      if (permission.state === 'granted' && liveOpen.current) void enableScreenshotAuto();
+    }).catch(() => {});
+    return () => {
+      liveOpen.current = false;
+      document.removeEventListener('paste', paste);
+      clipboardWatcher.current?.stop();
+      clipboardWatcher.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!autoScreenshot) return;
+    const watcher = clipboardWatcher.current;
+    if (!watcher) return;
+    const poll = async () => { try { await watcher.poll(); } catch { /* 忽略 */ } };
+    const timer = window.setInterval(() => void poll(), 1200);
+    window.addEventListener('focus', poll);
+    document.addEventListener('visibilitychange', poll);
+    navigator.clipboard?.addEventListener('clipboardchange', poll);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', poll);
+      document.removeEventListener('visibilitychange', poll);
+      navigator.clipboard?.removeEventListener('clipboardchange', poll);
+      watcher.stop();
+    };
+  }, [autoScreenshot]);
 
   function handleImageFile(file: File) {
     const maxBytes = engine === 'qwen' ? 2 * 1024 * 1024 : 10 * 1024 * 1024;
@@ -79,12 +160,17 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
       const json: any = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || '识别失败，请重试');
       const result = json.result || {};
-      setImageFields({ ...EMPTY_IMAGE_FIELDS, ...(result.fields || {}) });
+      const list: typeof EMPTY_IMAGE_FIELDS[] = Array.isArray(result.candidates) && result.candidates.length
+        ? result.candidates.map((item: any) => ({ ...EMPTY_IMAGE_FIELDS, ...(item || {}) }))
+        : [{ ...EMPTY_IMAGE_FIELDS, ...(result.fields || {}) }];
+      setCandidates(list);
+      setImageFields(list[0] || null);
       setImageLines(result.lines || []);
       setPreview(URL.createObjectURL(file));
     } catch (reason: any) {
       setError(reason instanceof Error ? reason.message : '识别失败，请重试');
       setImageFields(null);
+      setCandidates(null);
       setPreview('');
     } finally {
       setImgBusy(false);
@@ -278,10 +364,54 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
                   <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>支持 PNG、JPEG、WebP{engine === 'qwen' ? '，最大 2MB' : '，最大 10MB'}</div>
                   <button type="button" disabled={imgBusy} onClick={e => { e.stopPropagation(); fileRef.current?.click(); }} style={{ marginTop: 8 }}><Upload size={13} /> 选择图片</button>
                 </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 10 }}>
+                  <button
+                    type="button"
+                    disabled={imgBusy}
+                    onClick={e => { e.stopPropagation(); toggleScreenshotAuto(); }}
+                    title="打开后：截图后回到本窗口自动识别，或直接按 Ctrl+V 粘贴识别"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
+                      border: autoScreenshot ? '1.5px solid #16a34a' : '1px solid #2563eb',
+                      background: autoScreenshot ? '#f0fdf4' : '#eff6ff',
+                      color: autoScreenshot ? '#15803d' : '#1d4ed8', fontWeight: 600,
+                    }}
+                  >
+                    {autoScreenshot ? <CheckCircle2 size={13} /> : <MonitorUp size={13} />}
+                    {autoScreenshot ? '截图自动接收已开启' : '开启截图自动接收'}
+                  </button>
+                  <span style={{ fontSize: 12, color: '#64748b', flex: 1, minWidth: 180 }}>{clipboardStatus}</span>
+                </div>
               </div>
             )}
             {imageFields && preview && (
               <div>
+                {candidates && candidates.length > 1 && (
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', marginBottom: 6 }}>识别到 {candidates.length} 条客户信息，选择录用哪一条：</div>
+                    <div style={{ display: 'grid', gap: 6 }}>
+                      {candidates.map((candidate, index) => {
+                        const selected = imageFields === candidate;
+                        return (
+                          <button
+                            key={index}
+                            type="button"
+                            disabled={imgBusy}
+                            onClick={() => setImageFields(candidate)}
+                            style={{
+                              display: 'block', textAlign: 'left', width: '100%', padding: '7px 10px', borderRadius: 8, cursor: 'pointer',
+                              border: selected ? '1.5px solid #7c3aed' : '1px solid #e2e8f0',
+                              background: selected ? '#f5f3ff' : '#fff', color: '#1f2937', fontSize: 13, lineHeight: 1.5,
+                            }}
+                          >
+                            <b style={{ color: selected ? '#6d28d9' : '#334155' }}>第 {index + 1} 条</b>
+                            <span style={{ marginLeft: 8 }}>{candidate.name || '未识别姓名'}{candidate.phone ? ' · ' + candidate.phone : ''}{candidate.address ? ' · ' + candidate.address : ''}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <img src={preview} alt="识别原图" style={{ width: 104, height: 104, objectFit: 'contain', borderRadius: 8, border: '1px solid #e2e8f0', background: '#f8fafc' }} />
                   <div style={{ flex: 1 }}>
@@ -303,7 +433,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
-                  <button type="button" disabled={imgBusy} onClick={() => { setImageFields(null); setPreview(''); setEngine(engine === 'qwen' ? 'ocr' : 'qwen'); }}><Trash2 size={13} /> 重新选图</button>
+                  <button type="button" disabled={imgBusy} onClick={() => { setImageFields(null); setCandidates(null); setPreview(''); setEngine(engine === 'qwen' ? 'ocr' : 'qwen'); }}><Trash2 size={13} /> 重新选图</button>
                   <button type="button" className="primary" disabled={imgBusy} onClick={() => void createFromImage()}><UserPlus size={14} /> 确认建档</button>
                 </div>
               </div>
@@ -354,7 +484,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
 
           {error && <p role="alert" className="sectionNote" style={{ color: '#dc2626', margin: '10px 0 0' }}>{error}</p>}
           <div style={{ marginTop: 12, fontSize: 12, color: '#6b7280', lineHeight: 1.7, background: '#f8fafc', borderRadius: 10, padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Sparkles size={13} color="#7c3aed" />图片识别默认用千问视觉大模型，语音识别默认用阿里云百炼语音大模型；识别不准可切换「备用OCR」/重新录音。结果需人工核对，确认建档后可在「我的客户」查看新档案。
+            <Sparkles size={13} color="#7c3aed" />图片识别默认用千问视觉大模型：一张图里有多个人名/电话/地址时会识别成多条，选中「第几条」即可录用；识别不准可切换「备用OCR」/重新录音。结果需人工核对，确认建档后可在「我的客户」查看新档案。
           </div>
         </div>
       </section>
