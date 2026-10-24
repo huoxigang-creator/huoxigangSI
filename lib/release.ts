@@ -14,9 +14,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-25 V-1-7-20';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-25 V-1-7-21';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-7-21',date:'2026-10-25',items:['修复图片识别建档与客户扫码建档的OCR识别：识别参数改为正确格式（Type走地址参数、图片二进制直接上传），识别更稳更快；服务器已配置阿里云文字识别OCR凭证（复用短信AccessKey，控制台已开通全文识别高精版，每月200次免费额度）。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-20',date:'2026-10-25',items:['我的客户页「图片识别建档」「语音识别建档」按钮样式与「扫码建档」统一为同色主按钮；页面右上角不再单独显示「新建客户」入口（建档统一走扫码/图片/语音三种方式）。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-19',date:'2026-10-25',items:['我的客户页新增「图片识别建档」与「语音识别建档」：可直接上传客户资料截图识别出订单名称、姓名、电话、地址等字段，或对着麦克风说出客户信息自动转成文字并提取字段，核对修改后一键建立客户档案（无需客户扫码）。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-18',date:'2026-10-24',items:['客户扫码建档页新增两种自动填写：拍照/选图识别（OCR自动识别姓名、电话、地址填入）与语音识别（录音后自动转文字并提取姓名、电话、地址填入），识别结果可核对修改后再提交；语音识别需在服务器 /etc/gugemei/asr.env 配置阿里云智能语音交互凭证后可用。','本次升级已上传阿里云服务器并同步GitHub。']},

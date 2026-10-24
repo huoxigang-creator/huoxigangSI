@@ -35,10 +35,12 @@ const sha256Hex = (data: string) => createHash('sha256').update(data).digest('he
 
 // 阿里云 OpenAPI V3 签名（ACS3-HMAC-SHA256，ROA 风格）：
 // canonicalRequest = method\nuri\nquery\ncanonicalHeaders\nsignedHeaders\nhashedPayload
-function signedRequest(config: OcrConfig, body: string): { headers: Record<string, string> } {
-  const payloadHash = sha256Hex(body);
+// 本接口参数约定（2021-07-07）：Type 为 query 参数，图片二进制直接放 HTTP body，
+// hashedPayload 为 body 二进制的 SHA256（而非 JSON 文本）。
+function signedRequest(config: OcrConfig, payload: Uint8Array, query: string): { headers: Record<string, string> } {
+  const payloadHash = sha256Hex(Buffer.from(payload));
   const headers: Record<string, string> = {
-    'content-type': 'application/json; charset=utf-8',
+    'content-type': 'application/octet-stream',
     'host': config.endpoint,
     'x-acs-action': 'RecognizeAllText',
     'x-acs-content-sha256': payloadHash,
@@ -48,7 +50,7 @@ function signedRequest(config: OcrConfig, body: string): { headers: Record<strin
   };
   const signedNames = Object.keys(headers).sort();
   const canonicalHeaders = signedNames.map(name => name + ':' + headers[name].trim() + '\n').join('');
-  const canonicalRequest = ['POST', '/', '', canonicalHeaders, signedNames.join(';'), payloadHash].join('\n');
+  const canonicalRequest = ['POST', '/', query, canonicalHeaders, signedNames.join(';'), payloadHash].join('\n');
   const stringToSign = 'ACS3-HMAC-SHA256\n' + sha256Hex(canonicalRequest);
   const signature = createHmac('sha256', config.accessKeySecret).update(stringToSign).digest('hex');
   headers['Authorization'] = 'ACS3-HMAC-SHA256 Credential=' + config.accessKeyId + ',SignedHeaders=' + signedNames.join(';') + ',Signature=' + signature;
@@ -77,9 +79,10 @@ function collectText(node: unknown, depth = 0): string[] {
 export async function recognizeTextLines(bytes: Uint8Array): Promise<string[]> {
   const config = ocrEnv();
   if (!config.accessKeyId || !config.accessKeySecret) throw new Error(ALIYUN_OCR_SETUP_HINT);
-  const body = JSON.stringify({ Type: 'Advanced', Body: Buffer.from(bytes).toString('base64') });
-  const { headers } = signedRequest(config, body);
-  const response = await fetch('https://' + config.endpoint + '/', { method: 'POST', headers, body, signal: AbortSignal.timeout(60000) });
+  // 参数约定：Type 走 query（必选，Advanced=通用高精版），图片二进制直接放 body。
+  const query = 'Type=Advanced';
+  const { headers } = signedRequest(config, bytes, query);
+  const response = await fetch('https://' + config.endpoint + '/?' + query, { method: 'POST', headers, body: bytes, signal: AbortSignal.timeout(60000) });
   const payload = await response.json().catch(() => null) as any;
   if (!response.ok || !payload || payload.Code) {
     throw new Error('阿里云OCR识别失败：' + (payload?.Message || payload?.Code || 'HTTP ' + response.status));
