@@ -10,6 +10,12 @@ function wrap(text:string,width:number,size:number){const result:string[]=[];for
 /** The same rows, merges, column sizing and row sizing used by the actual XLSX export. */
 export function confirmationLayout(sheet:QuoteExportSheet,signature?:string,signedAt?:string):ConfirmationLayout{
  const widths=autoColumnWidths(sheet,[6,14,18,5,7,8,10,10],[7,30,55,7,9,10,14,16]);
+ // Reserve space for formatted decimals, not the shorter raw numeric value.
+ for(const column of [sheet.priceColumn,sheet.amountColumn]){
+  const longest=Math.max(0,...sheet.rows.map(row=>typeof row[column]==='number'?row[column].toFixed(2).length:0));
+  const pixels=longest*(44/3)*.55+16;
+  widths[column]=Math.max(widths[column],(pixels-5)/7);
+ }
  const columns=widths.map(value=>value*7+5),merged=rowMergeWidthMap({...sheet,widths});
  const lastMoney=Math.max(...sheet.subtotalRows),rows:ConfirmationLayout['rows']=[];let y=0;
  for(let r=0;r<sheet.rows.length;r++){
@@ -17,7 +23,7 @@ export function confirmationLayout(sheet:QuoteExportSheet,signature?:string,sign
   const signRow=String(row[0]||'').startsWith('乙方：'),dateRow=row[0]==='时间：';
   const height=Math.max((r===0?38.4:rowHeightPt(row,widths,merged.get('r'+r)))*4/3,signRow&&signature?96:0);
   const cells:ConfirmationCell[]=[];let x=0;
-  for(let c=0;c<8;c++){
+  for(let c=0;c<columns.length;c++){
    const merge=sheet.merges.find(m=>m.s.r===r&&m.s.c===c),covered=sheet.merges.some(m=>m.s.r===r&&m.s.c<c&&m.e.c>=c);
    if(covered){x+=columns[c];continue;}
    const span=merge?merge.e.c-c+1:1,width=columns.slice(c,c+span).reduce((a,b)=>a+b,0),value=row[c];
@@ -25,7 +31,7 @@ export function confirmationLayout(sheet:QuoteExportSheet,signature?:string,sign
    if(dateRow&&signedAt&&c===3)text='时间：'+confirmationDate(signedAt);
    const numeric=typeof value==='number'&&(c===sheet.priceColumn||c===sheet.amountColumn);
    const fontSize=r===0?24:44/3,align=numeric?'right':r===1||section||c===1||c===2||(signRow&&!!signature)?'left':'center';
-   cells.push({x,y,width,height,text,lines:wrap(text,width-12,fontSize),fontSize,bold:r===0||numeric,fill:r===0?'#99ccff':yellow?'#ffff00':section?'#c0c0c0':'#ffffff',color:numeric?'#ff5722':'#000000',border:tail?'#d9d9d9':'#000000',align,...(signRow&&c===3&&signature?{image:signature}:{})});
+   cells.push({x,y,width,height,text,lines:numeric?[text]:wrap(text,width-12,fontSize),fontSize,bold:r===0||numeric,fill:r===0?'#99ccff':yellow?'#ffff00':section?'#c0c0c0':'#ffffff',color:numeric?'#ff5722':'#000000',border:tail?'#d9d9d9':'#000000',align,...(signRow&&c===3&&signature?{image:signature}:{})});
    x+=columns[c];
   }
   rows.push({y,height,cells});y+=height;
