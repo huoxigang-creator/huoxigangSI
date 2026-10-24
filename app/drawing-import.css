@@ -5,3 +5,9 @@
 .diOverlay>.diRecognitionStatus{position:fixed;top:18px;left:50%;transform:translateX(-50%);width:min(1120px,calc(100vw - 64px));box-sizing:border-box;z-index:10010;margin:0;background:#e4f2ff;border:2px solid #2f75b5;box-shadow:0 4px 18px #10294040;font-size:15px;min-height:64px;pointer-events:none}
 .diRecognitionStatus strong{display:block;font-size:16px}.diRecognitionStatus small{display:block;margin-top:5px;color:#365a7c}
 @media(max-width:600px){.diOverlay>.diRecognitionStatus{top:8px;width:calc(100vw - 24px);font-size:13px}.diRecognitionStatus strong{font-size:14px}}
+
+/* Compact processing hint; completion removes it entirely. */
+.diOverlay>.diRecognitionStatus{top:12px;width:max-content;max-width:calc(100vw - 32px);min-height:0;padding:8px 12px;gap:8px;border-width:1px;border-radius:6px;font-size:12px}
+.diOverlay>.diRecognitionStatus>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.diOverlay>.diRecognitionStatus strong{font-size:12px;font-weight:500}.diOverlay>.diRecognitionStatus small{display:inline;margin:0;font-size:11px}
+.diOverlay>.diRecognitionStatus .diProgressSpinner{width:13px;height:13px;flex-basis:13px}

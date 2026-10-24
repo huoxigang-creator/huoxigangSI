@@ -72,7 +72,7 @@ test('screenshot status is immediate before upload and OCR is absent; editing re
  const app=harness();let tree=app.render();button(tree,'AI智能识别报价').props.onClick();tree=await app.flush();assert.ok(!text(tree).includes('本地OCR'));
  const file=image('status');app.events.get('paste')({clipboardData:{items:[{kind:'file',type:file.type,getAsFile:()=>file}],files:[file]},preventDefault(){}});
  tree=app.render();assert.match(text(tree),/已检测到截图，正在读取图片/);tree=await app.flush();assert.ok(nodes(tree).some(n=>n.props.role==='status'&&text(n).includes('正在上传并解析图片')));
- app.requests[0].resolve(result(file,2000));tree=await app.flush();assert.match(text(tree),/图片上传解析完成/);button(tree,'请核对').props.onClick();tree=await app.flush();assert.equal(button(tree,'一键导出图纸核对PDF').props.disabled,false);
+ app.requests[0].resolve(result(file,2000));tree=await app.flush();assert.equal(nodes(tree).some(n=>n.type?.name==='RecognitionStatus'),false);button(tree,'请核对').props.onClick();tree=await app.flush();assert.equal(button(tree,'一键导出图纸核对PDF').props.disabled,false);
  const width=nodes(tree).find(n=>n.type==='input'&&n.props.value==='2000');width.props.onChange({target:{value:'2200'}});tree=await app.flush();assert.equal(button(tree,'一键导出图纸核对PDF').props.disabled,true);assert.ok(button(tree,'请核对'));app.unmount();
 });
 
@@ -90,6 +90,6 @@ test('one picker accepts mixed files in order, appends existing rows and filters
 });
 test('mixed upload validates before requests, continues after a failed CAD and stops on close',async()=>{
  const app=harness();let tree=app.render();button(tree,'AI智能识别报价').props.onClick();tree=await app.flush();upload(tree,[image('valid'),new File(['bad'],'unsupported.pdf')]);tree=await app.flush();assert.equal(app.requests.length,0);assert.equal(cards(tree).length,0);assert.match(text(tree),/图片请选择/);
- const cad=new File(['synthetic'],'bad.dxf'),photo=image('after-failure');upload(tree,[cad,photo]);tree=await app.flush();app.requests[0].reject(Error('Synthetic CAD failure'));tree=await app.flush();assert.equal(app.requests.length,2);app.requests[1].resolve(result(photo,2000));tree=await app.flush();assert.equal(cards(tree).length,1);assert.match(text(tree),/部分文件识别失败/);
+ const cad=new File(['synthetic'],'bad.dxf'),photo=image('after-failure');upload(tree,[cad,photo]);tree=await app.flush();app.requests[0].reject(Error('Synthetic CAD failure'));tree=await app.flush();assert.equal(app.requests.length,2);app.requests[1].resolve(result(photo,2000));tree=await app.flush();assert.equal(cards(tree).length,1);assert.match(text(tree),/Synthetic CAD failure/);assert.equal(nodes(tree).some(n=>n.type?.name==='RecognitionStatus'),false);
  upload(tree,[new File(['x'],'cancel.dxf'),image('must-not-upload')]);tree=await app.flush();assert.equal(app.requests.length,3);button(tree,'取消').props.onClick();tree=await app.flush();assert.equal(app.requests.length,3);assert.equal(nodes(tree).some(n=>n.props.role==='dialog'),false);app.unmount();
 });
