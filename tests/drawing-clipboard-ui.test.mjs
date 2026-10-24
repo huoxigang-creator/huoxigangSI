@@ -31,7 +31,8 @@ const result=(file,width)=>({source:file.name,room:'客厅',name:'电视柜',wid
 
 test('paste appends images, queues behind recognition, ignores repeat clipboard bytes and stops on close',async()=>{
  const app=harness();let tree=app.render();assert.equal(app.events.has('paste'),false);
- button(tree,'截图快捷识别').props.onClick();tree=await app.flush();assert.equal(app.events.has('paste'),true);
+ const picker=nodes(tree).find(n=>n.type==='input'&&n.props['aria-label']==='上传柜体图纸');picker.props.ref.current={click(){assert.fail('入口不能打开文件选择框');},focus(){}};
+ button(tree,'上传图纸AI智能识别报价').props.onClick();tree=await app.flush();assert.equal(app.events.has('paste'),true);assert.ok(nodes(tree).some(n=>n.props.role==='dialog'));assert.ok(button(tree,'选择图片上传'));
  let prevented=false;app.events.get('paste')({clipboardData:{items:[{kind:'string',type:'text/plain'}],files:[]},preventDefault(){prevented=true;}});assert.equal(prevented,false);
  const paste=file=>app.events.get('paste')({clipboardData:{items:[{kind:'file',type:file.type,getAsFile:()=>file}],files:[file]},preventDefault(){prevented=true;}});
  paste(image('first'));tree=await app.flush();assert.equal(prevented,true);assert.equal(app.requests.length,1);assert.equal(cards(tree).length,1);
