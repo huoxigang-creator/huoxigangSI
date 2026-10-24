@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   // updated 变更使旧会话失效，重新签发会话保持登录
-  const refreshed = sessionAccount(request.cookies.get(SESSION_COOKIE)?.value);
+  const refreshed = rawDatabase.prepare('SELECT id,username,display_name,role,active,updated FROM accounts WHERE id=? AND active=1').get(account.id) as typeof account;
   if (!refreshed) return NextResponse.json({ error: '资料已更新，请重新登录' }, { status: 401 });
   const response = NextResponse.json({ ok: true, account: { id: refreshed.id, username: refreshed.username, display_name: refreshed.display_name, role: refreshed.role, phone } }, { headers: { 'Cache-Control': 'no-store' } });
   response.cookies.set(SESSION_COOKIE, issueSession(refreshed), {

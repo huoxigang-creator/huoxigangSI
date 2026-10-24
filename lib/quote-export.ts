@@ -1,4 +1,4 @@
-import {normalizeQuoteItem, QUOTE_CATEGORIES} from './quotes';
+import {normalizeQuoteItem, QUOTE_CATEGORIES,quotePriceCents,quoteLineAmountCents} from './quotes';
 import type {WorkBook} from 'xlsx';
 
 export type QuoteSettlementInput={adopted?:boolean;discount_amount?:number;rounding_amount?:number;receivable?:number};
@@ -19,7 +19,7 @@ export function buildQuoteExportSheets(input:QuoteExportInput,options?:{hideCabi
  const quote=input?.quote;
  if(!quote||!Array.isArray(quote.items))throw new Error('没有可下载的报价明细，请先保存报价。');
  if(!Number.isSafeInteger(quote.total)||quote.total<0)throw new Error('报价没有有效的已保存总额，请先保存报价。');
- const items=quote.items.map((raw:any,index:number)=>{const item=normalizeQuoteItem(raw),priceCents=Math.round(item.price*100),amountCents=Math.round(item.quantity*priceCents);if(!Number.isFinite(item.quantity)||item.quantity<=0||!Number.isSafeInteger(priceCents)||priceCents<0||!Number.isSafeInteger(amountCents)||amountCents<0)throw new Error(`第 ${index+1} 条明细数量或价格无效，请核对报价。`);return {...item,priceCents,amountCents};});
+ const items=quote.items.map((raw:any,index:number)=>{const item=normalizeQuoteItem(raw),priceCents=quotePriceCents(item.price),amountCents=quoteLineAmountCents(item.quantity,item.price);if(!Number.isFinite(item.quantity)||item.quantity<=0||!Number.isSafeInteger(priceCents)||priceCents<0||!Number.isSafeInteger(amountCents)||amountCents<0)throw new Error(`第 ${index+1} 条明细数量或价格无效，请核对报价。`);return {...item,priceCents,amountCents};});
  const total=items.reduce((sum:number,item:any)=>sum+item.amountCents,0);
  if(!Number.isSafeInteger(total)||total!==quote.total)throw new Error('报价明细合计与已保存总额不一致，请核对并保存后再下载。');
  const rooms=quote.rooms;
@@ -207,7 +207,7 @@ export type DraftQuoteExcelInput={title:string;companyName?:string;customer?:str
 /** 草稿导出：与正式「下载 Excel」同一套排版（蓝底标题/客户行、灰底分类段带小计、黄底费用项、报价合计、乙方甲方），保留销售单价与金额。 */
 export async function downloadDraftQuoteExcel(input:DraftQuoteExcelInput):Promise<void>{
   if(!input.items.length)throw new Error('当前草稿没有明细，无法导出 Excel。');
-  const cents=(item:DraftQuoteExcelInput['items'][number])=>Math.round(item.quantity*Math.round(item.price*100));
+  const cents=(item:DraftQuoteExcelInput['items'][number])=>quoteLineAmountCents(item.quantity,item.price);
   const rows:QuoteExportSheet['rows']=[[input.companyName||''],[input.title],['客户姓名：'+(input.customer||'')+'  客户地址：  客户电话：'],['编号','项目','单位','数量','单价','金额','上传附件']];
   const merges:QuoteExportSheet['merges']=[0,1,2].map(r=>({s:{r,c:0},e:{r,c:6}})),sectionRows:number[]=[],subtotalRows:number[]=[],yellowRows:number[]=[];
   const photos:{src:string;name:string;row:number}[]=[];

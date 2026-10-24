@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {DatabaseSync} from 'node:sqlite';import {mkdtempSync} from 'node:fs';import {tmpdir} from 'node:os';import {join,resolve} from 'node:path';import {spawnSync} from 'node:child_process';import {scryptSync} from 'node:crypto';
+test('server maintenance resets password offline and only clears answers with explicit flag',()=>{
+ const root=mkdtempSync(join(tmpdir(),'gmg-reset-test-')),path=join(root,'gugemei.sqlite'),db=new DatabaseSync(path);
+ db.exec('CREATE TABLE accounts(id TEXT PRIMARY KEY,username TEXT,password_hash TEXT,salt TEXT,updated TEXT);CREATE TABLE account_security(account_id TEXT PRIMARY KEY);CREATE TABLE account_recovery_challenges(account_id TEXT);');
+ db.prepare('INSERT INTO accounts VALUES(?,?,?,?,?)').run('test','test-user','old','old','old');db.prepare('INSERT INTO account_security VALUES(?)').run('test');db.prepare('INSERT INTO account_recovery_challenges VALUES(?)').run('test');db.close();
+ const run=flags=>spawnSync(process.execPath,[resolve('scripts/reset-account-password.mjs'),'test-user',...flags],{input:'New Synthetic Test Password',encoding:'utf8',env:{...process.env,GUGEMEI_DATA_DIR:root},windowsHide:true});
+ let r=run([]);assert.equal(r.status,0,r.stderr);let check=new DatabaseSync(path);assert.equal(check.prepare('SELECT COUNT(*) n FROM account_security').get().n,1);check.close();
+ r=run(['--clear-security-question']);assert.equal(r.status,0,r.stderr);check=new DatabaseSync(path);assert.equal(check.prepare('SELECT COUNT(*) n FROM account_security').get().n,0);assert.equal(check.prepare('SELECT COUNT(*) n FROM account_recovery_challenges').get().n,0);const a=check.prepare('SELECT * FROM accounts').get();assert.equal(a.password_hash,scryptSync('New Synthetic Test Password',Buffer.from(a.salt,'hex'),64).toString('hex'));check.close();
+});

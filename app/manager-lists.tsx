@@ -51,7 +51,7 @@ export function TaskList(props:SharedProps & {projects:RecordRow[]; mutate:(acti
   const {selection,disabled,message,remove}=useRecords(props), one=selection.selectedRows.length===1?selection.selectedRows[0]:null;
   const [sms,setSms]=useState<{id:string;status:'sending'|'ok'|'err';message?:string}>();
   async function sendTaskSms(task:any){
-    if(sms?.id===task.id&&sms.status==='sending')return;
+    if(sms?.id===task.id&&sms?.status==='sending')return;
     setSms({id:task.id,status:'sending'});
     try{
       const response=await fetch('/api/task-sms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({task_id:task.id})});

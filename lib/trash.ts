@@ -126,6 +126,7 @@ export function createTrashService(deps: Dependencies) {
     const restore = action === 'restore_record';
     if(!restore&&row.kind==='contract'&&(row.data.status!=='draft'&&!(row.data.status==='failed'&&!row.data.signature?.flow_id)))throw new TrashError('签署中或已签合同不能删除',409);
     if(!restore&&row.kind==='project'&&all.some(value=>value.kind==='contract'&&value.project===row.id&&!deleted(value)&&['preparing','signing','uncertain'].includes(value.data.status)))throw new TrashError('此项目还有正在签署或结果待核对的合同，请先核对签署状态',409);
+    if(!restore&&row.kind==='transaction'&&!row.data.void&&String(row.data.request_id||'').startsWith('customer-payment-'))throw new TrashError('请先在客户付款中撤销到账确认，再删除对应流水',409);
     if(!restore&&row.kind==='transaction'&&(row.data.payment_provider||row.data.wechat_transaction_id||row.data.payment_order_id))throw new TrashError('微信商户自动登记的收款对应真实到账，不能删除；如需退款请在微信商户平台办理',409);
     if (restore && (PROJECT_SCOPED.has(row.kind)&&!!row.project)) projectFor(all, row.project);
     if(restore&&row.kind==='project'&&row.data.parent_id)projectFor(all,row.data.parent_id);

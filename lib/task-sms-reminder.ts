@@ -17,7 +17,7 @@ async function checkOnce() {
     const phone = ownerPhone();
     if (!phone) return;
     const now = Date.now();
-    const rows = rawDatabase.prepare(`SELECT id, data FROM records WHERE kind='task'`).all() as TaskRow[];
+    const rows = rawDatabase.prepare(`SELECT id, data FROM records WHERE kind='task'`).all().flatMap(row=>typeof row.id==='string'&&typeof row.data==='string'?[{id:row.id,data:row.data}]:[]);
     for (const row of rows) {
       let task: any;
       try { task = JSON.parse(row.data); } catch { continue; }

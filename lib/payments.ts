@@ -22,3 +22,12 @@ export function paymentCategoryTotals(transactions: Transaction[], projectId: st
 export function receiptProfit(received: number, paid: number) {
   return received - paid;
 }
+
+/** Aggregate a root only at presentation boundaries; raw project totals stay separate. */
+export function projectFinancialSummary(project:any,projects:any[]){
+ if(!project||project.parent_id)return project;
+ const children=projects.filter(p=>!p.deleted&&p.parent_id===project.id);
+ if(!children.length)return project;
+ const fields=['contract','discount','rounding','receivable','received','paid','remaining','cash','estimatedProfit','actualGrossProfit','budget'];
+ return {...project,...Object.fromEntries(fields.map(key=>[key,[project,...children].reduce((sum,p)=>sum+(p[key]||0),0)]))};
+}

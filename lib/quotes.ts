@@ -110,3 +110,19 @@ export function groupQuotes<T extends QuoteRecord>(quotes: T[]): QuoteGroup<T>[]
     };
   });
 }
+
+/** Decimal half-up unit prices; quote quantities are normalized to two decimals. */
+export function quotePriceCents(value:number){
+ if(!Number.isFinite(value)||value<0||value>100000000)throw Error('单价金额无效');
+ if(value<0.005)return 0;
+ const [whole,fraction='']=String(value).split('.');
+ const digits=fraction.padEnd(3,'0');
+ return Number(BigInt(whole)*BigInt(100)+BigInt(digits.slice(0,2))+(digits[2]>='5'?BigInt(1):BigInt(0)));
+}
+export function quoteLineAmountCents(quantity:number,price:number){
+ if(!Number.isFinite(quantity)||quantity<0||quantity>100000)throw Error('数量无效');
+ const scaled=BigInt(Math.round(Number(quantity.toFixed(2))*100));
+ const result=(scaled*BigInt(quotePriceCents(price))+BigInt(50))/BigInt(100);
+ if(result>BigInt(Number.MAX_SAFE_INTEGER))throw Error('金额超出计算范围');
+ return Number(result);
+}

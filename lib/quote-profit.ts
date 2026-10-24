@@ -1,7 +1,8 @@
-import {normalizeQuoteItem,QUOTE_CATEGORIES,type QuoteCategory,type QuoteItem} from './quotes';
+import {normalizeQuoteItem,QUOTE_CATEGORIES,quotePriceCents,quoteLineAmountCents,type QuoteCategory,type QuoteItem} from './quotes';
 import {materialExpenseCategory,type MaterialRecord} from './catalog-types';
 import {hardwareCatalogRow,type QuoteImportRow} from './quote-import';
 
+const safeAmount=(quantity:number,price:number)=>{try{return quoteLineAmountCents(quantity,price);}catch{return null;}};
 const norm=(v:string)=>v.normalize('NFKC').replace(/\s+/g,'').toLowerCase();
 type RawItems=ReadonlyArray<Partial<QuoteItem>|null|undefined>;
 export type QuoteProfitRawItem=Omit<Partial<QuoteItem>,'quantity'|'price'> & {quantity?:number|'';price?:number|''};
@@ -35,8 +36,8 @@ function lineCost(item:QuoteItem,index:number,catalog:ReadonlyArray<MaterialReco
   if(matches.length===1&&norm(matches[0].unit)===norm(item.unit))cents=matches[0].purchase_price;
  }
  if(cents===null||!Number.isSafeInteger(cents)||cents<0)return {price:null,amount:null,issue:`第${index+1}行 ${item.name} ${item.model}：未匹配到唯一且单位一致的${item.category}成本价`};
- const amount=Math.round(item.quantity*cents);
- if(!Number.isSafeInteger(amount))return {price:cents,amount:null,issue:`第${index+1}行成本超出计算范围`};
+ const amount=safeAmount(item.quantity,cents/100);
+ if(amount===null||!Number.isSafeInteger(amount))return {price:cents,amount:null,issue:`第${index+1}行成本超出计算范围`};
  return {price:cents,amount};
 }
 
@@ -74,10 +75,10 @@ export function quoteCostDetails(rawItems:ReadonlyArray<QuoteProfitRawItem|null|
   if(raw?.quantity==='')item.quantity=Number.NaN;
   if(raw?.price==='')item.price=Number.NaN;
   const cost=lineCost(item,index,catalog);
-  const cents=Math.round(item.price*100);
+  const cents=Number.isFinite(item.price)&&item.price>=0&&item.price<=100000000?quotePriceCents(item.price):NaN;
   const validPrice=Number.isFinite(item.price)&&item.price>=0&&Number.isSafeInteger(cents)&&cents>=0;
   const salePrice=validPrice?cents:null;
-  const amount=validPrice&&Number.isFinite(item.quantity)&&item.quantity>0?Math.round(item.quantity*cents):null;
+  const amount=validPrice&&Number.isFinite(item.quantity)&&item.quantity>0?safeAmount(item.quantity,item.price):null;
   const saleAmount=amount!==null&&Number.isSafeInteger(amount)?amount:null;
   const difference=saleAmount!==null&&cost.amount!==null?saleAmount-cost.amount:null;
   const margin=difference!==null&&Number.isSafeInteger(difference)?difference:null;

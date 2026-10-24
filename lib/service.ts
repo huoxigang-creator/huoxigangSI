@@ -176,7 +176,7 @@ export async function execute(owner:string,action:string,args:any,employee=false
   }
   detail=data.type==='收款'?'登记收款':'登记付款';
  }
- else if(action==='void_transaction'){const old=get(id,'transaction');if(old.void)return old;if(merchantReceipt(old))throw new BusinessError('微信商户自动登记的收款对应真实到账，不能作废；如需退款请在微信商户平台办理',409);kind='transaction';project=old.project;data={...old,void:true,void_reason:zString(args.reason)};detail='作废流水：'+data.void_reason;}
+ else if(action==='void_transaction'){const old=get(id,'transaction');if(old.void)return old;if(String(old.request_id||'').startsWith('customer-payment-'))throw new BusinessError('此收款由客户付款单确认，请在客户付款中撤销到账确认，保持账单状态一致',409);if(merchantReceipt(old))throw new BusinessError('微信商户自动登记的收款对应真实到账，不能作废；如需退款请在微信商户平台办理',409);kind='transaction';project=old.project;data={...old,void:true,void_reason:zString(args.reason)};detail='作废流水：'+data.void_reason;}
  else if(action==='create_task'||action==='update_task'){data=taskSchema.parse(args);if(data.project_id)get(data.project_id,'project');kind='task';project=data.project_id;if(action==='update_task'){const old=get(id,kind);if(old.project!==project)throw new BusinessError('任务不能移动到其他项目');if(!Object.prototype.hasOwnProperty.call(args,'note'))data.note=old.note||'';if(data.due_at===undefined)data.due_at=old.due_at||'';if(!Object.prototype.hasOwnProperty.call(args,'date'))data.date=old.date||'';}else if(data.due_at===undefined)data.due_at='';if(data.due_at&&Object.prototype.hasOwnProperty.call(args,'due_at'))data.date=new Date(new Date(data.due_at).getTime()+8*60*60*1000).toISOString().slice(0,10);detail='更新任务';}
  else throw new BusinessError('不支持的操作');
  const now=new Date().toISOString();data.updated=now;

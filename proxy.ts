@@ -3,7 +3,7 @@ import { SESSION_COOKIE, sessionAccount } from './lib/local-auth';
 import { MANAGEMENT_OWNER_ID } from './lib/management-access';
 
 const publicPaths = new Set(['/login', '/api/auth/login', '/api/auth/sms/send', '/api/auth/sms/login', '/api/auth/forgot', '/api/shared-confirm']);
-const employeeApiPaths = new Set(['/api/drawing-recognition','/api/manage', '/api/catalog', '/api/auth/me', '/api/auth/me/update', '/api/auth/password', '/api/project-sms', '/api/confirm']);
+const employeeApiPaths = new Set(['/api/drawing-recognition','/api/manage', '/api/catalog', '/api/auth/me', '/api/auth/me/update', '/api/auth/password', '/api/auth/security-question', '/api/project-sms', '/api/confirm']);
 
 export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;

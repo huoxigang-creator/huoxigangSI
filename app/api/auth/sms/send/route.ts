@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {accountRecovery} from '../../../../../lib/account-recovery-service';
 import { accountByPhone, canRequestCode, issueCode, normalizePhone, sendSmsCode, smsConfigured } from '../../../../../lib/sms';
 
 export async function POST(request: NextRequest) {
@@ -12,6 +13,7 @@ export async function POST(request: NextRequest) {
   if (!purpose) return NextResponse.json({ error: '用途无效' }, { status: 400 });
   const account = accountByPhone(phone);
   if (!account || account.active !== 1) return NextResponse.json({ error: '该手机号未绑定账号' }, { status: 404 });
+  if(!accountRecovery.view(account.id).configured)return NextResponse.json({error:'请先使用原密码登录，在个人设置中设置安全问题；遗忘原密码请联系服务器管理员'},{status:403,headers:{'Cache-Control':'no-store'}});
   const throttle = canRequestCode(phone, purpose);
   if (!throttle.ok) return NextResponse.json({ error: throttle.message }, { status: 429 });
   if (!smsConfigured()) return NextResponse.json({ error: '短信服务未配置，请联系管理员在服务器上配置 sms.env' }, { status: 503 });

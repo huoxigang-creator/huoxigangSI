@@ -14,6 +14,8 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [phone, setPhone] = useState('');
   const [smsCode, setSmsCode] = useState('');
+  const [challenge,setChallenge]=useState(''),[question,setQuestion]=useState(''),[answer,setAnswer]=useState('');
+  const clearChallenge=()=>{setChallenge('');setQuestion('');setAnswer('');};
   const [newPassword, setNewPassword] = useState('');
   const [notice, setNotice] = useState('');
   const [countdown, setCountdown] = useState(0);
@@ -72,6 +74,7 @@ export default function Login() {
     try {
       const response = await post('/api/auth/sms/login', { phone: phone.trim(), code: smsCode.trim() });
       if (!response.ok) { setError(await readError(response)); setBusy(false); return; }
+      const body=await response.json() as {requires_answer?:boolean;challenge:string;question:string};if(body.requires_answer){setChallenge(body.challenge);setQuestion(body.question);setAnswer('');setBusy(false);return;}
       location.assign('/');
     } catch { setError('网络错误，请重试'); setBusy(false); }
   }
@@ -80,20 +83,21 @@ export default function Login() {
     event.preventDefault();
     setBusy(true); setError(''); setNotice('');
     try {
-      const response = await post('/api/auth/forgot', { phone: phone.trim(), code: smsCode.trim(), password: newPassword });
+      const response = await post('/api/auth/forgot', challenge?{challenge,answer,password:newPassword}:{ phone: phone.trim(), code: smsCode.trim() });
       if (!response.ok) { setError(await readError(response)); setBusy(false); return; }
-      setNotice('密码已重置，请用新密码登录');
+      const body=await response.json() as {requires_answer?:boolean;challenge:string;question:string};if(body.requires_answer){setChallenge(body.challenge);setQuestion(body.question);setAnswer('');setBusy(false);return;}
+      clearChallenge();setNotice('密码已重置，请用新密码登录');
       setMode('password'); setPhone(''); setSmsCode(''); setNewPassword('');
     } catch { setError('网络错误，请重试'); setBusy(false); }
   }
 
-  const switchTo = (next: Mode) => { setMode(next); setError(''); setNotice(''); };
+  const switchTo = (next: Mode) => { setMode(next); clearChallenge();setError(''); setNotice(''); };
 
   return <main className="loginPage"><img className="loginScene" src="/login-neural-kitchen-v1598.webp" srcSet="/login-neural-kitchen-v1598-960.webp 960w, /login-neural-kitchen-v1598.webp 1672w" sizes="100vw" width={1672} height={941} fetchPriority="high" loading="eager" decoding="async" alt=""/><section className="loginPosition"><header className="loginBrand"><h1>SI超级智能平台</h1></header><form className="loginCard" onSubmit={mode === 'password' ? submitPassword : mode === 'sms' ? submitSms : submitForgot}><h2>{mode === 'forgot' ? '重置登录密码' : mode === 'sms' ? '短信验证码登录' : '账号密码登录'}</h2>
       {mode !== 'forgot' && <label style={{ display: 'block', marginBottom: 16 }}>账号{/* 密码模式保留账号输入；短信模式为手机号 */}
         {mode === 'password'
           ? <input name="username" autoComplete="username" required style={field} placeholder="输入账号" />
-          : <input value={phone} onChange={event => setPhone(event.target.value)} autoComplete="tel" inputMode="numeric" required style={field} placeholder="输入已绑定手机号" />}
+          : <input value={phone} onChange={event => (setPhone(event.target.value),clearChallenge())} autoComplete="tel" inputMode="numeric" required style={field} placeholder="输入已绑定手机号" />}
       </label>}
 
       {mode === 'forgot' && <label style={{ display: 'block', marginBottom: 16 }}>已绑定手机号<input value={phone} onChange={event => setPhone(event.target.value)} autoComplete="tel" inputMode="numeric" required style={field} placeholder="输入账号绑定的手机号" /></label>}
@@ -107,12 +111,14 @@ export default function Login() {
         </div>
       </label>}
 
-      {mode === 'forgot' && <label style={{ display: 'block', marginBottom: 20 }}>新密码<input value={newPassword} onChange={event => setNewPassword(event.target.value)} type="password" autoComplete="new-password" minLength={12} required style={field} placeholder="至少 12 位" /></label>}
+      {challenge&&mode!=='password'&&<><p>安全问题：{question}</p><label style={{display:'block',marginBottom:16}}>安全答案<input type="password" value={answer} onChange={e=>setAnswer(e.target.value)} required maxLength={200} autoComplete="off" style={field} placeholder="填写你在个人设置保存的答案"/></label></>}
+      {mode === 'forgot' && challenge && <label style={{ display: 'block', marginBottom: 20 }}>新密码<input value={newPassword} onChange={event => setNewPassword(event.target.value)} type="password" autoComplete="new-password" minLength={12} required style={field} placeholder="至少 12 位" /></label>}
 
+      {mode!=='password'&&<p style={{fontSize:12,color:'#b9dcff'}}>短信验证后还须回答安全问题。未设置问题请先用原密码登录，在个人设置中设置；原密码和答案均遗忘时请联系服务器管理员。</p>}
       {error && <p role="alert" style={{ color: '#b42318', margin: '0 0 12px', fontSize: 14 }}>{error}</p>}
       {notice && <p role="status" style={{ color: '#166534', margin: '0 0 12px', fontSize: 14 }}>{notice}</p>}
 
-      <button disabled={busy} type="submit" style={{ ...primary, opacity: busy ? 0.7 : 1 }}>{busy ? '请稍候…' : mode === 'forgot' ? '重置密码' : mode === 'sms' ? '登录' : '登录'}</button>
+      <button disabled={busy} type="submit" style={{ ...primary, opacity: busy ? 0.7 : 1 }}>{busy ? '请稍候…' : mode === 'forgot' ? (challenge?'验证答案并重置密码':'验证短信并查看问题') : mode === 'sms' ? (challenge?'验证答案并登录':'验证短信并查看问题') : '登录'}</button>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18, gap: 8 }}>
         {mode === 'password'

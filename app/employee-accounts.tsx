@@ -53,7 +53,7 @@ export default function EmployeeAccounts({ onClose }: { onClose: () => void }) {
   return <div role="presentation" onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#0f172a88', display: 'grid', placeItems: 'center', padding: 16 }}>
     <section role="dialog" aria-modal="true" aria-label="员工账号管理" onClick={event => event.stopPropagation()} style={{ width: 'min(100%, 640px)', maxHeight: '90vh', overflowY: 'auto', padding: 24, borderRadius: 14, background: '#fff', color: '#172033', boxShadow: '0 20px 60px #0003' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}><h2 style={{ margin: 0 }}>员工账号管理</h2><button type="button" style={button} onClick={onClose}>关闭</button></div>
-      <p>可随时新增员工账号；员工可操作项目与报价，财务仅老板可见。停用账号会立即退出其现有登录。绑定手机号后，员工可用短信验证码登录、忘记密码时通过短信重置。</p>
+      <p>可随时新增员工账号；员工可操作项目与报价，财务仅老板可见。停用账号会立即退出其现有登录。绑定手机号并在个人设置中设置安全问题后，员工可用短信验证码和安全答案登录或重置密码。</p>
 
       {owner && <div style={{ border: '1px solid #e2e8f0', padding: 12, borderRadius: 9, marginBottom: 14, background: '#f8fafc' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>

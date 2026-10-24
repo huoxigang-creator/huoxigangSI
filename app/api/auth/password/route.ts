@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     .run(hash.toString('hex'), salt.toString('hex'), new Date().toISOString(), account.id);
 
   // updated 变更使旧会话失效，重新签发会话保持登录
-  const refreshed = sessionAccount(request.cookies.get(SESSION_COOKIE)?.value);
+  const refreshed = rawDatabase.prepare('SELECT id,username,display_name,role,active,updated FROM accounts WHERE id=? AND active=1').get(account.id) as typeof account;
   if (!refreshed) return NextResponse.json({ error: '密码已修改，请重新登录' }, { status: 401 });
   const response = NextResponse.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
   response.cookies.set(SESSION_COOKIE, issueSession(refreshed), {
