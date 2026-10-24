@@ -14,9 +14,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-24 V-1-7-13';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-24 V-1-7-14';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-7-14',date:'2026-10-24',items:['恢复图纸卡片周围浅色背景，仅图纸内部黑底；带图框CAD预览按柜体和尺寸裁剪，过滤外围图框、说明表与标题栏；识别页面及核对PDF的延米数量、单位与合计统一红色。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-13',date:'2026-10-24',items:['报价功能随主页面加载，取消进入报价页时的二次动态加载等待；PDF、合同等大功能仍按需加载。','保留厨房平面图命名与延米规则。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-12',date:'2026-10-24',items:['厨房图框左下角的地柜平面图、吊柜平面图、台面平面图分别识别为地柜、吊柜、台面，按延米计算，截图与CAD统一规则。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-11',date:'2026-10-24',items:['CAD预览统一为黑底浅色线条、红色尺寸，识别图形展示区域统一黑底；保留截图原始内容，减少额外图片转换。','本次升级已上传阿里云服务器并同步GitHub。']},

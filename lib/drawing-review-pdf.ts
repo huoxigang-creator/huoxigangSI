@@ -68,15 +68,17 @@ export async function generateDrawingReviewPdf(entries:ReviewEntry[],loadImage:(
   info('计算公式（原图识别参考）：'+(row.note||'未提供'),10);
   const m=drawingMeasure(row),unit=m.area!==null?'㎡':m.meters!==null?'延米':'待核对';
   const measure=m.area!==null?m.area.toFixed(2):m.meters!==null?m.meters.toFixed(2):'待补充尺寸';
-  info(`当前数量：${measure}${unit==='待核对'?'':` ${unit}`}`,18,m.area===null&&m.meters===null?red:blue);
-  if(row.price.trim())info(`单价：${row.price.trim()} 元/${unit}`,11);
+  info(`当前数量：${measure}${unit==='待核对'?'':` ${unit}`}`,18,m.area!==null?blue:red);
+  if(row.price.trim())info(`单价：${row.price.trim()} 元/${unit}`,11,m.meters!==null?red:ink);
   info('识别方式：'+(/\.(dxf|dwg)(?:[（(]|$)/i.test(row.source)?'CAD解析':'截图识别'),9,muted);
   if(row.config?.trim())info('配置说明：'+row.config,10);
   info('图形及公式保留原图标注；手动修改以本图下方的当前尺寸、名称和数量为准。',8,muted);
  }
  // The overall square meters and linear meters appear only after all cabinet details.
  page.drawLine({start:{x:44,y:122},end:{x:551,y:122},color:border,thickness:.8});
- page.drawText(`全部 ${entries.length} 个柜体合计：${area.toFixed(2)} ㎡ + ${meters.toFixed(2)} 延米`,{x:44,y:99,size:14,font,color:blue});
+ const totalPrefix=`全部 ${entries.length} 个柜体合计：${area.toFixed(2)} ㎡ + `;
+ page.drawText(totalPrefix,{x:44,y:99,size:14,font,color:blue});
+ page.drawText(`${meters.toFixed(2)} 延米`,{x:44+font.widthOfTextAtSize(totalPrefix,14),y:99,size:14,font,color:red});
  if(pending)page.drawText(`其中 ${pending} 项尺寸待补充，未计入数量合计`,{x:44,y:78,size:10,font,color:red});
  pdf.getPages().forEach((p,i)=>p.drawText(`尺寸单位：毫米（mm）    数量单位：㎡ / 延米        第 ${i+1} / ${pdf.getPageCount()} 页`,{x:44,y:24,size:9,font,color:muted}));
  return pdf.save();

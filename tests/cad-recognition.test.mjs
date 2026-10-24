@@ -153,3 +153,9 @@ test('kitchen lower-left plan titles identify base, wall and countertop separate
  const rows=parseDxfText(doc(body),'synthetic.dxf');assert.deepEqual(rows.map(r=>[r.room,r.name,r.width,r.height]),[['厨房','地柜','4220',''],['厨房','吊柜','4220',''],['厨房','台面','4220',''],['厨房','台面','4220','']]);
  assert.ok(rows.every(r=>r.selected&&r.config===''));
 });
+test('title-block preview crops to cabinet dimensions and excludes drawing borders and footer',()=>{
+ const text=(s,x,y)=>ent('TEXT',[[1,s],[10,x],[20,y],[62,1]]);
+ const rectangle=(x,y,w,h)=>ent('LWPOLYLINE',[[70,1],[10,x],[20,y],[10,x+w],[20,y],[10,x+w],[20,y+h],[10,x],[20,y+h]]);
+ const body=text('项目名称：厨房',0,-1200)+text('地柜平面图',0,-1000)+horizontal(2225,0,0)+vertical(1995,0,0)+rectangle(0,0,2225,1995)+rectangle(-3000,-2000,10000,7000)+rectangle(5000,-1000,1000,5000);
+ const [row]=parseDxfText(doc(body),'crop.dxf');assert.equal(row.width,'4220');assert.match(row.previewSvg,/>2225<\/text>/);assert.match(row.previewSvg,/>1995<\/text>/);assert.doesNotMatch(row.previewSvg,/-3000|7000|6000|项目名称|地柜平面图/);assert.match(row.previewSvg,/<path/);
+});

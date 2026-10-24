@@ -24,7 +24,7 @@ test('customer review PDF preserves edited area and meters, page-image pairing a
  const pages=JSON.parse(execFileSync(python,['-X','utf8','-c',`from pypdf import PdfReader
 import json,sys
 r=PdfReader(sys.argv[1]);print(json.dumps([{'text':p.extract_text(),'images':len(p.images)} for p in r.pages],ensure_ascii=False))`,path],{encoding:'utf8'}));
- assert.match(pages[0].text,/5000/);assert.match(pages[0].text,/5.00 延米/);assert.match(pages[1].text,/4.80 ㎡/);assert.ok(pages.every(p=>p.images===1&&p.text.includes('1987654321')));assert.ok(!pages[0].text.includes('柜体合计'));assert.match(pages[1].text,/4.80 ㎡ \+ 5.00 延米/);assert.ok(pages[0].text.indexOf('来源文件')<pages[0].text.indexOf('当前数量'));assert.match(pages[0].text,/原标注4780mm/);assert.ok(pages.every(p=>!p.text.includes('客户核对')&&!p.text.includes('日期')));
+ assert.match(pages[0].text,/5000/);assert.match(pages[0].text,/5.00 延米/);assert.match(pages[1].text,/4.80 ㎡/);assert.ok(pages.every(p=>p.images===1&&p.text.includes('1987654321')));assert.ok(!pages[0].text.includes('柜体合计'));assert.match(pages[1].text,/4.80 ㎡ \+\s+5.00 延米/);assert.ok(pages[0].text.indexOf('来源文件')<pages[0].text.indexOf('当前数量'));assert.match(pages[0].text,/原标注4780mm/);assert.ok(pages.every(p=>!p.text.includes('客户核对')&&!p.text.includes('日期')));
 });
 test('no selection and broken image fail explicitly instead of exporting an incomplete sheet',async()=>{
  await assert.rejects(generateDrawingReviewPdf([],async()=>new Uint8Array()),/勾选/);

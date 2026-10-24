@@ -189,18 +189,18 @@ export function parseDxfText(text:string,source:string):CadRow[]{
  }
  let previewBytes=0;
  function preview(i:number):Pick<CadRow,'previewSvg'|'previewWarning'>{
-  const a=anchors[i],ds=buckets[i],points=[a,...ds.flatMap(d=>[d.a,d.b,d,d.def])];
+  const a=anchors[i],ds=buckets[i],points=[...(templateMode&&ds.length?[]:[a]),...ds.flatMap(d=>[d.a,d.b,d,d.def])];
   let box=bounds(points),span=Math.max(box.right-box.left,box.top-box.bottom,100);
   if(frames[i])box=union(box,frames[i]);span=Math.max(box.right-box.left,box.top-box.bottom,100);
   // Include nearby complete outlines, without pulling in the next cabinet drawing.
-  const search=pad(box,span*.18),shapes=graphics.filter(g=>g.shape&&overlap(g.box,search)&&g.box.right-g.box.left<=span*2&&g.box.top-g.box.bottom<=span*2).filter(g=>{
+  const search=pad(box,span*.18),inside=(outer:Box,inner:Box)=>contains(outer,{x:inner.left,y:inner.bottom})&&contains(outer,{x:inner.right,y:inner.top}),shapes=graphics.filter(g=>g.shape&&(!templateMode||inside(search,g.box))&&overlap(g.box,search)&&g.box.right-g.box.left<=span*2&&g.box.top-g.box.bottom<=span*2).filter(g=>{
    const p={x:(g.box.left+g.box.right)/2,y:(g.box.bottom+g.box.top)/2};
    return anchors.every((other,j)=>j===i||Math.hypot(p.x-a.x,p.y-a.y)<=Math.hypot(p.x-other.x,p.y-other.y));
   });
   if(!shapes.length)return {previewWarning:'未找到可显示的二维柜体线条，请上传原图截图核对。'};
   for(const g of shapes)box=union(box,g.box);span=Math.max(box.right-box.left,box.top-box.bottom,100);box=pad(box,span*.08);
   const width=box.right-box.left,height=box.top-box.bottom,fontSize=span*.018,stroke=span/1400;
-  const selected=graphics.filter(g=>overlap(g.box,box));
+  const selected=graphics.filter(g=>overlap(g.box,box)&&(!templateMode||inside(box,g.box)));
   if(selected.length>15000)return {previewWarning:'此柜体图形过于复杂，请上传截图核对。'};
   const annotations=ds.map(d=>{
    const p=d.axis==='x'?{x:d.a.x,y:d.def.y}:{x:d.def.x,y:d.a.y},q=d.axis==='x'?{x:d.b.x,y:d.def.y}:{x:d.def.x,y:d.b.y};
