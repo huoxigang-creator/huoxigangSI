@@ -151,3 +151,54 @@ export async function recognizeCustomerFieldsQwen(imageDataUrl: string, signal?:
   if (typeof content !== 'string' || !content.trim()) throw new DrawingVisionError('未收到有效识别结果，请重试或切换「备用OCR」', 502);
   return parseCustomerVisionFields(content);
 }
+
+/**
+ * 豆包（火山方舟）视觉模型识别客户资料图片：与千问共用同一套多候选提示词与解析。
+ * provider 来自 lib/recognition-settings 的 resolve(owner)，key/model/base 为火山方舟配置
+ * （同智能报价页使用的豆包模型，默认 doubao-seed-2-0-lite-260428，可在「文字识别」设置中更换）。
+ */
+export async function recognizeCustomerFieldsDoubao(provider: { key: string; model: string; base: string }, imageDataUrl: string, signal?: AbortSignal): Promise<CustomerOcrFields[]> {
+  const base = (provider.base || 'https://ark.cn-beijing.volces.com/api/v3').replace(/\/+$/, '');
+  if (!provider.key || !provider.model) throw new DrawingVisionError('豆包尚未配置：请在「AI助手 → 文字识别 → 豆包设置」填写API Key和视觉模型ID', 503);
+  if (typeof imageDataUrl !== 'string' || imageDataUrl.length > 2800000 || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(imageDataUrl)) {
+    throw new DrawingVisionError('请上传 2MB 以内的 PNG、JPEG 或 WebP 图片', 400);
+  }
+  let response: Response;
+  try {
+    response = await fetch(base + '/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + provider.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: provider.model,
+        messages: [
+          { role: 'system', content: CUSTOMER_SYSTEM },
+          { role: 'user', content: [
+            { type: 'image_url', image_url: { url: imageDataUrl } },
+            { type: 'text', text: '请识别这张图片里的所有客户资料，按规则返回JSON数组。' },
+          ] },
+        ],
+        max_tokens: 1600,
+        temperature: 0,
+      }),
+      signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(60000)]),
+    });
+  } catch {
+    if (signal?.aborted) throw new DrawingVisionError('已取消识别', 499);
+    throw new DrawingVisionError('豆包识别连接超时，请重试；也可切换「千问视觉」或「备用OCR」', 504);
+  }
+  if (!response.ok) {
+    let failure = '';
+    try { const body = await response.json() as any; failure = String(body.error?.code || '') + ' ' + String(body.error?.message || ''); } catch { /* 忽略 */ }
+    if (/quota|balance|arrear|insufficient|额度|欠费|余额|overdue/i.test(failure)) {
+      throw new DrawingVisionError('豆包额度不足或账号欠费，请充值；也可切换「千问视觉」或「备用OCR」', 402);
+    }
+    if (/InvalidEndpointOrModel|NotFound/i.test(failure)) {
+      throw new DrawingVisionError('豆包模型不可用（未开通或模型ID不对）：请在「文字识别 → 豆包设置」确认模型ID，或切换「千问视觉」', 502);
+    }
+    throw new DrawingVisionError('豆包识别服务暂不可用（HTTP ' + response.status + '），请重试或切换「千问视觉」', 502);
+  }
+  const payload = await response.json().catch(() => null) as any;
+  const content = payload?.choices?.[0]?.message?.content;
+  if (typeof content !== 'string' || !content.trim()) throw new DrawingVisionError('未收到有效识别结果，请重试或切换「千问视觉」', 502);
+  return parseCustomerVisionFields(content);
+}

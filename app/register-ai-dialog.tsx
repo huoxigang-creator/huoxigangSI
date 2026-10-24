@@ -6,7 +6,7 @@ import { createScreenshotWatcher, pastedScreenshotFiles } from '../lib/drawing-c
 
 const EMPTY_IMAGE_FIELDS = { orderName: '', name: '', phone: '', address: '', orderDate: '', budget: '' };
 const EMPTY_SPEECH_FIELDS = { name: '', phone: '', address: '', note: '' };
-type Engine = 'qwen' | 'ocr';
+type Engine = 'doubao' | 'qwen' | 'ocr';
 
 function resampleTo16k(audioBuffer: AudioBuffer): Float32Array {
   const targetRate = 16000, ratio = audioBuffer.sampleRate / targetRate;
@@ -39,7 +39,7 @@ function encodeWav16k(samples: Float32Array): Blob {
 }
 
 // 管理端「AI智能建档」：一个弹窗整合两种自动建档方式——上面「图片识别」、下面「语音识别」。
-// 图片识别默认千问视觉大模型（识别不准可切换「备用OCR」）；语音识别优先阿里云百炼语音大模型。
+// 图片识别默认豆包视觉大模型（与智能报价页同款豆包模型，识别不准可切换「千问视觉」/「备用OCR」）；语音识别优先阿里云百炼语音大模型。
 // 识别结果均需人工核对后点「确认建档」才写入，绝不自动入库。
 export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   // 图片识别与语音识别各自独立的忙碌状态：两边互不影响，可分别操作
@@ -47,7 +47,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
   const [spBusy, setSpBusy] = useState(false);
   const [error, setError] = useState('');
   // 图片识别状态
-  const [engine, setEngine] = useState<Engine>('qwen');
+  const [engine, setEngine] = useState<Engine>('doubao');
   const [preview, setPreview] = useState('');
   const [imageFields, setImageFields] = useState<typeof EMPTY_IMAGE_FIELDS | null>(null);
   const [candidates, setCandidates] = useState<typeof EMPTY_IMAGE_FIELDS[] | null>(null);
@@ -144,8 +144,8 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
   }, [autoScreenshot]);
 
   function handleImageFile(file: File) {
-    const maxBytes = engine === 'qwen' ? 2 * 1024 * 1024 : 10 * 1024 * 1024;
-    if (file.size > maxBytes) { setError(engine === 'qwen' ? '智能识别请用 2MB 以内的图片（超清图可先压缩或切换「备用OCR」）' : '图片不能超过 10MB'); return; }
+    const maxBytes = engine === 'ocr' ? 10 * 1024 * 1024 : 2 * 1024 * 1024;
+    if (file.size > maxBytes) { setError(engine === 'ocr' ? '图片不能超过 10MB' : '智能识别请用 2MB 以内的图片（超清图可先压缩或切换「备用OCR」）'); return; }
     if (!/^image\/(png|jpeg|webp)$/.test(file.type)) { setError('请选择 PNG、JPEG 或 WebP 图片'); return; }
     void recognizeImage(file, engine);
   }
@@ -331,7 +331,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
             {!imageFields && (
               <div>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                  {([['qwen', '智能识别（推荐）', '千问视觉大模型，看图直接出姓名电话地址，识别更准'], ['ocr', '备用OCR', '文字识别引擎，识别原文行后再提取字段']] as [Engine, string, string][]).map(([value, label, tip]) => (
+                  {([['doubao', '智能识别（豆包）', '豆包视觉大模型，与智能报价页同款，看图直接出姓名电话地址', true], ['qwen', '千问视觉', '阿里云千问视觉大模型备用'], ['ocr', '备用OCR', '文字识别引擎，识别原文行后再提取字段']] as [Engine, string, string, boolean?][]).map(([value, label, tip, recommended]) => (
                     <button
                       key={value}
                       type="button"
@@ -345,7 +345,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
                         fontWeight: engine === value ? 600 : 400,
                       }}
                     >
-                      {label}
+                      {label}{recommended && <span style={{ fontSize: 10, color: '#16a34a', marginLeft: 3 }}>推荐</span>}
                     </button>
                   ))}
                 </div>
@@ -360,8 +360,8 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
                 >
                   <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={onFileChange} />
                   <Images size={26} color={dragOver ? '#2563eb' : '#64748b'} style={{ margin: '0 auto 6px' }} />
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{imgBusy ? (engine === 'qwen' ? '正在智能识别…' : '正在OCR识别…') : (dragOver ? '松开即可识别' : '点击选择图片 / 截图，或直接拖图片到此处')}</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>支持 PNG、JPEG、WebP{engine === 'qwen' ? '，最大 2MB' : '，最大 10MB'}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{imgBusy ? (engine === 'ocr' ? '正在OCR识别…' : '正在智能识别…') : (dragOver ? '松开即可识别' : '点击选择图片 / 截图，或直接拖图片到此处')}</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>支持 PNG、JPEG、WebP{engine === 'ocr' ? '，最大 10MB' : '，最大 2MB'}</div>
                   <button type="button" disabled={imgBusy} onClick={e => { e.stopPropagation(); fileRef.current?.click(); }} style={{ marginTop: 8 }}><Upload size={13} /> 选择图片</button>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 10 }}>
@@ -415,7 +415,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <img src={preview} alt="识别原图" style={{ width: 104, height: 104, objectFit: 'contain', borderRadius: 8, border: '1px solid #e2e8f0', background: '#f8fafc' }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>识别字段（可修改）{engine === 'qwen' && <span style={{ fontSize: 11, color: '#2563eb', fontWeight: 500 }}>· 智能识别</span>}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>识别字段（可修改）{engine !== 'ocr' && <span style={{ fontSize: 11, color: '#2563eb', fontWeight: 500 }}>· {engine === 'doubao' ? '豆包智能识别' : '千问智能识别'}</span>}</div>
                     {(['orderName', 'name', 'phone', 'address', 'orderDate', 'budget'] as const).map(key => (
                       <label key={key} style={fieldRow(key, 88)}>
                         <span style={fieldSpan}>{({ orderName: '客户订单名称', name: '客户姓名', phone: '联系电话', address: '客户地址', orderDate: '接单日期', budget: '预算成本（元）' } as const)[key]}</span>
@@ -433,7 +433,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
-                  <button type="button" disabled={imgBusy} onClick={() => { setImageFields(null); setCandidates(null); setPreview(''); setEngine(engine === 'qwen' ? 'ocr' : 'qwen'); }}><Trash2 size={13} /> 重新选图</button>
+                  <button type="button" disabled={imgBusy} onClick={() => { setImageFields(null); setCandidates(null); setPreview(''); setEngine('doubao'); }}><Trash2 size={13} /> 重新选图</button>
                   <button type="button" className="primary" disabled={imgBusy} onClick={() => void createFromImage()}><UserPlus size={14} /> 确认建档</button>
                 </div>
               </div>
@@ -484,7 +484,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
 
           {error && <p role="alert" className="sectionNote" style={{ color: '#dc2626', margin: '10px 0 0' }}>{error}</p>}
           <div style={{ marginTop: 12, fontSize: 12, color: '#6b7280', lineHeight: 1.7, background: '#f8fafc', borderRadius: 10, padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Sparkles size={13} color="#7c3aed" />图片识别默认用千问视觉大模型：一张图里有多个人名/电话/地址时会识别成多条，选中「第几条」即可录用；识别不准可切换「备用OCR」/重新录音。结果需人工核对，确认建档后可在「我的客户」查看新档案。
+            <Sparkles size={13} color="#7c3aed" />图片识别默认用豆包视觉大模型（与智能报价页同款）：一张图里有多个人名/电话/地址时会识别成多条，选中「第几条」即可录用；识别不准可切换「千问视觉」/「备用OCR」/重新录音。结果需人工核对，确认建档后可在「我的客户」查看新档案。
           </div>
         </div>
       </section>
