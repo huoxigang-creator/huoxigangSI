@@ -85,7 +85,7 @@ test('each cabinet preview contains original outline and assigned dimensions onl
  const rows=parseDxfText(doc(label()+outline()+horizontal(2000)+vertical(2400)+label('次卧/衣柜',10500,500)+outline(10000,0,1800,2100)+horizontal(1800,10000)+vertical(2100,10000)),'preview.dxf');
  assert.match(rows[0].previewSvg,/>2000<\/text>/);assert.match(rows[0].previewSvg,/>2400<\/text>/);
  assert.doesNotMatch(rows[0].previewSvg,/>1800<\/text>/);assert.doesNotMatch(rows[1].previewSvg,/>2400<\/text>/);
- assert.match(rows[1].previewSvg,/>2100<\/text>/);assert.match(rows[0].previewSvg,/<path/);
+ assert.match(rows[0].previewSvg,/fill="black"/);assert.match(rows[0].previewSvg,/stroke="#d6dce3"/);assert.match(rows[0].previewSvg,/fill="#ff5555" stroke="black"/);assert.match(rows[1].previewSvg,/>2100<\/text>/);assert.match(rows[0].previewSvg,/<path/);
 });
 test('CAD text is inert and the preview never invents missing cabinet geometry',()=>{
  const [safe]=parseDxfText(doc(label('主卧/衣柜<script>alert(1)</script>')+outline()+horizontal(2000)),'x.dxf');

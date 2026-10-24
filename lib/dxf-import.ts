@@ -181,7 +181,7 @@ export function parseDxfText(text:string,source:string):CadRow[]{
    if(addressEntities.has(e))continue;
    if(templateMode&&!anchors.some(a=>(a.label||a.name)===text&&Math.hypot(a.x-p.x,a.y-p.y)<.01))continue;
    const size=n(e,40,40)*Math.hypot(m[0],m[1]),angle=n(e,50,0)+Math.atan2(m[1],m[0])*180/Math.PI;
-   if(text&&size>0&&Number.isFinite(size+p.x+p.y+angle))graphics.push({box:pad(bounds([p]),size*text.length),shape:false,svg:`<text x="${fmt(p.x)}" y="${fmt(-p.y)}" font-size="${fmt(size)}" transform="rotate(${fmt(-angle)} ${fmt(p.x)} ${fmt(-p.y)})" fill="${templateMode?'#bb3030':'#203449'}" stroke="none">${esc(text)}</text>`});
+   if(text&&size>0&&Number.isFinite(size+p.x+p.y+angle))graphics.push({box:pad(bounds([p]),size*text.length),shape:false,svg:`<text x="${fmt(p.x)}" y="${fmt(-p.y)}" font-size="${fmt(size)}" transform="rotate(${fmt(-angle)} ${fmt(p.x)} ${fmt(-p.y)})" fill="${templateMode?'#ff5555':'#d6dce3'}" stroke="none">${esc(text)}</text>`});
   }
  }
  let previewBytes=0;
@@ -205,9 +205,9 @@ export function parseDxfText(text:string,source:string):CadRow[]{
    const seg=(a:Point,b:Point)=>`<path d="M${fmt(a.x)},${fmt(-a.y)} L${fmt(b.x)},${fmt(-b.y)}"/>`;
    const tick=(p:Point)=>seg({x:p.x-fontSize*.2,y:p.y-fontSize*.2},{x:p.x+fontSize*.2,y:p.y+fontSize*.2});
    const rotate=d.axis==='y'?` transform="rotate(-90 ${fmt(d.x)} ${fmt(-d.y)})"`:'';
-   return `<g stroke="#bb3030">${seg(d.a,p)}${seg(d.b,q)}${seg(p,q)}${tick(p)}${tick(q)}<text x="${fmt(d.x)}" y="${fmt(-d.y)}"${rotate} text-anchor="middle" font-size="${fmt(fontSize)}" fill="#bb3030" stroke="white" stroke-width="${fmt(fontSize*.2)}" paint-order="stroke">${d.value}</text></g>`;
+   return `<g stroke="#ff5555">${seg(d.a,p)}${seg(d.b,q)}${seg(p,q)}${tick(p)}${tick(q)}<text x="${fmt(d.x)}" y="${fmt(-d.y)}"${rotate} text-anchor="middle" font-size="${fmt(fontSize)}" fill="#ff5555" stroke="black" stroke-width="${fmt(fontSize*.2)}" paint-order="stroke">${d.value}</text></g>`;
   }).join('');
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="${Math.max(200,Math.min(2400,Math.round(1600*height/width)))}" viewBox="${fmt(box.left)} ${fmt(-box.top)} ${fmt(width)} ${fmt(height)}"><rect x="${fmt(box.left)}" y="${fmt(-box.top)}" width="${fmt(width)}" height="${fmt(height)}" fill="white"/><g stroke="#263b50" stroke-width="${fmt(stroke)}" stroke-linejoin="round" font-family="Microsoft YaHei,Arial,sans-serif">${selected.map(g=>g.svg).join('')}${annotations}</g></svg>`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="${Math.max(200,Math.min(2400,Math.round(1600*height/width)))}" viewBox="${fmt(box.left)} ${fmt(-box.top)} ${fmt(width)} ${fmt(height)}"><rect x="${fmt(box.left)}" y="${fmt(-box.top)}" width="${fmt(width)}" height="${fmt(height)}" fill="black"/><g stroke="#d6dce3" stroke-width="${fmt(stroke)}" stroke-linejoin="round" font-family="Microsoft YaHei,Arial,sans-serif">${selected.map(g=>g.svg).join('')}${annotations}</g></svg>`;
   previewBytes+=svg.length;
   if(svg.length>2000000||previewBytes>12000000)return {previewWarning:'此柜体图形过于复杂，请上传截图核对。'};
   return {previewSvg:svg,previewWarning:'CAD二维局部预览；尺寸标注依原文件重绘，不含填充、外部参照及三维实体，请对照原文件核对。'};
