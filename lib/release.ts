@@ -14,9 +14,11 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-24 V-1-7-16';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-24 V-1-7-18';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-7-18',date:'2026-10-24',items:['客户扫码建档页新增两种自动填写：拍照/选图识别（OCR自动识别姓名、电话、地址填入）与语音识别（录音后自动转文字并提取姓名、电话、地址填入），识别结果可核对修改后再提交；语音识别需在服务器 /etc/gugemei/asr.env 配置阿里云智能语音交互凭证后可用。','本次升级已上传阿里云服务器并同步GitHub。']},
+  {version:'V-1-7-17',date:'2026-10-24',items:['新增客户扫码建档：我的客户页可生成二维码发给客户，客户扫码填写姓名、电话、地址并提交后自动建立客户档案，同手机号自动合并不重复建档；支持抖音/朋友圈/门店等来源渠道自动打标签。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-16',date:'2026-10-24',items:['客户签字报价表格的单价、金额、小计及总计按完整小数金额预留列宽，数字单行显示，避免手机端末位换行。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-15',date:'2026-10-24',items:['智能识别页面右上角新增关闭按钮，左下角改为返回按钮，底部操作栏保持可见，关闭时停止识别和截图接收。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-14',date:'2026-10-24',items:['恢复图纸卡片周围浅色背景，仅图纸内部黑底；带图框CAD预览按柜体和尺寸裁剪，过滤外围图框、说明表与标题栏；识别页面及核对PDF的延米数量、单位与合计统一红色。','本次升级已上传阿里云服务器并同步GitHub。']},

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE, sessionAccount } from './lib/local-auth';
 import { MANAGEMENT_OWNER_ID } from './lib/management-access';
 
-const publicPaths = new Set(['/login', '/api/auth/login', '/api/auth/sms/send', '/api/auth/sms/login', '/api/auth/forgot', '/api/shared-confirm']);
+const publicPaths = new Set(['/login', '/api/auth/login', '/api/auth/sms/send', '/api/auth/sms/login', '/api/auth/forgot', '/api/shared-confirm', '/api/register-client', '/api/register-ocr', '/api/register-speech']);
 const employeeApiPaths = new Set(['/api/drawing-recognition','/api/manage', '/api/catalog', '/api/auth/me', '/api/auth/me/update', '/api/auth/password', '/api/auth/security-question', '/api/project-sms', '/api/confirm']);
 
 export function proxy(request: NextRequest) {
@@ -13,7 +13,7 @@ export function proxy(request: NextRequest) {
   }
   const next = () => NextResponse.next({ request: { headers } });
   const staticAsset = path.startsWith('/_next/') || path.startsWith('/assets/') || path === '/favicon.ico' || /\.(?:svg|png|jpg|jpeg|webp|ico|css|js|woff2?)$/.test(path);
-  if ((request.method==='GET'&&/^\/api\/ocr-language\/(?:fast|full)\/chi_sim\.traineddata\.gz$/.test(path)) || (/^\/s\/m\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-material-selections'&&['GET','POST'].includes(request.method)) || (/^\/s\/p\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-customer-payment'&&['GET','POST'].includes(request.method)) || staticAsset || publicPaths.has(path) || path.startsWith('/s/c/') || (/^\/s\/q\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-quote'&&['GET','POST'].includes(request.method))) return next();
+  if ((request.method==='GET'&&/^\/api\/ocr-language\/(?:fast|full)\/chi_sim\.traineddata\.gz$/.test(path)) || (/^\/s\/m\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-material-selections'&&['GET','POST'].includes(request.method)) || (/^\/s\/p\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-customer-payment'&&['GET','POST'].includes(request.method)) || staticAsset || publicPaths.has(path) || path.startsWith('/s/c/') || (/^\/s\/q\/[a-f0-9]{64}\/?$/.test(path)&&request.method==='GET') || (path==='/api/shared-quote'&&['GET','POST'].includes(request.method)) || path.startsWith('/s/r/')) return next();
 
   const account = sessionAccount(request.cookies.get(SESSION_COOKIE)?.value);
   if (!account) {
