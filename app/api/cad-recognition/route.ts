@@ -2,7 +2,7 @@ import {parseDxfText,CadImportError} from '../../../lib/dxf-import';
 import {selectionInput,selectionHeaders,selectionFailure,selectionOwner} from '../../../lib/material-selection-http';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
+import {mkdtemp,writeFile,readFile,rm,stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 const run=promisify(execFile);
@@ -30,10 +30,16 @@ async function dwgToDxfBytes(buffer:Buffer):Promise<Buffer>{
     await writeFile(dwg,buffer);
     const tool=process.env.DWG_TO_DXF_CMD||'dwg2dxf';
     try{
-      await run(tool,[dwg,dxf],{timeout:120000});
+      await run(tool,['-y','-o',dxf,dwg],{timeout:120000,killSignal:'SIGKILL',maxBuffer:512*1024});
     }catch(e){
-      throw new CadImportError('服务器未安装DWG转换工具，请把图纸另存为DXF后上传，或联系管理员安装 dwg2dxf',503);
+      const failure=e as NodeJS.ErrnoException&{killed?:boolean;signal?:string};
+      if(failure.code==='ENOENT')throw new CadImportError('服务器未安装DWG转换工具，请另存为DXF后上传',503);
+      if(failure.killed||failure.signal||['124','137','152','153'].includes(String(failure.code)))throw new CadImportError('DWG转换超出时间或内存限制，请简化图纸或另存为DXF后上传',422);
+      throw new CadImportError('DWG转换失败，图纸可能过大、损坏或版本暂不兼容，请在CAD中另存为DXF后上传',422);
     }
+    const output=await stat(dxf).catch(()=>null);
+    if(!output?.size)throw new CadImportError('DWG未能生成有效图纸，请另存为DXF后上传',422);
+    if(output.size>MAX_CAD_BYTES)throw new CadImportError('DWG转换结果超过100MB，请拆分图纸或另存为DXF后上传',413);
     return await readFile(dxf);
   }finally{await rm(dir,{recursive:true,force:true});}
 }

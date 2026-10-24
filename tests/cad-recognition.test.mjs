@@ -98,3 +98,23 @@ test('legacy 2D polyline and rotated inserted graphics remain visible without ch
  const [r]=parseDxfText(doc(ent('INSERT',[[2,'cab'],[10,10000],[20,5000],[50,180]]),blocks),'x.dxf');
  assert.equal(r.width,'2000');assert.equal(r.height,'2400');assert.match(r.previewSvg,/8000,-5000/);
 });
+
+
+// Exercise the DWG branch with a fake converter; only temporary files are written.
+const conversionRoute=await import(url(compile('app/api/cad-recognition/route.ts').replace('../../../lib/dxf-import',parserUrl).replace('../../../lib/material-selection-http',stub).replace('const run = promisify(execFile);','const run = (...args) => globalThis.__cadConversionTest(...args);')));
+const dwgRequest=()=>new Request('http://localhost/api/cad-recognition',{method:'POST',headers:{'oai-authenticated-user-id':'test','content-type':'application/octet-stream','x-cad-source':'test.dwg','x-cad-dwg':'1'},body:Buffer.from('AC1032synthetic-dwg')});
+test('DWG converter uses explicit output argument, returns recognized cabinets and removes temporary files',async()=>{
+ let temporary;
+ globalThis.__cadConversionTest=async(_tool,args,options)=>{assert.deepEqual(args.slice(0,2),['-y','-o']);assert.ok(args[2].endsWith('output.dxf'));assert.ok(args[3].endsWith('input.dwg'));assert.equal(options.timeout,120000);temporary=args[2];fs.writeFileSync(temporary,doc(label()+outline()+horizontal(2000)+vertical(2400)));};
+ try{const response=await conversionRoute.POST(dwgRequest());assert.equal(response.status,200);const [row]=(await response.json()).result;assert.equal(row.width,'2000');assert.equal(row.height,'2400');assert.ok(row.previewSvg);assert.equal(fs.existsSync(temporary),false);}finally{delete globalThis.__cadConversionTest;}
+});
+test('missing converter, malformed DWG and resource limits have distinct readable errors',async()=>{
+ for(const [failure,status,message] of [[{code:'ENOENT'},503,/未安装/],[{code:1},422,/转换失败/],[{killed:true,signal:'SIGKILL'},422,/限制/],[{code:124},422,/限制/],[{code:137},422,/限制/],[{code:153},422,/限制/]]){
+  globalThis.__cadConversionTest=async()=>{throw Object.assign(Error('conversion failed'),failure);};
+  try{const response=await conversionRoute.POST(dwgRequest());assert.equal(response.status,status);assert.match((await response.json()).error,message);}finally{delete globalThis.__cadConversionTest;}
+ }
+});
+test('converted output size is checked before reading it into memory',async()=>{
+ globalThis.__cadConversionTest=async(_tool,args)=>{fs.writeFileSync(args[2],'');fs.truncateSync(args[2],100*1024*1024+1);};
+ try{const response=await conversionRoute.POST(dwgRequest());assert.equal(response.status,413);assert.match((await response.json()).error,/转换结果超过100MB/);}finally{delete globalThis.__cadConversionTest;}
+});
