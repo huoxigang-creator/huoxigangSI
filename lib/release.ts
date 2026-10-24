@@ -14,9 +14,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-25 V-1-7-26';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-25 V-1-7-27';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-7-27',date:'2026-10-25',items:['「AI智能建档」弹窗优化：图片识别与语音识别改为各自独立工作（图片识别进行中语音区不受影响、可同时操作）；图片识别支持直接拖拽图片到上传框自动识别。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-26',date:'2026-10-25',items:['「客户扫码建档二维码」弹窗新增「下载二维码」按钮：下载的二维码卡片样式与「客户签字确定」的二维码卡片统一（品牌色条 + 公司名 + 副标题 + 二维码 + 平台名，PNG 图片可直接发微信打印）。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-25',date:'2026-10-25',items:['「图片识别建档」和「语音识别建档」合并为一个「AI智能建档」入口：一个弹窗内上面是图片识别（默认千问视觉智能识别，可切换备用OCR），下面是语音识别（默认阿里云百炼语音大模型），识别后核对一键建档。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-24',date:'2026-10-25',items:['客户扫码填资料页「拍照/选图识别」同步升级：默认用千问视觉大模型「智能识别」（看图理解语义，直接输出姓名、电话、地址），识别不准可切换「备用OCR」重新识别。','客户扫码填资料页「语音识别」同步升级：优先用阿里云百炼语音大模型（Qwen3-ASR-Flash），口语数字自动规整；未配置时自动回退原语音识别。','本次升级已上传阿里云服务器并同步GitHub。']},

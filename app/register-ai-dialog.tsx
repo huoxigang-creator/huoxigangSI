@@ -41,7 +41,9 @@ function encodeWav16k(samples: Float32Array): Blob {
 // 图片识别默认千问视觉大模型（识别不准可切换「备用OCR」）；语音识别优先阿里云百炼语音大模型。
 // 识别结果均需人工核对后点「确认建档」才写入，绝不自动入库。
 export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [busy, setBusy] = useState(false);
+  // 图片识别与语音识别各自独立的忙碌状态：两边互不影响，可分别操作
+  const [imgBusy, setImgBusy] = useState(false);
+  const [spBusy, setSpBusy] = useState(false);
   const [error, setError] = useState('');
   // 图片识别状态
   const [engine, setEngine] = useState<Engine>('qwen');
@@ -58,9 +60,17 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  function handleImageFile(file: File) {
+    const maxBytes = engine === 'qwen' ? 2 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxBytes) { setError(engine === 'qwen' ? '智能识别请用 2MB 以内的图片（超清图可先压缩或切换「备用OCR」）' : '图片不能超过 10MB'); return; }
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) { setError('请选择 PNG、JPEG 或 WebP 图片'); return; }
+    void recognizeImage(file, engine);
+  }
 
   async function recognizeImage(file: File, useEngine: Engine) {
-    setBusy(true); setError('');
+    setImgBusy(true); setError('');
     try {
       const form = new FormData();
       form.append('file', file);
@@ -77,24 +87,21 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
       setImageFields(null);
       setPreview('');
     } finally {
-      setBusy(false);
+      setImgBusy(false);
     }
   }
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const maxBytes = engine === 'qwen' ? 2 * 1024 * 1024 : 10 * 1024 * 1024;
-    if (file.size > maxBytes) { setError(engine === 'qwen' ? '智能识别请用 2MB 以内的图片（超清图可先压缩或切换「备用OCR」）' : '图片不能超过 10MB'); return; }
-    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) { setError('请选择 PNG、JPEG 或 WebP 图片'); return; }
-    void recognizeImage(file, engine);
+    handleImageFile(file);
   }
 
   async function createFromImage() {
     if (!imageFields) return;
     const name = imageFields.orderName.trim(), customer = imageFields.name.trim();
     if (!name || !customer) { setError('客户订单名称和客户姓名不能为空，请填写后重试'); return; }
-    setBusy(true); setError('');
+    setImgBusy(true); setError('');
     try {
       const res = await fetch('/api/manage', {
         method: 'POST',
@@ -121,7 +128,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
     } catch (reason: any) {
       setError(reason instanceof Error ? reason.message : '建档失败，请重试');
     } finally {
-      setBusy(false);
+      setImgBusy(false);
     }
   }
 
@@ -154,7 +161,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
   }
 
   async function submitAudio(blob: Blob) {
-    setBusy(true); setError('');
+    setSpBusy(true); setError('');
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const arrayBuffer = await blob.arrayBuffer();
@@ -220,14 +227,14 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
   const fieldInput: React.CSSProperties = { width: 'calc(100% - 96px)', padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13 };
 
   return (
-    <div className="overlay" onClick={e => { if (e.target === e.currentTarget && !busy) onClose(); }}>
+    <div className="overlay" onClick={e => { if (e.target === e.currentTarget && !imgBusy && !spBusy) onClose(); }}>
       <section className="modal" role="dialog" aria-modal="true" aria-label="AI智能建档">
         <div className="modalHead">
           <div>
             <span className="eyebrow">客户自动建档 · AI</span>
             <h2>AI智能建档</h2>
           </div>
-          <button aria-label="关闭" disabled={busy} onClick={onClose}><X size={20} /></button>
+          <button aria-label="关闭" disabled={imgBusy || spBusy} onClick={onClose}><X size={20} /></button>
         </div>
         <div style={{ padding: '4px 20px 20px', maxWidth: 560 }}>
           <p className="sectionNote" style={{ marginTop: 0 }}>上传客户资料图片或直接录音，AI 自动识别出姓名、电话、地址等字段，核对后一键建立客户档案（识别结果只供核对参考，确认建档后才写入）。</p>
@@ -242,7 +249,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
                     <button
                       key={value}
                       type="button"
-                      disabled={busy}
+                      disabled={imgBusy}
                       onClick={() => setEngine(value)}
                       title={tip}
                       style={{
@@ -257,16 +264,19 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
                   ))}
                 </div>
                 <div
-                  style={{ border: '1.5px dashed #cbd5e1', borderRadius: 10, padding: '18px 12px', textAlign: 'center', background: '#f8fafc', cursor: 'pointer' }}
+                  style={{ border: '1.5px dashed ' + (dragOver ? '#2563eb' : '#cbd5e1'), borderRadius: 10, padding: '18px 12px', textAlign: 'center', background: dragOver ? '#eff6ff' : '#f8fafc', cursor: 'pointer', transition: 'border-color .15s, background .15s' }}
                   onClick={() => fileRef.current?.click()}
+                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragOver(true); }}
+                  onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setDragOver(false); }}
+                  onDrop={e => { e.preventDefault(); e.stopPropagation(); setDragOver(false); const file = e.dataTransfer.files?.[0]; if (file) handleImageFile(file); }}
                   role="button"
-                  aria-label="选择图片"
+                  aria-label="选择图片或拖拽图片到此处"
                 >
                   <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={onFileChange} />
-                  <Images size={26} color="#64748b" style={{ margin: '0 auto 6px' }} />
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{busy ? (engine === 'qwen' ? '正在智能识别…' : '正在OCR识别…') : '点击选择图片 / 截图'}</div>
+                  <Images size={26} color={dragOver ? '#2563eb' : '#64748b'} style={{ margin: '0 auto 6px' }} />
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{imgBusy ? (engine === 'qwen' ? '正在智能识别…' : '正在OCR识别…') : (dragOver ? '松开即可识别' : '点击选择图片 / 截图，或直接拖图片到此处')}</div>
                   <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>支持 PNG、JPEG、WebP{engine === 'qwen' ? '，最大 2MB' : '，最大 10MB'}</div>
-                  <button type="button" disabled={busy} onClick={e => { e.stopPropagation(); fileRef.current?.click(); }} style={{ marginTop: 8 }}><Upload size={13} /> 选择图片</button>
+                  <button type="button" disabled={imgBusy} onClick={e => { e.stopPropagation(); fileRef.current?.click(); }} style={{ marginTop: 8 }}><Upload size={13} /> 选择图片</button>
                 </div>
               </div>
             )}
@@ -279,7 +289,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
                     {(['orderName', 'name', 'phone', 'address', 'orderDate', 'budget'] as const).map(key => (
                       <label key={key} style={fieldRow(key, 88)}>
                         <span style={fieldSpan}>{({ orderName: '客户订单名称', name: '客户姓名', phone: '联系电话', address: '客户地址', orderDate: '接单日期', budget: '预算成本（元）' } as const)[key]}</span>
-                        <input value={imageFields[key]} disabled={busy} onChange={e => setImageFields(current => ({ ...current!, [key]: e.target.value }))} style={fieldInput} />
+                        <input value={imageFields[key]} disabled={imgBusy} onChange={e => setImageFields(current => ({ ...current!, [key]: e.target.value }))} style={fieldInput} />
                       </label>
                     ))}
                     {imageLines.length > 0 && (
@@ -293,8 +303,8 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
-                  <button type="button" disabled={busy} onClick={() => { setImageFields(null); setPreview(''); setEngine(engine === 'qwen' ? 'ocr' : 'qwen'); }}><Trash2 size={13} /> 重新选图</button>
-                  <button type="button" className="primary" disabled={busy} onClick={() => void createFromImage()}><UserPlus size={14} /> 确认建档</button>
+                  <button type="button" disabled={imgBusy} onClick={() => { setImageFields(null); setPreview(''); setEngine(engine === 'qwen' ? 'ocr' : 'qwen'); }}><Trash2 size={13} /> 重新选图</button>
+                  <button type="button" className="primary" disabled={imgBusy} onClick={() => void createFromImage()}><UserPlus size={14} /> 确认建档</button>
                 </div>
               </div>
             )}
@@ -311,7 +321,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
                       <Square size={22} />
                     </button>
                   ) : (
-                    <button type="button" disabled={busy} onClick={() => void startRecording()} style={{ borderRadius: '50%', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="开始录音">
+                    <button type="button" disabled={spBusy} onClick={() => void startRecording()} style={{ borderRadius: '50%', width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="开始录音">
                       <Mic size={22} />
                     </button>
                   )}
@@ -319,7 +329,7 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
                 {recording ? (
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#dc2626' }}>正在录音… {seconds} 秒（再点一次停止）</div>
                 ) : (
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{busy ? '正在识别语音…' : '点击开始录音'}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{spBusy ? '正在识别语音…' : '点击开始录音'}</div>
                 )}
                 <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>建议每段不超过 60 秒，说完点击停止即可识别</div>
               </div>
@@ -331,12 +341,12 @@ export default function RegisterAiDialog({ onClose, onCreated }: { onClose: () =
                 {(['name', 'phone', 'address', 'note'] as const).map(key => (
                   <label key={key} style={fieldRow(key, 88)}>
                     <span style={fieldSpan}>{({ name: '客户姓名', phone: '联系电话', address: '客户地址', note: '客户备注' } as const)[key]}</span>
-                    <input value={speechFields[key]} disabled={busy} onChange={e => setSpeechFields(current => ({ ...current!, [key]: e.target.value }))} style={fieldInput} />
+                    <input value={speechFields[key]} disabled={spBusy} onChange={e => setSpeechFields(current => ({ ...current!, [key]: e.target.value }))} style={fieldInput} />
                   </label>
                 ))}
                 <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
-                  <button type="button" disabled={busy} onClick={() => { setSpeechFields(null); setText(''); }}><Mic size={13} /> 重新录音</button>
-                  <button type="button" className="primary" disabled={busy} onClick={() => void createFromSpeech()}><UserPlus size={14} /> 确认建档</button>
+                  <button type="button" disabled={spBusy} onClick={() => { setSpeechFields(null); setText(''); }}><Mic size={13} /> 重新录音</button>
+                  <button type="button" className="primary" disabled={spBusy} onClick={() => void createFromSpeech()}><UserPlus size={14} /> 确认建档</button>
                 </div>
               </div>
             )}
