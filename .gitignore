@@ -62,3 +62,6 @@ tsconfig.tsbuildinfo
 
 # Recreated from pinned OCR/PDF dependencies before preview or build.
 /public/assets/document-ocr/
+
+# Customer drawing review artifacts remain local.
+/output/

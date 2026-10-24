@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import './login.css';
+import SecurityAnswerInput from '../security-answer-input';
 
 type Mode = 'password' | 'sms' | 'forgot';
 
@@ -111,7 +112,7 @@ export default function Login() {
         </div>
       </label>}
 
-      {challenge&&mode!=='password'&&<><p>安全问题：{question}</p><label style={{display:'block',marginBottom:16}}>安全答案<input type="password" value={answer} onChange={e=>setAnswer(e.target.value)} required maxLength={200} autoComplete="off" style={field} placeholder="填写你在个人设置保存的答案"/></label></>}
+      {challenge&&mode!=='password'&&<><p>安全问题：{question}</p><SecurityAnswerInput label="安全答案" value={answer} onChange={setAnswer} required style={field} placeholder="支持中文，填写你保存的答案"/></>}
       {mode === 'forgot' && challenge && <label style={{ display: 'block', marginBottom: 20 }}>新密码<input value={newPassword} onChange={event => setNewPassword(event.target.value)} type="password" autoComplete="new-password" minLength={12} required style={field} placeholder="至少 12 位" /></label>}
 
       {mode!=='password'&&<p style={{fontSize:12,color:'#b9dcff'}}>短信验证后还须回答安全问题。未设置问题请先用原密码登录，在个人设置中设置；原密码和答案均遗忘时请联系服务器管理员。</p>}

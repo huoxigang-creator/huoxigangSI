@@ -6,7 +6,7 @@ const v=(e:Ent,c:number)=>e.vals.get(c)?.[0]?.trim()??'';
 const n=(e:Ent,c:number,fallback=NaN)=>v(e,c)===''?fallback:Number(v(e,c));
 const clean=(s:string)=>s.replace(/\\U\+([0-9a-f]{4})/gi,(_,h)=>String.fromCharCode(parseInt(h,16))).replace(/\\P/g,' ').replace(/\\[A-Za-z][^;]*;/g,'').replace(/[{}]/g,'').trim();
 type Point={x:number;y:number};
-type Dim=Point&{value:number;axis:'x'|'y'|'other';start:number;end:number;line:number};
+type Dim=Point&{value:number;axis:'x'|'y'|'other';start:number;end:number;line:number;a:Point;b:Point;def:Point};
 type Box={left:number;right:number;bottom:number;top:number};
 const contains=(b:Box,p:Point)=>p.x>=b.left&&p.x<=b.right&&p.y>=b.bottom&&p.y<=b.top;
 
@@ -15,14 +15,20 @@ const contains=(b:Box,p:Point)=>p.x>=b.left&&p.x<=b.right&&p.y>=b.bottom&&p.y<=b
 export function parseDxfText(text:string,source:string):CadRow[]{
  if(text.startsWith('AutoCAD Binary DXF'))throw new CadImportError('请将二进制DXF另存为ASCII DXF后上传');
  const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/),ents:Ent[]=[];
- const types=new Set(['SECTION','ENDSEC','BLOCK','ENDBLK','INSERT','TEXT','MTEXT','ATTRIB','DIMENSION','LWPOLYLINE']);
- const codes=new Set([1,2,3,10,11,13,14,20,21,23,24,41,42,50,67,70]);
+ const types=new Set(['SECTION','ENDSEC','BLOCK','ENDBLK','INSERT','TEXT','MTEXT','ATTRIB','DIMENSION','LWPOLYLINE','LINE','CIRCLE','ARC','POLYLINE','VERTEX','SEQEND']);
+ const codes=new Set([1,2,3,10,11,13,14,20,21,23,24,40,41,42,50,51,60,67,70]);
  let cur:Ent|null=null;
  for(let i=0;i+1<lines.length;i+=2){const code=Number(lines[i].trim());if(!Number.isInteger(code))continue;
   if(code===0){if(cur)ents.push(cur);const type=lines[i+1].trim();cur=types.has(type)?{type,vals:new Map()}:null;}
   else if(cur&&codes.has(code)){const a=cur.vals.get(code)||[];a.push(lines[i+1]);cur.vals.set(code,a);}
  }
  if(cur)ents.push(cur);
+ for(let i=0;i<ents.length;i++)if(ents[i].type==='POLYLINE'){
+  const e=ents[i];if(n(e,70,0)&(8|16|64))continue;
+  const xs:string[]=[],ys:string[]=[],bulges:string[]=[];
+  for(let j=i+1;j<ents.length&&ents[j].type==='VERTEX';j++){xs.push(v(ents[j],10));ys.push(v(ents[j],20));bulges.push(v(ents[j],42)||'0');}
+  e.type='LWPOLYLINE';e.vals.set(10,xs);e.vals.set(20,ys);e.vals.set(42,bulges);
+ }
  let section='',block:Ent[]|null=null,unit=4;
  const model:Ent[]=[],blocks=new Map<string,{base:Point;entities:Ent[]}>();
  // INSUNITS describes drawing coordinates, not DIMENSION text overrides.
@@ -43,7 +49,8 @@ export function parseDxfText(text:string,source:string):CadRow[]{
  const point=(m:Matrix,x:number,y:number):Point=>({x:m[0]*x+m[2]*y+m[4],y:m[1]*x+m[3]*y+m[5]});
  const placed:{e:Ent;m:Matrix}[]=[];
  function expand(es:Ent[],m:Matrix,path:string[]){for(const e of es){
-  if(e.type!=='INSERT'){if(['TEXT','MTEXT','ATTRIB','DIMENSION','LWPOLYLINE'].includes(e.type))placed.push({e,m});continue;}
+  if(placed.length>=100000)throw new CadImportError('CAD图块过于复杂，请拆分图纸后上传');
+  if(e.type!=='INSERT'){if(n(e,60,0)!==1&&['TEXT','MTEXT','ATTRIB','DIMENSION','LWPOLYLINE','LINE','CIRCLE','ARC'].includes(e.type))placed.push({e,m});continue;}
   const key=v(e,2),b=blocks.get(key);if(!b||path.includes(key)||path.length>=12)continue;
   if(placed.length>100000)throw new CadImportError('CAD图块过于复杂，请拆分图纸后上传');
   const a=n(e,50,0)*Math.PI/180,sx=n(e,41,1),sy=n(e,42,1),c=Math.cos(a),s=Math.sin(a);
@@ -73,7 +80,7 @@ export function parseDxfText(text:string,source:string):CadRow[]{
    const scale=localDistance>0?Math.hypot(dx,dy)/localDistance:1;
    const value=Number.isFinite(override)?override*scale:Math.round(n(e,42,localDistance)*mm*scale);
    if(value<=0||value>30000||!Number.isFinite(value))continue;
-   dims.push({...p,value,axis,start:axis==='y'?Math.min(a.y,b.y):Math.min(a.x,b.x),end:axis==='y'?Math.max(a.y,b.y):Math.max(a.x,b.x),line:axis==='y'?p.x:p.y});
+   dims.push({...p,a,b,def:v(e,10)&&v(e,20)?point(m,n(e,10),n(e,20)):p,value,axis,start:axis==='y'?Math.min(a.y,b.y):Math.min(a.x,b.x),end:axis==='y'?Math.max(a.y,b.y):Math.max(a.x,b.x),line:axis==='y'?p.x:p.y});
   }else if(e.type==='LWPOLYLINE'&&(n(e,70,0)&1)){
    const xs=e.vals.get(10)||[],ys=e.vals.get(20)||[];
    if(xs.length!==4||ys.length!==4||(e.vals.get(42)||[]).some(s=>Number(s)!==0))continue;
@@ -82,7 +89,7 @@ export function parseDxfText(text:string,source:string):CadRow[]{
    if(ps.every(p=>(Math.abs(p.x-box.left)<0.01||Math.abs(p.x-box.right)<0.01)&&(Math.abs(p.y-box.bottom)<0.01||Math.abs(p.y-box.top)<0.01)))boxes.push(box);
   }
  }
- const frames=anchors.map(a=>boxes.filter(b=>contains(b,a)&&anchors.filter(p=>contains(b,p)).length===1).sort((a,b)=>(a.right-a.left)*(a.top-a.bottom)-(b.right-b.left)*(b.top-b.bottom))[0]);
+ const frames=anchors.map(a=>boxes.filter(b=>contains(b,a)&&dims.some(d=>contains(b,d))&&anchors.filter(p=>contains(b,p)).length===1).sort((a,b)=>(a.right-a.left)*(a.top-a.bottom)-(b.right-b.left)*(b.top-b.bottom))[0]);
  const buckets=anchors.map(()=>[] as Dim[]);
  for(const d of dims){let best=-1,distance=Infinity;
   const framed=frames.map((b,i)=>b&&contains(b,d)?i:-1).filter(i=>i>=0);
@@ -101,6 +108,73 @@ export function parseDxfText(text:string,source:string):CadRow[]{
    return {value:keep.reduce((s,d)=>s+d.value,0),formula:keep.map(d=>d.value).join('+')};
   }).sort((a,b)=>b.value-a.value)[0];
  }
+ // Preview geometry is independent from measurement: no invented cabinet rectangles.
+ // Only safe SVG primitives are emitted; CAD text is escaped, never inserted as markup.
+ const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]!));
+ const fmt=(x:number)=>String(Math.round(x*1000)/1000);
+ const bounds=(ps:Point[]):Box=>({left:Math.min(...ps.map(p=>p.x)),right:Math.max(...ps.map(p=>p.x)),bottom:Math.min(...ps.map(p=>p.y)),top:Math.max(...ps.map(p=>p.y))});
+ const overlap=(a:Box,b:Box)=>a.left<=b.right&&a.right>=b.left&&a.bottom<=b.top&&a.top>=b.bottom;
+ const pad=(b:Box,p:number):Box=>({left:b.left-p,right:b.right+p,bottom:b.bottom-p,top:b.top+p});
+ const union=(a:Box,b:Box):Box=>({left:Math.min(a.left,b.left),right:Math.max(a.right,b.right),bottom:Math.min(a.bottom,b.bottom),top:Math.max(a.top,b.top)});
+ const graphics:{box:Box;svg:string;shape:boolean}[]=[];
+ function path(ps:Point[],closed=false){if(ps.length<2||!ps.every(p=>Number.isFinite(p.x+p.y)))return;
+  graphics.push({box:bounds(ps),shape:true,svg:`<path d="M${ps.map(p=>fmt(p.x)+','+fmt(-p.y)).join(' L')}${closed?' Z':''}" fill="none"/>`});
+ }
+ for(const {e,m} of placed){
+  if(e.type==='LINE')path([point(m,n(e,10),n(e,20)),point(m,n(e,11),n(e,21))]);
+  if(e.type==='LWPOLYLINE'){
+   const xs=e.vals.get(10)||[],ys=e.vals.get(20)||[],bulges=e.vals.get(42)||[];
+   if(xs.length>10000)continue;
+   const raw=xs.map((x,i)=>({x:Number(x),y:Number(ys[i])})),ps:Point[]=[];
+   const closed=!!(n(e,70,0)&1);
+   for(let j=0;j<raw.length;j++){
+    const a=raw[j],b=raw[(j+1)%raw.length];ps.push(point(m,a.x,a.y));
+    const bulge=Number(bulges[j]||0);if(!bulge||j===raw.length-1&&!closed)continue;
+    const dx=b.x-a.x,dy=b.y-a.y,cx=(a.x+b.x)/2-dy*(1-bulge*bulge)/(4*bulge),cy=(a.y+b.y)/2+dx*(1-bulge*bulge)/(4*bulge);
+    const angle=4*Math.atan(bulge),start=Math.atan2(a.y-cy,a.x-cx),r=Math.hypot(a.x-cx,a.y-cy),steps=Math.ceil(Math.abs(angle)*12);
+    for(let k=1;k<steps;k++)ps.push(point(m,cx+r*Math.cos(start+angle*k/steps),cy+r*Math.sin(start+angle*k/steps)));
+   }path(ps,closed);
+  }
+  if(e.type==='CIRCLE'||e.type==='ARC'){
+   const r=n(e,40),cx=n(e,10),cy=n(e,20),start=e.type==='ARC'?n(e,50,0)*Math.PI/180:0;
+   let sweep=e.type==='ARC'?(n(e,51,360)*Math.PI/180-start+Math.PI*2)%(Math.PI*2):Math.PI*2;
+   if(sweep===0)sweep=Math.PI*2;const steps=Math.max(8,Math.ceil(sweep*16));
+   if(r>0)path(Array.from({length:steps+1},(_,j)=>point(m,cx+r*Math.cos(start+sweep*j/steps),cy+r*Math.sin(start+sweep*j/steps))),e.type==='CIRCLE');
+  }
+  if(['TEXT','MTEXT','ATTRIB'].includes(e.type)){
+   const text=clean((e.vals.get(3)||[]).join('')+v(e,1)).slice(0,500),p=point(m,n(e,10),n(e,20));
+   const size=n(e,40,40)*Math.hypot(m[0],m[1]),angle=n(e,50,0)+Math.atan2(m[1],m[0])*180/Math.PI;
+   if(text&&size>0&&Number.isFinite(size+p.x+p.y+angle))graphics.push({box:pad(bounds([p]),size*text.length),shape:false,svg:`<text x="${fmt(p.x)}" y="${fmt(-p.y)}" font-size="${fmt(size)}" transform="rotate(${fmt(-angle)} ${fmt(p.x)} ${fmt(-p.y)})" fill="#203449" stroke="none">${esc(text)}</text>`});
+  }
+ }
+ let previewBytes=0;
+ function preview(i:number):Pick<CadRow,'previewSvg'|'previewWarning'>{
+  const a=anchors[i],ds=buckets[i],points=[a,...ds.flatMap(d=>[d.a,d.b,d,d.def])];
+  let box=bounds(points),span=Math.max(box.right-box.left,box.top-box.bottom,100);
+  if(frames[i])box=union(box,frames[i]);span=Math.max(box.right-box.left,box.top-box.bottom,100);
+  // Include nearby complete outlines, without pulling in the next cabinet drawing.
+  const search=pad(box,span*.18),shapes=graphics.filter(g=>g.shape&&overlap(g.box,search)&&g.box.right-g.box.left<=span*2&&g.box.top-g.box.bottom<=span*2).filter(g=>{
+   const p={x:(g.box.left+g.box.right)/2,y:(g.box.bottom+g.box.top)/2};
+   return anchors.every((other,j)=>j===i||Math.hypot(p.x-a.x,p.y-a.y)<=Math.hypot(p.x-other.x,p.y-other.y));
+  });
+  if(!shapes.length)return {previewWarning:'未找到可显示的二维柜体线条，请上传原图截图核对。'};
+  for(const g of shapes)box=union(box,g.box);span=Math.max(box.right-box.left,box.top-box.bottom,100);box=pad(box,span*.08);
+  const width=box.right-box.left,height=box.top-box.bottom,fontSize=span*.018,stroke=span/1400;
+  const selected=graphics.filter(g=>overlap(g.box,box));
+  if(selected.length>15000)return {previewWarning:'此柜体图形过于复杂，请上传截图核对。'};
+  const annotations=ds.map(d=>{
+   const p=d.axis==='x'?{x:d.a.x,y:d.def.y}:{x:d.def.x,y:d.a.y},q=d.axis==='x'?{x:d.b.x,y:d.def.y}:{x:d.def.x,y:d.b.y};
+   if(d.axis==='other')return '';
+   const seg=(a:Point,b:Point)=>`<path d="M${fmt(a.x)},${fmt(-a.y)} L${fmt(b.x)},${fmt(-b.y)}"/>`;
+   const tick=(p:Point)=>seg({x:p.x-fontSize*.2,y:p.y-fontSize*.2},{x:p.x+fontSize*.2,y:p.y+fontSize*.2});
+   const rotate=d.axis==='y'?` transform="rotate(-90 ${fmt(d.x)} ${fmt(-d.y)})"`:'';
+   return `<g stroke="#bb3030">${seg(d.a,p)}${seg(d.b,q)}${seg(p,q)}${tick(p)}${tick(q)}<text x="${fmt(d.x)}" y="${fmt(-d.y)}"${rotate} text-anchor="middle" font-size="${fmt(fontSize)}" fill="#bb3030" stroke="white" stroke-width="${fmt(fontSize*.2)}" paint-order="stroke">${d.value}</text></g>`;
+  }).join('');
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="${Math.max(200,Math.min(2400,Math.round(1600*height/width)))}" viewBox="${fmt(box.left)} ${fmt(-box.top)} ${fmt(width)} ${fmt(height)}"><rect x="${fmt(box.left)}" y="${fmt(-box.top)}" width="${fmt(width)}" height="${fmt(height)}" fill="white"/><g stroke="#263b50" stroke-width="${fmt(stroke)}" stroke-linejoin="round" font-family="Microsoft YaHei,Arial,sans-serif">${selected.map(g=>g.svg).join('')}${annotations}</g></svg>`;
+  previewBytes+=svg.length;
+  if(svg.length>2000000||previewBytes>12000000)return {previewWarning:'此柜体图形过于复杂，请上传截图核对。'};
+  return {previewSvg:svg,previewWarning:'CAD二维局部预览；尺寸标注依原文件重绘，不含填充、外部参照及三维实体，请对照原文件核对。'};
+ }
  return anchors.map((a,i):CadRow=>{
   const ds=buckets[i],kitchen=!a.name.includes('冰箱柜')&&/厨房|橱柜/.test(a.room+' '+a.name);
   const w=overall(ds.filter(d=>d.axis==='x')),h=overall(ds.filter(d=>d.axis==='y'));
@@ -108,6 +182,6 @@ export function parseDxfText(text:string,source:string):CadRow[]{
   const width=kitchen?total:w?.value??0,height=kitchen?0:h?.value??0;
   const complete=width>0&&width<=30000&&(height<=30000&&(height>0||!a.name.includes('冰箱柜')));
   const formula=kitchen?`${ds.map(d=>d.value).join('+')}=${total}mm`:height>0?`${w?.formula||'?'} × ${h?.formula||'?'} mm`:`${w?.formula||'?'} mm 延米`;
-  return {source,room:a.room,name:a.name,width:width>0&&width<=30000?String(width):'',height:height>0&&height<=30000?String(height):'',price:'',selected:complete,config:'',note:complete?formula:`尺寸未识别完整，请核对宽高：${formula}`};
+  return {...preview(i),source,room:a.room,name:a.name,width:width>0&&width<=30000?String(width):'',height:height>0&&height<=30000?String(height):'',price:'',selected:complete,config:'',note:complete?formula:`尺寸未识别完整，请核对宽高：${formula}`};
  });
 }

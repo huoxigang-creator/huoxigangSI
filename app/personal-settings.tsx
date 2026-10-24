@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import SecurityAnswerInput from './security-answer-input';
 
 type Me = { id: string; username: string; display_name: string; role: string; phone: string | null; created?: string };
 
@@ -96,8 +97,8 @@ export default function PersonalSettings({ onClose, onSaved }: { onClose: () => 
       <p>{securityConfigured?'已设置安全问题，修改时需验证当前密码。':'尚未设置：请设置后再使用短信登录或短信找回密码。'}</p>
       <div style={{display:'grid',gap:12}}>
       <label>安全问题<input style={field} value={question} onChange={e=>setQuestion(e.target.value)} minLength={4} maxLength={100} placeholder="填写只有你知道答案的问题"/></label>
-      <label>安全答案<input style={field} type="password" autoComplete="off" value={answer} onChange={e=>setAnswer(e.target.value)} minLength={4} maxLength={200} placeholder="至少4个字符，避免姓名、生日等公开信息"/></label>
-      <label>再次输入答案<input style={field} type="password" autoComplete="off" value={answerConfirm} onChange={e=>setAnswerConfirm(e.target.value)}/></label>
+      <SecurityAnswerInput label="安全答案" style={field} value={answer} onChange={setAnswer} minLength={4} placeholder="支持中文，至少4个字符，避免公开信息"/>
+      <SecurityAnswerInput label="再次输入答案" style={field} value={answerConfirm} onChange={setAnswerConfirm} placeholder="支持中文，请再次填写相同答案"/>
       <label>当前登录密码<input style={field} type="password" autoComplete="current-password" value={securityPassword} onChange={e=>setSecurityPassword(e.target.value)}/></label>
       </div>
       <button type="button" disabled={busy||!question||!answer||!securityPassword} style={{...button,marginTop:14}} onClick={()=>void saveSecurity()}>保存安全问题</button>

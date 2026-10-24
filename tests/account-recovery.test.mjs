@@ -7,3 +7,11 @@ test('security answer is salted and never returned; existing account cannot skip
 test('valid answer required after SMS; token is purpose-bound and single-use',t=>{const f=fixture(t);f.recovery.set('owner','测试专用安全问题','Test Answer Only');const c=f.recovery.challenge('owner','reset');assert.throws(()=>f.recovery.consume(c.challenge,'incorrect','reset'),/不正确/);assert.throws(()=>f.recovery.consume(c.challenge,'Test Answer Only','login'),/失效/);assert.equal(f.recovery.consume(c.challenge,'  TEST ANSWER ONLY  ','reset').id,'owner');assert.throws(()=>f.recovery.consume(c.challenge,'Test Answer Only','reset'),/失效/);});
 test('five failures lock account; new SMS challenge cannot bypass lock',t=>{const f=fixture(t);f.recovery.set('owner','测试专用安全问题','Long Test Answer');const c=f.recovery.challenge('owner','login');for(let i=0;i<5;i++)assert.throws(()=>f.recovery.consume(c.challenge,'incorrect','login'));assert.throws(()=>f.recovery.challenge('owner','login'),e=>e.status===429);f.advance(16*60000);const next=f.recovery.challenge('owner','login');assert.equal(f.recovery.consume(next.challenge,'Long Test Answer','login').id,'owner');});
 test('expiry, question change, disabled account and password revision invalidate challenges',t=>{const f=fixture(t);f.recovery.set('owner','测试专用安全问题','Long Test Answer');let c=f.recovery.challenge('owner','reset');f.advance(6*60000);assert.throws(()=>f.recovery.consume(c.challenge,'Long Test Answer','reset'),/失效/);c=f.recovery.challenge('owner','reset');f.db.prepare('UPDATE accounts SET updated=?').run('password-changed');assert.throws(()=>f.recovery.consume(c.challenge,'Long Test Answer','reset'),/失效/);c=f.recovery.challenge('owner','reset');f.db.prepare('UPDATE accounts SET active=0').run();assert.throws(()=>f.recovery.consume(c.challenge,'Long Test Answer','reset'),/不可用/);});
+
+
+test('Chinese answers verify after normalization and are never stored or returned in plaintext',t=>{
+ const f=fixture(t),answer=' 春天的院子 ';
+ f.recovery.set('owner','合成测试专用问题',answer);
+ const stored=f.db.prepare('SELECT * FROM account_security').get();assert.ok(!JSON.stringify(stored).includes('春天的院子'));assert.deepEqual(f.recovery.view('owner'),{configured:true,question:'合成测试专用问题'});
+ const challenge=f.recovery.challenge('owner','reset');assert.equal(f.recovery.consume(challenge.challenge,'春天的院子','reset').id,'owner');
+});

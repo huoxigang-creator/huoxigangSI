@@ -79,3 +79,22 @@ if(process.env.CAD_LARGE_TEST)test('exactly 100MB binary DXF parses successfully
  const r=await route.POST(new Request('http://localhost/api/cad-recognition',{method:'POST',headers:{'oai-authenticated-user-id':'test','content-type':'application/octet-stream','content-length':String(body.length)},body}));
  assert.equal(r.status,200);assert.equal((await r.json()).result[0].width,'2000');
 });
+
+const outline=(x=0,y=0,w=2000,h=2400)=>ent('LWPOLYLINE',[[70,1],[10,x],[20,y],[10,x+w],[20,y],[10,x+w],[20,y+h],[10,x],[20,y+h]]);
+test('each cabinet preview contains original outline and assigned dimensions only',()=>{
+ const rows=parseDxfText(doc(label()+outline()+horizontal(2000)+vertical(2400)+label('次卧/衣柜',10500,500)+outline(10000,0,1800,2100)+horizontal(1800,10000)+vertical(2100,10000)),'preview.dxf');
+ assert.match(rows[0].previewSvg,/>2000<\/text>/);assert.match(rows[0].previewSvg,/>2400<\/text>/);
+ assert.doesNotMatch(rows[0].previewSvg,/>1800<\/text>/);assert.doesNotMatch(rows[1].previewSvg,/>2400<\/text>/);
+ assert.match(rows[1].previewSvg,/>2100<\/text>/);assert.match(rows[0].previewSvg,/<path/);
+});
+test('CAD text is inert and the preview never invents missing cabinet geometry',()=>{
+ const [safe]=parseDxfText(doc(label('主卧/衣柜<script>alert(1)</script>')+outline()+horizontal(2000)),'x.dxf');
+ assert.ok(safe.previewSvg);assert.doesNotMatch(safe.previewSvg,/<script|onload|foreignObject/);assert.match(safe.previewSvg,/&lt;script&gt;/);
+ const [missing]=parseDxfText(doc(label()+horizontal(2000)),'x.dxf');assert.equal(missing.previewSvg,undefined);assert.match(missing.previewWarning,/未找到/);
+});
+test('legacy 2D polyline and rotated inserted graphics remain visible without changing measurements',()=>{
+ const poly=ent('POLYLINE',[[70,1]])+[[0,0],[2000,0],[2000,2400],[0,2400]].map(([x,y])=>ent('VERTEX',[[10,x],[20,y]])).join('')+ent('SEQEND',[]);
+ const blocks=ent('BLOCK',[[2,'cab'],[10,0],[20,0]])+label()+poly+horizontal(2000)+vertical(2400)+ent('ENDBLK',[]);
+ const [r]=parseDxfText(doc(ent('INSERT',[[2,'cab'],[10,10000],[20,5000],[50,180]]),blocks),'x.dxf');
+ assert.equal(r.width,'2000');assert.equal(r.height,'2400');assert.match(r.previewSvg,/8000,-5000/);
+});
