@@ -15,7 +15,7 @@ const linear=drawingVisionRow(JSON.stringify({room:'餐厅',name:'橱柜',width_
 });
 
 test('screenshot instruction prioritizes project field, red cabinet name and excludes title-block configuration',async()=>{
- await recognizeDrawing(image,'test',config,undefined,async(endpoint,args)=>{const body=JSON.parse(args.body),prompt=body.messages[0].content;assert.match(prompt,/项目名称.*南次卧/);assert.match(prompt,/红色柜体名称/);assert.match(prompt,/config_note 必须为空字符串/);assert.match(prompt,/此规则优先于后面的配置提取/);return Response.json({choices:[{message:{content:'{"room":"南次卧","name":"衣柜","width_mm":"1576","height_mm":"2340","config_note":""}'}}]});});
+ await recognizeDrawing(image,'test',config,undefined,async(endpoint,args)=>{const body=JSON.parse(args.body),prompt=body.messages[0].content;assert.match(prompt,/项目名称.*南次卧/);assert.match(prompt,/红色柜体名称/);assert.match(prompt,/厨房平面图命名例外/);assert.match(prompt,/地柜平面图返回name地柜/);assert.match(prompt,/吊柜平面图返回name吊柜/);assert.match(prompt,/石英石平面图/);assert.match(prompt,/config_note 必须为空字符串/);assert.match(prompt,/此规则优先于后面的配置提取/);return Response.json({choices:[{message:{content:'{"room":"南次卧","name":"衣柜","width_mm":"1576","height_mm":"2340","config_note":""}'}}]});});
 });
 
 test('multi-cabinet screenshot returns separate dimensions in one model call',async()=>{

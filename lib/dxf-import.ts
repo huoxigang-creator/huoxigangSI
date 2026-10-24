@@ -87,11 +87,14 @@ export function parseDxfText(text:string,source:string):CadRow[]{
  });
  const unnumbered=(text:string)=>text.replace(/^\s*\d+\s*[.．、:：)）-]\s*/,'');
  const cabinetName=(raw:string)=>{const text=unnumbered(raw);return /^(?:[\u4e00-\u9fffA-Za-z0-9（）()_-]{0,25}柜|岛台|中岛|榻榻米|台面|床头|护墙)$/.test(text);};
- const templateMode=roomFields.length>0&&texts.some(t=>t.red&&cabinetName(t.text));
+ const nearestRoom=(t:Point)=>[...roomFields].sort((a,b)=>Math.hypot(a.x-t.x,a.y-t.y)-Math.hypot(b.x-t.x,b.y-t.y))[0];
+ const planName=(raw:string)=>(()=>{const name=unnumbered(raw).replace(/\s/g,'').match(/^(地柜|吊柜|台面|石英石(?:台面)?)平面图$/)?.[1]||'';return name.startsWith('石英石')?'台面':name;})();
+ const titleName=(t:typeof texts[number])=>planName(t.text)&&nearestRoom(t)?.room.includes('厨房')?planName(t.text):t.red&&cabinetName(t.text)?unnumbered(t.text):'';
+ const templateMode=roomFields.length>0&&texts.some(t=>titleName(t));
  const anchors:(Point&{room:string;name:string;label?:string;address?:string})[]=[],dims:Dim[]=[],boxes:Box[]=[];
- if(templateMode)for(const t of texts.filter(t=>t.red&&cabinetName(t.text))){
+ if(templateMode)for(const t of texts.filter(t=>titleName(t))){
   const field=[...roomFields].sort((a,b)=>Math.hypot(a.x-t.x,a.y-t.y)-Math.hypot(b.x-t.x,b.y-t.y))[0];
-  if(!anchors.some(a=>(a.label||a.name)===t.text&&Math.hypot(a.x-t.x,a.y-t.y)<.01))anchors.push({x:t.x,y:t.y,room:field.room,name:unnumbered(t.text),label:t.text,address:addressFor(field)});
+  if(!anchors.some(a=>(a.label||a.name)===t.text&&Math.hypot(a.x-t.x,a.y-t.y)<.01))anchors.push({x:t.x,y:t.y,room:field.room,name:titleName(t),label:t.text,address:addressFor(field)});
  }
 
  const seen=new Set<string>();

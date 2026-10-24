@@ -147,3 +147,9 @@ test('CAD installation address metadata remains separate from room and is not re
  const body=titleText('项目名称：阳台',0,-500)+titleText('安装地址',500,-500)+titleText('云顶12-1-201',800,-500)+titleText('衣柜',500,500,1)+outline()+horizontal(2000)+vertical(2400);
  const [r]=parseDxfText(doc(body),'address.dxf');assert.equal(r.address,'云顶12-1-201');assert.equal(r.room,'阳台');assert.doesNotMatch(r.previewSvg,/云顶12-1-201|安装地址/);
 });
+test('kitchen lower-left plan titles identify base, wall and countertop separately in linear meters',()=>{
+ const titles=['地柜平面图','吊柜平面图','台面平面图','石英石平面图'];
+ const body=titles.map((title,i)=>{const x=i*10000;return ent('TEXT',[[1,'项目名称：厨房'],[10,x],[20,-200]])+ent('TEXT',[[1,title],[10,x],[20,0],[62,7]])+horizontal(2225,x,500)+vertical(1995,x,500);}).join('');
+ const rows=parseDxfText(doc(body),'synthetic.dxf');assert.deepEqual(rows.map(r=>[r.room,r.name,r.width,r.height]),[['厨房','地柜','4220',''],['厨房','吊柜','4220',''],['厨房','台面','4220',''],['厨房','台面','4220','']]);
+ assert.ok(rows.every(r=>r.selected&&r.config===''));
+});
