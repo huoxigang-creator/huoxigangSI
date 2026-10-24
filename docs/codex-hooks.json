@@ -1,0 +1,7 @@
+{
+  "description": "本项目聊天文字备忘录：正常结束时本地保存，后台只提交备忘录并推送现有GitHub仓库；启动时重试失败同步。",
+  "hooks": {
+    "SessionEnd": [{"hooks": [{"type": "command", "command": "node scripts/save-chat-memo.mjs", "timeout": 3}]}],
+    "SessionStart": [{"matcher": "startup|resume", "hooks": [{"type": "command", "command": "node scripts/save-chat-memo.mjs --retry", "timeout": 3}]}]
+  }
+}
