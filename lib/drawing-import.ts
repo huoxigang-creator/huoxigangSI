@@ -15,3 +15,11 @@ export function drawingFromWords(words:Word[],source:string):DrawingRow{
  if(!width&&!height&&candidate.length===2){const a=numbers.find(w=>w.text===candidate[0])!,b=numbers.find(w=>w.text===candidate[1])!;const left=a.bbox.x0<b.bbox.x0?a:b,bottom=left===a?b:a;if(bottom.bbox.y0>left.bbox.y1&&bottom.bbox.x0>left.bbox.x1){width=bottom.text;height=left.text;}}
  return {source:source+(candidate.length?'（尺寸候选：'+candidate.join('、')+' mm）':''),room,name,width,height,price:'',selected:true};
 }
+
+/** 冰箱柜优先按面积；厨房/橱柜按延米，其余有高算面积、无高算延米。 */
+export function isLinearCabinet(row:Pick<DrawingRow,'room'|'name'>){return !row.name.includes('冰箱柜')&&/厨房|橱柜/.test(row.room+' '+row.name);}
+export function drawingMeasure(row:DrawingRow){
+ const linear=isLinearCabinet(row),area=linear?null:drawingArea(row.width,row.height);
+ const meters=area===null&&!row.name.includes('冰箱柜')&&(linear||!row.height.trim())?drawingMeters(row.width):null;
+ return {area,meters};
+}
