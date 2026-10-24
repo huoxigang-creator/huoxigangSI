@@ -15,7 +15,15 @@ export async function requestCadRecognition(file:File,onProgress:(message:string
  const isDwg=/\.dwg$/i.test(file.name);
  onProgress(`正在解析CAD文件 ${file.name}，提取柜体和尺寸…`);
  const response=await fetch('/api/cad-recognition',{method:'POST',signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({content,source:file.name.slice(0,240),dwg:isDwg,encoding:'base64'})});
- const value=await response.json() as {error?:string;result?:DrawingRow[]};
+ const body=await response.text();
+ let value:{error?:string;result?:DrawingRow[]};
+ try{value=JSON.parse(body);}catch{
+  if(response.status===413)throw Error('服务器上传大小限制拦截了CAD文件，请联系管理员调整上传限制（支持20MB以内CAD文件）。');
+  if(response.status===401||response.redirected)throw Error('登录已失效，请刷新页面重新登录后上传CAD文件。');
+  if([502,503,504].includes(response.status))throw Error('CAD识别服务暂时不可用，请稍后重试。');
+  throw Error('CAD接口未返回有效识别结果（HTTP '+response.status+'），请稍后重试。');
+ }
+ if(!value||typeof value!=='object'||Array.isArray(value))throw Error('CAD接口返回格式无效，请稍后重试');
  if(!response.ok)throw Error(value.error||'CAD识别失败，请重试');
  if(!value.result||!value.result.length)throw Error('CAD中未识别到柜体');
  return value.result;
