@@ -9,7 +9,7 @@ import MonthlyOrders from './monthly-orders';
 import ReceiptProjectFields from './receipt-project-fields';
 import './manager-updates.css';
 import {ProjectList,TaskList,TransactionList} from './manager-lists';
-const QuoteWorkspace=deferredPanel(()=>import('./quote-workspace'));
+import QuoteWorkspace from './quote-workspace';
 import CustomerSettlement,{CustomerSettlementSummary} from './customer-settlement';
 const SettlementReceipt=deferredPanel(()=>import('./settlement-receipt'));
 import ManagedTable,{TablePreferencesProvider} from './managed-table';
