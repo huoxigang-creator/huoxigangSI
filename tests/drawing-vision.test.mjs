@@ -13,3 +13,7 @@ test('AI refrigerator cabinet keeps area dimensions even inside kitchen',()=>{
 const row=drawingVisionRow(JSON.stringify({room:'厨房',name:'冰箱柜',width_mm:900,height_mm:2400,warning:'900*2400'}),'test');assert.equal(row.height,'2400');assert.equal(row.width,'900');
 const linear=drawingVisionRow(JSON.stringify({room:'餐厅',name:'橱柜',width_mm:3000,height_mm:2400,warning:'1000+2000'}),'test');assert.equal(linear.height,'');assert.equal(linear.width,'3000');
 });
+
+test('screenshot instruction prioritizes project field, red cabinet name and excludes title-block configuration',async()=>{
+ await recognizeDrawing(image,'test',config,undefined,async(endpoint,args)=>{const body=JSON.parse(args.body),prompt=body.messages[0].content;assert.match(prompt,/项目名称.*南次卧/);assert.match(prompt,/红色柜体名称/);assert.match(prompt,/config_note 必须为空字符串/);assert.match(prompt,/此规则优先于后面的配置提取/);return Response.json({choices:[{message:{content:'{"room":"南次卧","name":"衣柜","width_mm":"1576","height_mm":"2340","config_note":""}'}}]});});
+});

@@ -118,3 +118,22 @@ test('converted output size is checked before reading it into memory',async()=>{
  globalThis.__cadConversionTest=async(_tool,args)=>{fs.writeFileSync(args[2],'');fs.truncateSync(args[2],100*1024*1024+1);};
  try{const response=await conversionRoute.POST(dwgRequest());assert.equal(response.status,413);assert.match((await response.json()).error,/转换结果超过100MB/);}finally{delete globalThis.__cadConversionTest;}
 });
+
+const titleText=(text,x,y,color=7)=>ent('TEXT',[[1,text],[10,x],[20,y],[40,50],[62,color]]);
+test('title-block format takes room only from project field and red cabinet name, filtering all other text',()=>{
+ const body=titleText('项目名称',0,-500)+titleText('南次卧',300,-500)+titleText('联系电话',0,-600)+titleText('19000000000',300,-600)+titleText('安装地址：某小区',1000,-500)+titleText('材质及五金说明',3000,500)+titleText('门板图',1000,1000,1)+titleText('衣柜',500,500,1)+titleText('鞋柜',600,600)+label('错误房间/橱柜',700,700)+outline()+horizontal(1576)+vertical(2340);
+ const rows=parseDxfText(doc(body),'template.dxf');assert.equal(rows.length,1);
+ assert.deepEqual([rows[0].room,rows[0].name,rows[0].width,rows[0].height],['南次卧','衣柜','1576','2340']);assert.equal(rows[0].config,'');
+ assert.doesNotMatch(rows[0].previewSvg,/联系电话|19000000000|安装地址|五金|门板图|鞋柜|错误房间/);assert.match(rows[0].previewSvg,/>衣柜</);
+});
+test('project field supports inline value and inherited red block or layer color',()=>{
+ const block=ent('BLOCK',[[2,'cab'],[10,0],[20,0]])+titleText('衣柜',500,500,0)+outline()+horizontal(1800)+vertical(2400)+ent('ENDBLK',[]);
+ const body=titleText('项目名称：北卧室',0,-500)+ent('INSERT',[[2,'cab'],[10,0],[20,0],[62,1]]);
+ const [r]=parseDxfText(doc(body,block),'template.dxf');assert.equal(r.room,'北卧室');assert.equal(r.width,'1800');
+ const layer=ent('SECTION',[[2,'TABLES']])+ent('LAYER',[[2,'红色柜名'],[62,1]])+ent('ENDSEC',[]);
+ const row=parseDxfText(layer+doc(titleText('项目名称：主卧',0,-500)+ent('TEXT',[[1,'衣柜'],[8,'红色柜名'],[10,500],[20,500]])+horizontal(2000)),'layer.dxf')[0];assert.equal(row.name,'衣柜');assert.equal(row.room,'主卧');
+});
+test('multiple project title fields stay paired with their own red cabinet and dimensions',()=>{
+ const body=titleText('项目名称：南卧',0,-500)+titleText('衣柜',500,500,1)+outline()+horizontal(2000)+vertical(2400)+titleText('项目名称：北卧',10000,-500)+titleText('衣柜',10500,500,1)+outline(10000,0,1800,2100)+horizontal(1800,10000)+vertical(2100,10000);
+ assert.deepEqual(parseDxfText(doc(body),'two.dxf').map(r=>[r.room,r.name,r.width,r.height]),[['南卧','衣柜','2000','2400'],['北卧','衣柜','1800','2100']]);
+});

@@ -15,8 +15,8 @@ const contains=(b:Box,p:Point)=>p.x>=b.left&&p.x<=b.right&&p.y>=b.bottom&&p.y<=b
 export function parseDxfText(text:string,source:string):CadRow[]{
  if(text.startsWith('AutoCAD Binary DXF'))throw new CadImportError('请将二进制DXF另存为ASCII DXF后上传');
  const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/),ents:Ent[]=[];
- const types=new Set(['SECTION','ENDSEC','BLOCK','ENDBLK','INSERT','TEXT','MTEXT','ATTRIB','DIMENSION','LWPOLYLINE','LINE','CIRCLE','ARC','POLYLINE','VERTEX','SEQEND']);
- const codes=new Set([1,2,3,10,11,13,14,20,21,23,24,40,41,42,50,51,60,67,70]);
+ const types=new Set(['SECTION','ENDSEC','LAYER','BLOCK','ENDBLK','INSERT','TEXT','MTEXT','ATTRIB','DIMENSION','LWPOLYLINE','LINE','CIRCLE','ARC','POLYLINE','VERTEX','SEQEND']);
+ const codes=new Set([8,62,420,1,2,3,10,11,13,14,20,21,23,24,40,41,42,50,51,60,67,70]);
  let cur:Ent|null=null;
  for(let i=0;i+1<lines.length;i+=2){const code=Number(lines[i].trim());if(!Number.isInteger(code))continue;
   if(code===0){if(cur)ents.push(cur);const type=lines[i+1].trim();cur=types.has(type)?{type,vals:new Map()}:null;}
@@ -30,6 +30,7 @@ export function parseDxfText(text:string,source:string):CadRow[]{
   e.type='LWPOLYLINE';e.vals.set(10,xs);e.vals.set(20,ys);e.vals.set(42,bulges);
  }
  let section='',block:Ent[]|null=null,unit=4;
+ const layers=new Map<string,Ent>();
  const model:Ent[]=[],blocks=new Map<string,{base:Point;entities:Ent[]}>();
  // INSUNITS describes drawing coordinates, not DIMENSION text overrides.
  for(let i=0;i+1<lines.length;i+=2)if(lines[i].trim()==='9'&&lines[i+1].trim()==='$INSUNITS')unit=Number(lines[i+3]?.trim())||4;
@@ -38,6 +39,7 @@ export function parseDxfText(text:string,source:string):CadRow[]{
  for(const e of ents){
   if(e.type==='SECTION'){section=v(e,2);continue;}
   if(e.type==='ENDSEC'){section='';block=null;continue;}
+  if(section==='TABLES'&&e.type==='LAYER')layers.set(v(e,2),e);
   if(section==='BLOCKS'){
    if(e.type==='BLOCK'){block=[];blocks.set(v(e,2),{base:{x:n(e,10,0),y:n(e,20,0)},entities:block});}
    else if(e.type==='ENDBLK')block=null;else block?.push(e);
@@ -47,22 +49,45 @@ export function parseDxfText(text:string,source:string):CadRow[]{
  type Matrix=[number,number,number,number,number,number];
  const identity:Matrix=[1,0,0,1,0,0];
  const point=(m:Matrix,x:number,y:number):Point=>({x:m[0]*x+m[2]*y+m[4],y:m[1]*x+m[3]*y+m[5]});
- const placed:{e:Ent;m:Matrix}[]=[];
- function expand(es:Ent[],m:Matrix,path:string[]){for(const e of es){
+ const placed:{e:Ent;m:Matrix;red:boolean}[]=[];
+ const isRed=(e:Ent,layer:string,inherited=false):boolean=>{
+  const color=n(e,420);if(Number.isFinite(color)){const r=(color>>16)&255,g=(color>>8)&255,b=color&255;return r>150&&r>g*1.5&&r>b*1.5;}
+  const aci=n(e,62,256);if(aci===0)return inherited;if(aci!==256)return aci===1;
+  const l=e.type==='LAYER'?undefined:layers.get(layer);return l?isRed(l,'',false):false;
+ };
+ function expand(es:Ent[],m:Matrix,path:string[],parentLayer='0',parentRed=false){for(const e of es){
+  const layer=v(e,8)==='0'||!v(e,8)?parentLayer:v(e,8),red=isRed(e,layer,parentRed);
   if(placed.length>=100000)throw new CadImportError('CAD图块过于复杂，请拆分图纸后上传');
-  if(e.type!=='INSERT'){if(n(e,60,0)!==1&&['TEXT','MTEXT','ATTRIB','DIMENSION','LWPOLYLINE','LINE','CIRCLE','ARC'].includes(e.type))placed.push({e,m});continue;}
+  if(e.type!=='INSERT'){if(n(e,60,0)!==1&&['TEXT','MTEXT','ATTRIB','DIMENSION','LWPOLYLINE','LINE','CIRCLE','ARC'].includes(e.type))placed.push({e,m,red});continue;}
   const key=v(e,2),b=blocks.get(key);if(!b||path.includes(key)||path.length>=12)continue;
   if(placed.length>100000)throw new CadImportError('CAD图块过于复杂，请拆分图纸后上传');
   const a=n(e,50,0)*Math.PI/180,sx=n(e,41,1),sy=n(e,42,1),c=Math.cos(a),s=Math.sin(a);
   const q:Matrix=[c*sx,s*sx,-s*sy,c*sy,n(e,10,0)-c*sx*b.base.x+s*sy*b.base.y,n(e,20,0)-s*sx*b.base.x-c*sy*b.base.y];
   const r=point(m,q[4],q[5]);
-  expand(b.entities,[m[0]*q[0]+m[2]*q[1],m[1]*q[0]+m[3]*q[1],m[0]*q[2]+m[2]*q[3],m[1]*q[2]+m[3]*q[3],r.x,r.y],[...path,key]);
+  expand(b.entities,[m[0]*q[0]+m[2]*q[1],m[1]*q[0]+m[3]*q[1],m[0]*q[2]+m[2]*q[3],m[1]*q[2]+m[3]*q[3],r.x,r.y],[...path,key],layer,red);
  }}
  expand(model,identity,[]);
+ // Title-block drawings use only the project-name field and red cabinet labels.
+ // Read placed text (including transformed blocks), never unused definitions.
+ const texts=placed.filter(({e})=>['TEXT','MTEXT','ATTRIB'].includes(e.type)).map(({e,m,red})=>({e,red,...point(m,n(e,10),n(e,20)),size:n(e,40,40)*Math.hypot(m[0],m[1]),text:clean((e.vals.get(3)||[]).join('')+v(e,1))})).filter(t=>t.text&&Number.isFinite(t.x+t.y));
+ const roomFields=texts.flatMap(t=>{
+  const match=t.text.match(/^项目名称\s*[:：]?\s*(.*)$/);if(!match)return [];
+  let room=match[1].trim();
+  if(!room){const candidates=texts.filter(p=>p!==t&&p.x>t.x&&p.x-t.x<t.size*20&&Math.abs(p.y-t.y)<Math.max(t.size,p.size)*.8).sort((a,b)=>a.x-b.x);room=candidates[0]?.text||'';}
+  return room&&room.length<=50&&!/[:：/／]|电话|地址|日期|合同|项目名称/.test(room)?[{...t,room}]:[];
+ });
+ const cabinetName=(text:string)=>/^(?:[\u4e00-\u9fffA-Za-z0-9（）()_-]{0,25}柜|岛台|中岛|榻榻米|台面|床头|护墙)$/.test(text);
+ const templateMode=roomFields.length>0&&texts.some(t=>t.red&&cabinetName(t.text));
  const anchors:(Point&{room:string;name:string})[]=[],dims:Dim[]=[],boxes:Box[]=[];
+ if(templateMode)for(const t of texts.filter(t=>t.red&&cabinetName(t.text))){
+  const field=[...roomFields].sort((a,b)=>Math.hypot(a.x-t.x,a.y-t.y)-Math.hypot(b.x-t.x,b.y-t.y))[0];
+  if(!anchors.some(a=>a.name===t.text&&Math.hypot(a.x-t.x,a.y-t.y)<.01))anchors.push({x:t.x,y:t.y,room:field.room,name:t.text});
+ }
+
  const seen=new Set<string>();
  for(const {e,m} of placed){
   if(['TEXT','MTEXT','ATTRIB'].includes(e.type)){
+   if(templateMode)continue;
    const raw=clean((e.vals.get(3)||[]).join('')+v(e,1));
    const match=raw.match(/^(.{1,50}?)\s*[/／]\s*(.{1,100})$/);if(!match||!/柜|岛台|榻榻米|中岛|台面|床头|护墙/.test(match[2]))continue;
    const p=point(m,n(e,10),n(e,20));if(!Number.isFinite(p.x+p.y))continue;
@@ -89,11 +114,11 @@ export function parseDxfText(text:string,source:string):CadRow[]{
    if(ps.every(p=>(Math.abs(p.x-box.left)<0.01||Math.abs(p.x-box.right)<0.01)&&(Math.abs(p.y-box.bottom)<0.01||Math.abs(p.y-box.top)<0.01)))boxes.push(box);
   }
  }
- const frames=anchors.map(a=>boxes.filter(b=>contains(b,a)&&dims.some(d=>contains(b,d))&&anchors.filter(p=>contains(b,p)).length===1).sort((a,b)=>(a.right-a.left)*(a.top-a.bottom)-(b.right-b.left)*(b.top-b.bottom))[0]);
+ const frames=anchors.map(a=>templateMode?undefined:boxes.filter(b=>contains(b,a)&&dims.some(d=>contains(b,d))&&anchors.filter(p=>contains(b,p)).length===1).sort((a,b)=>(a.right-a.left)*(a.top-a.bottom)-(b.right-b.left)*(b.top-b.bottom))[0]);
  const buckets=anchors.map(()=>[] as Dim[]);
  for(const d of dims){let best=-1,distance=Infinity;
   const framed=frames.map((b,i)=>b&&contains(b,d)?i:-1).filter(i=>i>=0);
-  for(let i=0;i<anchors.length;i++){if(framed.length&&!framed.includes(i)||!framed.length&&frames[i]&&!contains(frames[i],d))continue;
+  for(let i=0;i<anchors.length;i++){const frame=frames[i];if(framed.length&&!framed.includes(i)||!framed.length&&frame&&!contains(frame,d))continue;
    const dist=Math.hypot(d.x-anchors[i].x,d.y-anchors[i].y);if(dist<distance){distance=dist;best=i;}}
   if(best>=0)buckets[best].push(d);
  }
@@ -143,8 +168,9 @@ export function parseDxfText(text:string,source:string):CadRow[]{
   }
   if(['TEXT','MTEXT','ATTRIB'].includes(e.type)){
    const text=clean((e.vals.get(3)||[]).join('')+v(e,1)).slice(0,500),p=point(m,n(e,10),n(e,20));
+   if(templateMode&&!anchors.some(a=>a.name===text&&Math.hypot(a.x-p.x,a.y-p.y)<.01))continue;
    const size=n(e,40,40)*Math.hypot(m[0],m[1]),angle=n(e,50,0)+Math.atan2(m[1],m[0])*180/Math.PI;
-   if(text&&size>0&&Number.isFinite(size+p.x+p.y+angle))graphics.push({box:pad(bounds([p]),size*text.length),shape:false,svg:`<text x="${fmt(p.x)}" y="${fmt(-p.y)}" font-size="${fmt(size)}" transform="rotate(${fmt(-angle)} ${fmt(p.x)} ${fmt(-p.y)})" fill="#203449" stroke="none">${esc(text)}</text>`});
+   if(text&&size>0&&Number.isFinite(size+p.x+p.y+angle))graphics.push({box:pad(bounds([p]),size*text.length),shape:false,svg:`<text x="${fmt(p.x)}" y="${fmt(-p.y)}" font-size="${fmt(size)}" transform="rotate(${fmt(-angle)} ${fmt(p.x)} ${fmt(-p.y)})" fill="${templateMode?'#bb3030':'#203449'}" stroke="none">${esc(text)}</text>`});
   }
  }
  let previewBytes=0;

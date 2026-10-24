@@ -40,3 +40,8 @@ test('equivalent dimension notation deduplicates while width-only and width-heig
  assert.equal(uniqueDrawingEntries(entries).length,2);
  const missing={...row,room:'',name:'',width:''};assert.equal(uniqueDrawingEntries([{row:missing},{row:missing}]).length,2);
 });
+
+test('local OCR uses project field as room and flags color ambiguity without importing title notes',()=>{
+ const words=[word('项目名称',0,500,100,520),word('南次卧',120,500,200,520),word('联系电话',0,540),word('19000000000',120,540),word('衣柜',500,200),word('2340',100,100),word('1576',500,400),word('材质及五金说明',800,500)];
+ const row=drawingFromWords(words,'截图.png');assert.equal(row.room,'南次卧');assert.equal(row.name,'衣柜');assert.match(row.note,/核对红色柜名/);assert.equal(row.config,undefined);assert.equal(drawingFromWords([...words,word('鞋柜',700,200)],'截图.png').name,'');
+});

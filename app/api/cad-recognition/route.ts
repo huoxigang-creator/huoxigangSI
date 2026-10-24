@@ -67,7 +67,7 @@ export async function POST(r:Request){try{
       text=content;
     }
     const rows=parseDxfText(text,typeof source==='string'&&source.trim()?source.slice(0,240):'CAD图纸');
-    if(!rows.length)throw new CadImportError('未能从CAD中识别出柜体。请确认图纸包含"房间/柜名"文字和尺寸标注（如 厨房/地柜），柜名需含"柜/岛台"等字。');
+    if(!rows.length)throw new CadImportError('未能从CAD中识别出柜体。请确认图纸包含“房间/柜名”（如 厨房/地柜），或“项目名称”填写的房间与红色柜名，并有对应尺寸标注。');
     return Response.json({result:rows},{headers:selectionHeaders});
   }finally{active--;}
 }catch(e){
