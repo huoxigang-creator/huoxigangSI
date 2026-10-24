@@ -96,3 +96,75 @@ export async function recognizeSpeech(bytes: Uint8Array): Promise<string> {
   if (!text) throw new Error('未识别到语音内容，请靠近麦克风重试');
   return text;
 }
+
+// ========== 阿里云百炼语音大模型（Qwen3-ASR-Flash，OpenAI 兼容） ==========
+// 升级通道：语音建档优先走百炼语音大模型（识别更准、支持“一三八”→138 的 ITN 规整），
+// 未配置百炼密钥时自动回退到上方 ISI 一句话识别。密钥复用 lib/recognition-settings.ts 的
+// GUGEMEI_AI_API_KEY / GUGEMEI_AI_BASE_URL（业务空间专属域名，无需新增任何配置）。
+export function qwenAsrConfigured(): boolean {
+  return Boolean(process.env.GUGEMEI_AI_API_KEY && process.env.GUGEMEI_AI_BASE_URL);
+}
+
+export const QWEN_ASR_SETUP_HINT = '语音大模型未配置：请在服务器 /etc/gugemei/ai.env 写入 GUGEMEI_AI_API_KEY 与 GUGEMEI_AI_BASE_URL（阿里云百炼业务空间专属域名），重启 gugemei 服务后生效。';
+
+/** 任一语音通道可用（百炼语音大模型 或 ISI 一句话识别）即视为已配置。 */
+export function speechConfigured(): boolean {
+  return qwenAsrConfigured() || aliyunAsrConfigured();
+}
+
+export const SPEECH_SETUP_HINT = '语音识别未配置：请配置阿里云百炼语音大模型（GUGEMEI_AI_API_KEY + GUGEMEI_AI_BASE_URL）或在服务器 /etc/gugemei/asr.env 写入 ALIYUN_ASR_ACCESS_KEY_ID、ALIYUN_ASR_ACCESS_KEY_SECRET 与 ALIYUN_ASR_APP_KEY（文件权限 600），重启 gugemei 服务后生效。';
+
+function nlsText(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    const parts = content.map((item: any) => typeof item?.text === 'string' ? item.text : '').filter(Boolean);
+    if (parts.length) return parts.join('');
+  }
+  return '';
+}
+
+/**
+ * 百炼语音大模型一句话识别：音频以 data URL（audio/wav + base64）传入 chat/completions，
+ * enable_itn=true 将「一三八一二三四五六七八」等口语数字规整为「13812345678」，电话识别更准。
+ */
+export async function recognizeSpeechQwen(bytes: Uint8Array): Promise<string> {
+  const base = process.env.GUGEMEI_AI_BASE_URL;
+  const key = process.env.GUGEMEI_AI_API_KEY;
+  const model = process.env.GUGEMEI_AI_ASR_MODEL || 'qwen3-asr-flash';
+  if (!base || !key) throw new Error(QWEN_ASR_SETUP_HINT);
+  if (!bytes.length || bytes.length > 2 * 1024 * 1024) throw new Error('语音文件过大或为空（不超过 2MB / 60 秒）');
+  const dataUri = 'data:audio/wav;base64,' + Buffer.from(bytes).toString('base64');
+  const response = await fetch(base.replace(/\/+$/, '') + '/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'user', content: [{ type: 'input_audio', input_audio: { data: dataUri } }] }],
+      asr_options: { language: 'zh', enable_itn: true },
+      temperature: 0,
+    }),
+    signal: AbortSignal.timeout(60000),
+  });
+  if (!response.ok) {
+    let failure = '';
+    try { const body = await response.json() as any; failure = String(body.error?.code || '') + ' ' + String(body.error?.message || ''); } catch { /* 忽略 */ }
+    if (/quota|balance|arrear|insufficient|额度|欠费|余额|overdue/i.test(failure)) throw new Error('语音大模型额度不足或账号欠费，请充值后重试；也可先手动填写');
+    throw new Error('语音大模型暂不可用（HTTP ' + response.status + '），请重试；也可先手动填写');
+  }
+  const payload = await response.json().catch(() => null) as any;
+  const text = nlsText(payload?.choices?.[0]?.message?.content).trim();
+  if (!text) throw new Error('未识别到语音内容，请靠近麦克风重试');
+  return text;
+}
+
+/** 语音识别总入口：优先百炼语音大模型，失败或未配置时自动回退 ISI 一句话识别。 */
+export async function recognizeSpeechSmart(bytes: Uint8Array): Promise<string> {
+  let lastError: unknown = null;
+  if (qwenAsrConfigured()) {
+    try { return await recognizeSpeechQwen(bytes); } catch (error) { lastError = error; }
+  }
+  try { return await recognizeSpeech(bytes); } catch (error) {
+    if (lastError) console.error('[asr] qwen speech failed:', lastError);
+    throw error;
+  }
+}
