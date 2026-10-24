@@ -62,3 +62,20 @@ test('TV cabinet with width alone uses meters; width and height uses area',()=>{
 const [linear]=parseDxfText(doc(label('客厅/电视柜')+horizontal(2000)),'a.dxf');assert.equal(linear.width,'2000');assert.equal(linear.height,'');assert.equal(linear.selected,true);
 const [area]=parseDxfText(doc(label('客厅/电视柜')+horizontal(2000)+vertical(500)),'a.dxf');assert.equal(area.width,'2000');assert.equal(area.height,'500');
 });
+
+test('binary DXF route returns expected cabinets and keeps source name',async()=>{
+ const body=doc(label('厨房/冰箱柜')+horizontal(900)+vertical(2400));
+ const r=await route.POST(new Request('http://localhost/api/cad-recognition',{method:'POST',headers:{'oai-authenticated-user-id':'test','content-type':'application/octet-stream','x-cad-source':encodeURIComponent('测试.dxf')},body}));
+ assert.equal(r.status,200);const value=await r.json();assert.equal(value.result[0].height,'2400');assert.equal(value.result[0].source,'测试.dxf');
+});
+test('binary upload rejects oversize advertised body and cross-origin request',async()=>{
+ for(const [extra,status] of [[{'content-length':String(100*1024*1024+1)},413],[{'origin':'https://other.example'},403]]){
+ const r=await route.POST(new Request('http://localhost/api/cad-recognition',{method:'POST',headers:{'oai-authenticated-user-id':'test','content-type':'application/octet-stream',...extra},body:'x'}));assert.equal(r.status,status);
+ }
+});
+if(process.env.CAD_LARGE_TEST)test('exactly 100MB binary DXF parses successfully without business writes',async()=>{
+ const base=doc(label('客厅/电视柜')+horizontal(2000));
+ const body=Buffer.alloc(100*1024*1024,32);body.write(base,0,'utf8');
+ const r=await route.POST(new Request('http://localhost/api/cad-recognition',{method:'POST',headers:{'oai-authenticated-user-id':'test','content-type':'application/octet-stream','content-length':String(body.length)},body}));
+ assert.equal(r.status,200);assert.equal((await r.json()).result[0].width,'2000');
+});

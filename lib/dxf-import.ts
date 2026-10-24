@@ -15,10 +15,12 @@ const contains=(b:Box,p:Point)=>p.x>=b.left&&p.x<=b.right&&p.y>=b.bottom&&p.y<=b
 export function parseDxfText(text:string,source:string):CadRow[]{
  if(text.startsWith('AutoCAD Binary DXF'))throw new CadImportError('请将二进制DXF另存为ASCII DXF后上传');
  const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/),ents:Ent[]=[];
+ const types=new Set(['SECTION','ENDSEC','BLOCK','ENDBLK','INSERT','TEXT','MTEXT','ATTRIB','DIMENSION','LWPOLYLINE']);
+ const codes=new Set([1,2,3,10,11,13,14,20,21,23,24,41,42,50,67,70]);
  let cur:Ent|null=null;
  for(let i=0;i+1<lines.length;i+=2){const code=Number(lines[i].trim());if(!Number.isInteger(code))continue;
-  if(code===0){if(cur)ents.push(cur);cur={type:lines[i+1].trim(),vals:new Map()};}
-  else if(cur){const a=cur.vals.get(code)||[];a.push(lines[i+1]);cur.vals.set(code,a);}
+  if(code===0){if(cur)ents.push(cur);const type=lines[i+1].trim();cur=types.has(type)?{type,vals:new Map()}:null;}
+  else if(cur&&codes.has(code)){const a=cur.vals.get(code)||[];a.push(lines[i+1]);cur.vals.set(code,a);}
  }
  if(cur)ents.push(cur);
  let section='',block:Ent[]|null=null,unit=4;
