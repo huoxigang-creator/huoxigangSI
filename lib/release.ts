@@ -14,9 +14,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-24 V-1-7-5';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-24 V-1-7-6';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-7-6',date:'2026-10-24',items:['图片和CAD上传合并为“上传图片 / CAD”入口，支持混合选择并按文件格式逐个识别，追加保留已有结果；后方增加“继续上传图/CAD”按钮。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-5',date:'2026-10-24',items:['顶部新增主侧边栏收起/展开按钮，收起后工作区域自动变宽，并记住本机浏览器的选择。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-4',date:'2026-10-24',items:['识别图纸地址作为隐藏信息保留，仅用于PDF表头及文件名，识别明细不显示地址字段。','PDF当前数量及平方/延米放大，未填写单价时不再显示。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-3',date:'2026-10-24',items:['智能识别报价移除本地OCR备用入口，识别失败可重试或手动补充。','截图接收、准备上传、上传解析和排队状态在页面上方持续显示，滚动时仍可查看。','必须先点击核对才能生成PDF；修改明细或勾选项后需重新核对，旧下载链接自动失效。','本次升级已上传阿里云服务器并同步GitHub。']},
