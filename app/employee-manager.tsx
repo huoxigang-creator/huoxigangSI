@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import QuoteWorkspace from './quote-workspace';
+import {deferredPanel} from './deferred-panel';
+const QuoteWorkspace=deferredPanel(()=>import('./quote-workspace'));
 import { SOFTWARE_VERSION } from '../lib/release';
 
 type Project = { id: string; name: string; customer: string; phone?: string; address?: string; status: string; note?: string; order_date?: string; project_type?: string; parent_id?: string };

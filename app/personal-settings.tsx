@@ -16,11 +16,22 @@ export default function PersonalSettings({ onClose, onSaved }: { onClose: () => 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [question,setQuestion]=useState(''),[answer,setAnswer]=useState(''),[answerConfirm,setAnswerConfirm]=useState(''),[securityPassword,setSecurityPassword]=useState(''),[securityConfigured,setSecurityConfigured]=useState(false);
-  useEffect(()=>{void fetch('/api/auth/security-question',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('读取安全问题失败');return r.json() as Promise<{question:string;configured:boolean}>;}).then(v=>{setQuestion(v.question);setSecurityConfigured(v.configured);}).catch(e=>setError(e.message));},[]);
+  const [securityReady,setSecurityReady]=useState(false),[securityError,setSecurityError]=useState(''),[securityNotice,setSecurityNotice]=useState('');
+  useEffect(()=>{let active=true;void fetch('/api/auth/security-question',{cache:'no-store'}).then(async r=>{const v=await r.json() as {error?:string;question:string;configured:boolean};if(!r.ok)throw Error(v.error||'读取安全问题失败');return v as {question:string;configured:boolean};}).then(v=>{if(active){setQuestion(v.question);setSecurityConfigured(v.configured);setSecurityReady(true);}}).catch(e=>{if(active)setSecurityError(e.message);});return()=>{active=false;};},[]);
   async function saveSecurity(){
-   if(answer!==answerConfirm){setError('两次安全答案不一致');return;}
-   setBusy(true);setError('');setNotice('');
-   try{const r=await fetch('/api/auth/security-question',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,answer,current_password:securityPassword})});const v=await r.json() as {error?:string};if(!r.ok)throw Error(v.error||'保存失败');setAnswer('');setAnswerConfirm('');setSecurityPassword('');setSecurityConfigured(true);setNotice('安全问题已保存，其他旧登录已失效');onSaved();}catch(e){setError(e instanceof Error?e.message:'保存失败');}finally{setBusy(false);}
+   setSecurityError('');setSecurityNotice('');
+   const normalized=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
+   if(question.trim().length<4||question.trim().length>100){setSecurityError('安全问题需为4至100个字符');return;}
+   if(normalized(answer).length<2||normalized(answer).length>200){setSecurityError('安全答案需为2至200个字符，支持中文');return;}
+   if(normalized(answer)!==normalized(answerConfirm)){setSecurityError('两次安全答案不一致，请确认两栏填写相同答案');return;}
+   if(!securityPassword){setSecurityError('请填写当前登录密码后再保存');return;}
+   setBusy(true);
+   try{
+    const r=await fetch('/api/auth/security-question',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:question.trim(),answer,current_password:securityPassword})});
+    const v=await r.json() as {error?:string;question?:string;configured?:boolean};if(!r.ok)throw Error(v.error||'保存失败');
+    setQuestion(v.question||question.trim());setAnswer('');setAnswerConfirm('');setSecurityPassword('');setSecurityConfigured(true);
+    setSecurityNotice('安全问题已保存。重新打开会显示问题，答案为保护账号不会回显；其他旧登录已失效。');onSaved();
+   }catch(e){setSecurityError(e instanceof Error?e.message:'保存失败，请重试');}finally{setBusy(false);}
   }
 
   useEffect(() => {
@@ -94,14 +105,16 @@ export default function PersonalSettings({ onClose, onSaved }: { onClose: () => 
       <button type="button" disabled={busy} style={{ ...button, marginTop: 14, background: '#1769aa', color: '#fff', borderColor: '#1769aa' }} onClick={() => void saveProfile()}>保存资料</button>
 
       <h3 style={{marginTop:26}}>找回密码安全问题</h3>
-      <p>{securityConfigured?'已设置安全问题，修改时需验证当前密码。':'尚未设置：请设置后再使用短信登录或短信找回密码。'}</p>
-      <div style={{display:'grid',gap:12}}>
+      <p>{!securityReady?'正在读取安全问题…':securityConfigured?'已设置安全问题，修改时需验证当前密码；已保存的答案不会回显。':'尚未设置：请设置后再使用短信登录或短信找回密码。'}</p>
+      <fieldset disabled={!securityReady||busy} style={{display:'grid',gap:12,border:0,padding:0,margin:0,minWidth:0}}>
       <label>安全问题<input style={field} value={question} onChange={e=>setQuestion(e.target.value)} minLength={4} maxLength={100} placeholder="填写只有你知道答案的问题"/></label>
-      <SecurityAnswerInput label="安全答案" style={field} value={answer} onChange={setAnswer} minLength={4} placeholder="支持中文，至少4个字符，避免公开信息"/>
-      <SecurityAnswerInput label="再次输入答案" style={field} value={answerConfirm} onChange={setAnswerConfirm} placeholder="支持中文，请再次填写相同答案"/>
+      <SecurityAnswerInput label="安全答案" style={field} value={answer} onChange={setAnswer} minLength={2} placeholder="支持中文，至少2个字符，避免公开信息"/>
+      <SecurityAnswerInput label="再次输入答案" style={field} value={answerConfirm} onChange={setAnswerConfirm} minLength={2} placeholder="请再次填写与上面相同的答案"/>
       <label>当前登录密码<input style={field} type="password" autoComplete="current-password" value={securityPassword} onChange={e=>setSecurityPassword(e.target.value)}/></label>
-      </div>
-      <button type="button" disabled={busy||!question||!answer||!securityPassword} style={{...button,marginTop:14}} onClick={()=>void saveSecurity()}>保存安全问题</button>
+      </fieldset>
+      {securityError&&<p role="alert" style={{color:'#b42318',marginBottom:8}}>{securityError}</p>}
+      {securityNotice&&<p role="status" style={{color:'#166534',marginBottom:8}}>{securityNotice}</p>}
+      <button type="button" disabled={busy||!securityReady} style={{...button,marginTop:14}} onClick={()=>void saveSecurity()}>{busy?'正在保存…':securityConfigured?'修改安全问题并保存':'保存安全问题'}</button>
       <p style={{fontSize:12,color:'#64748b'}}>答案仅保存加盐摘要，不显示原答案。手机丢失时，短信验证码不能单独登录或重置密码；遗忘答案可由有服务器权限的管理员重设。</p>
       <h3 style={{ marginTop: 26, marginBottom: 8 }}>修改密码</h3>
       <div style={{ display: 'grid', gap: 12 }}>

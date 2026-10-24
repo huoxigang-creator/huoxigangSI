@@ -15,3 +15,10 @@ test('Chinese answers verify after normalization and are never stored or returne
  const stored=f.db.prepare('SELECT * FROM account_security').get();assert.ok(!JSON.stringify(stored).includes('春天的院子'));assert.deepEqual(f.recovery.view('owner'),{configured:true,question:'合成测试专用问题'});
  const challenge=f.recovery.challenge('owner','reset');assert.equal(f.recovery.consume(challenge.challenge,'春天的院子','reset').id,'owner');
 });
+
+test('two-character Chinese answers persist across service reopen and verify for login and reset',t=>{
+ const f=fixture(t);for(const short of ['',' ','春'])assert.throws(()=>f.recovery.set('owner','合成测试专用问题',short),/2至200/);
+ f.recovery.set('owner','合成测试专用问题','春天');const reopened=createAccountRecovery(f.db);assert.deepEqual(reopened.view('owner'),{configured:true,question:'合成测试专用问题'});
+ for(const purpose of ['login','reset']){const c=reopened.challenge('owner',purpose);assert.equal(reopened.consume(c.challenge,'春天',purpose).id,'owner');}
+ assert.ok(!JSON.stringify(f.db.prepare('SELECT * FROM account_security').get()).includes('春天'));
+});

@@ -12,7 +12,7 @@ export function createAccountRecovery(db:any,now=Date.now){
   set(id:string,question:unknown,answer:unknown){
    account(id);const q=typeof question==='string'?question.trim():'',a=typeof answer==='string'?normal(answer):'';
    if(q.length<4||q.length>100)throw new RecoveryError('安全问题需为4至100个字符');
-   if(a.length<4||a.length>200)throw new RecoveryError('安全答案需为4至200个字符，请使用不易猜到的答案');
+   if(a.length<2||a.length>200)throw new RecoveryError('安全答案需为2至200个字符，请使用不易猜到的答案');
    const salt=randomBytes(32),hash=scryptSync(a,salt,64).toString('hex');
    db.exec('BEGIN IMMEDIATE');try{
     db.prepare('INSERT INTO account_security(account_id,question,answer_hash,salt) VALUES(?,?,?,?) ON CONFLICT(account_id) DO UPDATE SET question=excluded.question,answer_hash=excluded.answer_hash,salt=excluded.salt,failures=0,blocked_until=0').run(id,q,hash,salt.toString('hex'));
@@ -41,7 +41,7 @@ export function createAccountRecovery(db:any,now=Date.now){
    if(!security)throw new RecoveryError('安全问题已重置，请联系管理员或使用密码登录',403);
    if(security.blocked_until>now())throw new RecoveryError('安全答案错误次数过多，请15分钟后再试',429);
    const value=typeof answer==='string'?normal(answer):'';
-   const actual=value.length>=4&&value.length<=200?scryptSync(value,Buffer.from(security.salt,'hex'),64):Buffer.alloc(64);
+   const actual=value.length>=2&&value.length<=200?scryptSync(value,Buffer.from(security.salt,'hex'),64):Buffer.alloc(64);
    if(!timingSafeEqual(actual,Buffer.from(security.answer_hash,'hex'))){
     const failures=(security.blocked_until&&security.blocked_until<=now()?0:security.failures)+1;
     db.prepare('UPDATE account_security SET failures=?,blocked_until=? WHERE account_id=?').run(failures,failures>=5?now()+15*60000:0,c.account_id);

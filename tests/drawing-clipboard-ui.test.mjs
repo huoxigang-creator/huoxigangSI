@@ -30,9 +30,9 @@ const image=value=>new File([value],value+'.png',{type:'image/png'});
 const result=(file,width)=>({source:file.name,room:'客厅',name:'电视柜',width:String(width),height:'',price:'',selected:true});
 
 test('paste appends images, queues behind recognition, ignores repeat clipboard bytes and stops on close',async()=>{
- const app=harness();let tree=app.render();assert.equal(app.events.has('paste'),false);
+ const app=harness();let tree=app.render();assert.equal(app.events.has('paste'),false);assert.equal(nodes(tree).filter(n=>n.type==='button'&&text(n)==='AI智能识别报价').length,1);assert.ok(!text(tree).includes('上传CAD文件识别'));assert.ok(!text(tree).includes('截图快捷识别'));
  const picker=nodes(tree).find(n=>n.type==='input'&&n.props['aria-label']==='上传柜体图纸');picker.props.ref.current={click(){assert.fail('入口不能打开文件选择框');},focus(){}};
- button(tree,'上传图纸AI智能识别报价').props.onClick();tree=await app.flush();assert.equal(app.events.has('paste'),true);assert.ok(nodes(tree).some(n=>n.props.role==='dialog'));assert.ok(button(tree,'选择图片上传'));
+ button(tree,'AI智能识别报价').props.onClick();tree=await app.flush();assert.equal(app.events.has('paste'),true);assert.ok(nodes(tree).some(n=>n.props.role==='dialog'));assert.ok(button(tree,'选择图片上传'));
  let prevented=false;app.events.get('paste')({clipboardData:{items:[{kind:'string',type:'text/plain'}],files:[]},preventDefault(){prevented=true;}});assert.equal(prevented,false);
  const paste=file=>app.events.get('paste')({clipboardData:{items:[{kind:'file',type:file.type,getAsFile:()=>file}],files:[file]},preventDefault(){prevented=true;}});
  paste(image('first'));tree=await app.flush();assert.equal(prevented,true);assert.equal(app.requests.length,1);assert.equal(cards(tree).length,1);
@@ -44,7 +44,7 @@ test('paste appends images, queues behind recognition, ignores repeat clipboard 
 
 
 test('enabling auto intake skips old clipboard, waits for focus and stops polling on close',async()=>{
- const app=harness();app.setClipboard([image('old clipboard')]);let tree=app.render();button(tree,'截图快捷识别').props.onClick();tree=await app.flush();assert.equal(app.clipboardReads,0);
+ const app=harness();app.setClipboard([image('old clipboard')]);let tree=app.render();button(tree,'AI智能识别报价').props.onClick();tree=await app.flush();assert.equal(app.clipboardReads,0);
  button(tree,'开启截图自动接收').props.onClick();tree=await app.flush();assert.equal(app.clipboardReads,1);assert.equal(app.requests.length,0);assert.equal(app.timerCount,1);
  app.focus(false);app.setClipboard([image('new snip')]);app.poll();tree=await app.flush();assert.equal(app.clipboardReads,1);assert.equal(app.requests.length,0);
  app.focus(true);app.poll();tree=await app.flush();assert.equal(app.requests.length,1);assert.equal(cards(tree).length,1);

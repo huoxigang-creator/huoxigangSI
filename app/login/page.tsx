@@ -112,7 +112,7 @@ export default function Login() {
         </div>
       </label>}
 
-      {challenge&&mode!=='password'&&<><p>安全问题：{question}</p><SecurityAnswerInput label="安全答案" value={answer} onChange={setAnswer} required style={field} placeholder="支持中文，填写你保存的答案"/></>}
+      {challenge&&mode!=='password'&&<><p>安全问题：{question}</p><SecurityAnswerInput label="安全答案" value={answer} onChange={setAnswer} minLength={2} required style={field} placeholder="支持中文，填写你保存的答案"/></>}
       {mode === 'forgot' && challenge && <label style={{ display: 'block', marginBottom: 20 }}>新密码<input value={newPassword} onChange={event => setNewPassword(event.target.value)} type="password" autoComplete="new-password" minLength={12} required style={field} placeholder="至少 12 位" /></label>}
 
       {mode!=='password'&&<p style={{fontSize:12,color:'#b9dcff'}}>短信验证后还须回答安全问题。未设置问题请先用原密码登录，在个人设置中设置；原密码和答案均遗忘时请联系服务器管理员。</p>}
