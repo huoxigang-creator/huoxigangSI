@@ -24,27 +24,11 @@ async function recognizeImage(image:string,source:string,mode:'drawing'|'drawing
 }
 
 export async function recognizeDrawing(image:string,source:string,config:{key?:string;base?:string;model?:string;provider?:'qwen'|'doubao'},signal?:AbortSignal,fetcher:typeof fetch=fetch){
-  const [first,second]=await Promise.all([
-    recognizeImage(image,source,'drawing',config,signal,fetcher) as Promise<DrawingRow>,
-    recognizeImage(image,source,'drawing',config,signal,fetcher) as Promise<DrawingRow>
-  ]);
-  const diffs:string[]=[];
-  if(first.room!==second.room)diffs.push(`房间:${first.room||'空'} vs ${second.room||'空'}`);
-  if(first.name!==second.name)diffs.push(`柜名:${first.name||'空'} vs ${second.name||'空'}`);
-  if(first.width!==second.width)diffs.push(`宽:${first.width||'空'} vs ${second.width||'空'}`);
-  if(first.height!==second.height)diffs.push(`高:${first.height||'空'} vs ${second.height||'空'}`);
-  if(diffs.length){
-    first.source=first.source+'（⚠两次识别不一致：'+diffs.join('；')+'，请对照原图核对）';
-  }
-  return first;
+ return await recognizeImage(image,source,'drawing',config,signal,fetcher) as DrawingRow;
 }
 export async function recognizeImageText(image:string,source:string,config:{key?:string;base?:string;model?:string;provider?:'qwen'|'doubao'},signal?:AbortSignal,fetcher:typeof fetch=fetch){return await recognizeImage(image,source,'text',config,signal,fetcher) as string;}
 export async function recognizePurchaseItems(image:string,source:string,config:{key?:string;base?:string;model?:string;provider?:'qwen'|'doubao'},signal?:AbortSignal,fetcher:typeof fetch=fetch){return await recognizeImage(image,source,'purchase',config,signal,fetcher) as PurchaseScanItem[];}
 
 export async function recognizeDrawingCabinets(image:string,source:string,config:{key?:string;base?:string;model?:string;provider?:'qwen'|'doubao'},signal?:AbortSignal,fetcher:typeof fetch=fetch){
- const [first,second]=await Promise.all([recognizeImage(image,source,'drawing-multi',config,signal,fetcher),recognizeImage(image,source,'drawing-multi',config,signal,fetcher)]) as [DrawingRow[],DrawingRow[]];
- const key=(r:DrawingRow)=>JSON.stringify([r.room,r.name,r.width,r.height,r.address||'']);
- const a=first.map(key).sort(),b=second.map(key).sort();
- if(JSON.stringify(a)!==JSON.stringify(b))for(const r of first){r.selected=false;r.note=(r.note?r.note+'；':'')+'两次识别的柜体数量、尺寸或地址不一致，请核对原图后勾选';}
- return first;
+ return await recognizeImage(image,source,'drawing-multi',config,signal,fetcher) as DrawingRow[];
 }
