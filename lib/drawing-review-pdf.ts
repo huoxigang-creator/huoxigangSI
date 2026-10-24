@@ -1,10 +1,22 @@
 import {PDFDocument,rgb,type PDFPage} from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import {CONTRACT_CJK_FONT_BASE64} from '../assets/fonts/contract-cjk-font';
 import {drawingMeasure,type DrawingRow} from './drawing-import';
 
 export type ReviewEntry={row:DrawingRow;image?:string};
 const reviewTitle='柜体图纸尺寸核对单';
+let cachedFont:Promise<Uint8Array>|undefined;
+export function reviewFont(){return cachedFont??=(async()=>{
+ let last:unknown;
+ for(let attempt=0;attempt<2;attempt++)try{
+  const response=await fetch('/assets/pdf-font/cjk-f1b79198.deflate',{cache:attempt?'reload':'force-cache'});if(!response.ok)throw Error('字体下载失败（HTTP '+response.status+'）');
+  const compressed=await response.arrayBuffer();if(compressed.byteLength!==6273765)throw Error('字体下载不完整');
+  const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',compressed)),v=>v.toString(16).padStart(2,'0')).join('');
+  if(hash!=='f1b79198b661c39e55479958f81af0f007159bc3dde5b8d7075fd6d3a1a22795')throw Error('字体下载校验失败');
+  return new Uint8Array(await new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+ }catch(error){last=error;}
+ throw new Error('PDF中文字体加载失败，请检查网络后重试：'+(last instanceof Error?last.message:''));
+})().catch(error=>{cachedFont=undefined;throw error;});}
+
 export function drawingReviewPdfName(entries:ReviewEntry[]){
  const addresses=[...new Set(entries.map(e=>e.row.address?.trim()||'').filter(Boolean))];
  const address=addresses.length===1?addresses[0]:addresses.length>1?'多地址':'';
@@ -15,8 +27,8 @@ export function drawingReviewPdfName(entries:ReviewEntry[]){
 export async function generateDrawingReviewPdf(entries:ReviewEntry[],loadImage:(src:string)=>Promise<Uint8Array>){
  if(!entries.length)throw new Error('请先勾选需要导出的柜体');
  const pdf=await PDFDocument.create();pdf.registerFontkit(fontkit);
- const compressed=Uint8Array.from(atob(CONTRACT_CJK_FONT_BASE64),c=>c.charCodeAt(0));
- const bytes=new Uint8Array(await new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+ const bytes=await reviewFont();
+ const pictures=new Map<string,Awaited<ReturnType<typeof pdf.embedPng>>>();
  const font=await pdf.embedFont(bytes,{subset:false}),supported=new Set(font.getCharacterSet());
  const ink=rgb(.12,.2,.29),blue=rgb(.16,.36,.57),muted=rgb(.4,.45,.51),red=rgb(.7,.15,.12),shade=rgb(.95,.97,.99),border=rgb(.8,.85,.9);
  const clean=(s:string)=>s.replace(/\r\n?/g,'\n').replace(/\t/g,' ').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g,'').trim();
@@ -43,8 +55,9 @@ export async function generateDrawingReviewPdf(entries:ReviewEntry[],loadImage:(
   const height=360,bottom=y-height;
   page.drawRectangle({x:44,y:bottom,width:507,height,color:rgb(1,1,1),borderColor:border,borderWidth:.7});
   if(image){
-   let png:Uint8Array;try{png=await loadImage(image);}catch{throw new Error(`第${i+1}个柜体图形读取失败，请重新导入后导出`);}
-   const picture=await pdf.embedPng(png),scale=Math.min(487/picture.width,(height-20)/picture.height);
+   let picture=pictures.get(image);
+   if(!picture){let png:Uint8Array;try{png=await loadImage(image);}catch{throw new Error(`第${i+1}个柜体图形读取失败，请重新导入后导出`);}picture=await pdf.embedPng(png);pictures.set(image,picture);}
+   const scale=Math.min(487/picture.width,(height-20)/picture.height);
    page.drawImage(picture,{x:44+(507-picture.width*scale)/2,y:bottom+(height-picture.height*scale)/2,width:picture.width*scale,height:picture.height*scale});
   }else page.drawText('此项暂无可用图形，请补充原图后核对',{x:100,y:bottom+height/2,size:12,font,color:red});
   y=bottom-10;

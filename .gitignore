@@ -65,3 +65,6 @@ tsconfig.tsbuildinfo
 
 # Customer drawing review artifacts remain local.
 /output/
+
+# Derived PDF font asset, regenerated before dev/build.
+/public/assets/pdf-font/

@@ -5,10 +5,12 @@ import {execFileSync} from 'node:child_process';
 import {homedir} from 'node:os';
 import {join} from 'node:path';
 import ts from 'typescript';
-import {PDFDocument} from 'pdf-lib';
+import {PDFDocument,PDFName} from 'pdf-lib';
 const compile=p=>ts.transpileModule(fs.readFileSync(p,'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
 const url=s=>'data:text/javascript;base64,'+Buffer.from(s).toString('base64');
 const source=compile('lib/drawing-review-pdf.ts').replace("from 'pdf-lib'",`from '${import.meta.resolve('pdf-lib')}'`).replace("from '@pdf-lib/fontkit'",`from '${import.meta.resolve('@pdf-lib/fontkit')}'`).replace("from '../assets/fonts/contract-cjk-font'",`from '${url(compile('assets/fonts/contract-cjk-font.ts'))}'`).replace("from './drawing-import'",`from '${url(compile('lib/drawing-import.ts'))}'`);
+const fontSource=fs.readFileSync('assets/fonts/contract-cjk-font.ts','utf8');const compressedFont=Buffer.from(fontSource.split('CONTRACT_CJK_FONT_BASE64')[1].split("'")[1],'base64');
+globalThis.fetch=async()=>new Response(compressedFont);
 const {generateDrawingReviewPdf,drawingReviewPdfName}=await import(url(source));
 const python=process.env.PDF_TEST_PYTHON||join(homedir(),'.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe');
 test('customer review PDF preserves edited area and meters, page-image pairing and includes unit price below each drawing',async()=>{
@@ -53,4 +55,16 @@ with pdfplumber.open(sys.argv[1]) as pdf:
 with pdfplumber.open(sys.argv[1]) as pdf:
  assert all(15<=c['top'] and c['bottom']<=825 and c['x0']>=40 and c['x1']<=555 for p in pdf.pages for c in p.chars)
  print('ok')`,'outputs/drawing-review-test/long-address.pdf'],{encoding:'utf8'});assert.match(within,/ok/);
+});
+test('multiple cabinets from one screenshot convert once and reuse the same embedded PDF image',async()=>{
+ const row={source:'合成截图.png',room:'阳台',name:'洗衣机柜',width:'1312',height:'900',price:'',selected:true};let loads=0;
+ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+cL1sAAAAASUVORK5CYII=','base64');
+ const bytes=await generateDrawingReviewPdf([{row,image:'same-image'},{row:{...row,name:'吊柜',height:'940'},image:'same-image'}],async()=>{loads++;return png;});
+ const pdf=await PDFDocument.load(bytes);assert.equal(loads,1);assert.equal(pdf.getPageCount(),2);
+ const images=pdf.getPages().map(page=>page.node.Resources().lookup(PDFName.of('XObject')).entries()[0][1].toString());assert.equal(images[0],images[1]);
+});
+test('font download retries incomplete data and validates before caching',async()=>{
+ const isolated=await import(url(source+'\n// isolated-font-retry'));const savedFetch=globalThis.fetch;let calls=0;
+ globalThis.fetch=async(_url,options)=>{calls++;assert.equal(options.cache,calls===1?'force-cache':'reload');return calls===1?new Response('incomplete'):new Response(compressedFont);};
+ try{const first=await isolated.reviewFont();assert.ok(first.length>compressedFont.length);assert.equal(calls,2);assert.equal(await isolated.reviewFont(),first);assert.equal(calls,2);}finally{globalThis.fetch=savedFetch;}
 });

@@ -6,6 +6,7 @@ const [command, ...args] = process.argv.slice(2);
 if (!["dev", "build"].includes(command)) throw new Error("Expected dev or build.");
 // Serve OCR workers and models from this Site. Uploaded documents stay in the browser.
 await import('./prepare-document-ocr.mjs');
+await import('./prepare-review-font.mjs');
 const managedLinux = readExecutionProfile() === "managed-linux";
 
 if (managedLinux && command === "build") {

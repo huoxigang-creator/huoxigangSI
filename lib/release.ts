@@ -14,9 +14,10 @@
 // 部署包编号与显示版本同编码：V-1-5-6 对应 gugemei-standalone-v156.tar.gz / install-v156.sh。
 // 日期固定为本次软件修改的北京时间日期，不能使用页面访问日期。
 // 末位取 1–100；V-1-5-100 的下一次为 V-1-6-1，以后每百次进一组。
-export const SOFTWARE_VERSION = '2026-10-24 V-1-7-7';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
+export const SOFTWARE_VERSION = '2026-10-24 V-1-7-8';export const DEFAULT_COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || '连云港固美格家具有限公司';
 // 更新日志：每次功能/界面发布后在此追加一条（版本号 + 更新内容），点击顶栏版本号即可查看。
 export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
+  {version:'V-1-7-8',date:'2026-10-24',items:['打开识别窗口时提前加载PDF组件，减少点击导出后的首次等待，加载失败允许重试；大中文字体拆为独立资源并校验下载完整性。','同图多柜体PDF复用图形转换及嵌入结果，重复导出复用解压后的字体。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-7',date:'2026-10-24',items:['识别进度移到弹窗最上层固定显示，不受滚动或大图预览遮挡；读取、上传及AI等待期间显示动态等待秒数。','图片处理前先让出界面刷新时机，等待AI返回期间持续显示提示。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-6',date:'2026-10-24',items:['图片和CAD上传合并为“上传图片 / CAD”入口，支持混合选择并按文件格式逐个识别，追加保留已有结果；后方增加“继续上传图/CAD”按钮。','本次升级已上传阿里云服务器并同步GitHub。']},
   {version:'V-1-7-5',date:'2026-10-24',items:['顶部新增主侧边栏收起/展开按钮，收起后工作区域自动变宽，并记住本机浏览器的选择。','本次升级已上传阿里云服务器并同步GitHub。']},

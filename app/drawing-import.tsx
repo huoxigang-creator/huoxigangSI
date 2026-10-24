@@ -8,6 +8,8 @@ import {drawingMeasure,uniqueDrawingEntries,type DrawingRow} from '../lib/drawin
 import './document-import.css';
 import './drawing-import.css';
 import RecognitionStatus from './recognition-status';
+let reviewModule:Promise<typeof import('../lib/drawing-review-pdf')>|undefined;
+function loadReviewModule(){return reviewModule??=import('../lib/drawing-review-pdf').catch(error=>{reviewModule=undefined;throw error;});}
 export default function DrawingImport({disabled,onApply}:{disabled:boolean;onApply:(rows:DrawingRow[])=>void}){
  const [open,setOpen]=useState(false),[busy,setBusy]=useState(false),[rows,setRows]=useState<DrawingRow[]>([]),[error,setError]=useState(''),[progress,setProgress]=useState(''),[images,setImages]=useState<string[]>([]),[confirmed,setConfirmed]=useState(false),[preview,setPreview]=useState<number|null>(null),[previewZoom,setPreviewZoom]=useState(1),[doubaoModel,setDoubaoModel]=useState('doubao-seed-2-0-lite-260428');
  const [exporting,setExporting]=useState(false),[pdfStatus,setPdfStatus]=useState(''),[pdfError,setPdfError]=useState(''),[pdfReady,setPdfReady]=useState(''),[pdfName,setPdfName]=useState('柜体图纸尺寸核对单.pdf');
@@ -81,7 +83,7 @@ export default function DrawingImport({disabled,onApply}:{disabled:boolean;onApp
  useEffect(()=>{void fetch('/api/recognition-settings',{cache:'no-store'}).then(r=>r.json() as Promise<{result?:{doubao_model?:string}}>).then(v=>{if(v?.result?.doubao_model)setDoubaoModel(v.result.doubao_model);}).catch(()=>{});},[]);
  useEffect(()=>{if(rows.length>0&&preview===null)setPreview(0);},[rows.length]);
  useEffect(()=>setPreviewZoom(1),[preview]);
- useEffect(()=>{if(open)dialog.current?.focus();},[open]);
+ useEffect(()=>{if(open){dialog.current?.focus();void loadReviewModule().then(m=>m.reviewFont()).catch(()=>{});}},[open]);
  async function read(files:File[],append=false,replaceImages=false){
   controller.current?.abort();const abort=new AbortController();controller.current=abort;setOpen(true);setBusy(true);setError('');setConfirmed(false);setProgress('已接收图片，正在准备上传…');
   let failed=false;
@@ -181,7 +183,7 @@ export default function DrawingImport({disabled,onApply}:{disabled:boolean;onApp
   setBusy(true);setExporting(true);setPdfError('');setPdfStatus('正在加载PDF导出组件，首次使用请稍候…');setPdfReady('');
   if(pdfUrl.current)URL.revokeObjectURL(pdfUrl.current);pdfUrl.current='';
   try{
-   const {generateDrawingReviewPdf,drawingImagePng,drawingReviewPdfName}=await import('../lib/drawing-review-pdf');
+   const {generateDrawingReviewPdf,drawingImagePng,drawingReviewPdfName}=await loadReviewModule();
    if(epoch!==pdfEpoch.current)return;
    setPdfStatus('正在生成图形、尺寸和数量，请稍候…');
    const entries=rows.flatMap((row,i)=>row.selected?[{row,image:images[i]}]:[]);
