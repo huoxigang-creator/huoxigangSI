@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 type Status = 'checking' | 'ready' | 'error' | 'submitting' | 'done';
 type RecognizeState = 'idle' | 'ocr' | 'recording' | 'asr';
+type OcrEngine = 'qwen' | 'ocr';
 
 function resampleTo16k(audioBuffer: AudioBuffer): Float32Array {
   const targetRate = 16000, ratio = audioBuffer.sampleRate / targetRate;
@@ -45,6 +46,7 @@ export default function RegisterClient({ token }: { token: string }) {
   const [merged, setMerged] = useState(false);
   const [recognizing, setRecognizing] = useState<RecognizeState>('idle');
   const [recognizeHint, setRecognizeHint] = useState('');
+  const [ocrEngine, setOcrEngine] = useState<OcrEngine>('qwen');
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -76,17 +78,18 @@ export default function RegisterClient({ token }: { token: string }) {
     if (fields.note) setNote(current => current || String(fields.note));
   }
 
-  async function recognizeImage(file: File) {
+  async function recognizeImage(file: File, useEngine: OcrEngine) {
     if (recognizing !== 'idle') return;
-    setRecognizing('ocr'); setRecognizeHint('正在识别图片中的资料…'); setError('');
+    setRecognizing('ocr'); setRecognizeHint(useEngine === 'qwen' ? '正在智能识别图片中的资料…' : '正在OCR识别图片中的资料…'); setError('');
     try {
       const form = new FormData();
       form.append('file', file);
+      form.append('engine', useEngine);
       const res = await fetch('/api/register-ocr?token=' + encodeURIComponent(token), { method: 'POST', body: form });
       const json: any = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || '识别失败，请重试');
       applyFields({ name: json.result?.fields?.name, phone: json.result?.fields?.phone, address: json.result?.fields?.address });
-      setRecognizeHint('已识别并自动填入，请核对修改后提交。');
+      setRecognizeHint(useEngine === 'qwen' ? '已智能识别并自动填入，请核对修改后提交；识别不准可切换「备用OCR」重试。' : '已识别并自动填入，请核对修改后提交。');
     } catch (reason: any) {
       setError(reason instanceof Error ? reason.message : '识别失败，请重试');
     } finally { setRecognizing('idle'); }
@@ -259,12 +262,30 @@ export default function RegisterClient({ token }: { token: string }) {
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' }}>快速录入（选填，识别后请核对）</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <label style={{ ...quickButtonStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                📷 拍照 / 选图识别
-                <input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={recognizing !== 'idle'} onChange={event => { const file = event.target.files?.[0]; if (file) void recognizeImage(file); event.currentTarget.value = ''; }} />
+                📷 拍照 / 选图识别（{ocrEngine === 'qwen' ? '智能' : 'OCR'}）
+                <input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={recognizing !== 'idle'} onChange={event => { const file = event.target.files?.[0]; if (file) { if (file.size > (ocrEngine === 'qwen' ? 2 * 1024 * 1024 : 10 * 1024 * 1024)) { setError(ocrEngine === 'qwen' ? '智能识别请用 2MB 以内的图片，超清图可切换「备用OCR」（10MB）' : '图片不能超过 10MB'); return; } void recognizeImage(file, ocrEngine); } event.currentTarget.value = ''; }} />
               </label>
               <button type="button" style={quickButtonStyle} disabled={recognizing !== 'idle'} onClick={recognizing === 'recording' ? stopRecord : startRecord}>
                 {recognizing === 'recording' ? '⏹ 停止并识别' : '🎤 语音识别'}
               </button>
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              {([['qwen', '智能识别（推荐）'], ['ocr', '备用OCR']] as [OcrEngine, string][]).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  disabled={recognizing !== 'idle'}
+                  onClick={() => setOcrEngine(value)}
+                  style={{
+                    padding: '4px 10px', fontSize: 12, borderRadius: 999, cursor: 'pointer', border: 'none',
+                    background: ocrEngine === value ? '#1e40af' : '#e5e7eb',
+                    color: ocrEngine === value ? '#fff' : '#4b5563',
+                    fontWeight: ocrEngine === value ? 600 : 400,
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
             {recognizing === 'recording' && <div style={{ fontSize: 13, color: '#dc2626', marginTop: 8 }}>● 录音中…</div>}
             {recognizeHint && <div style={{ fontSize: 13, color: '#1d4ed8', marginTop: 8, lineHeight: 1.5 }}>{recognizeHint}</div>}
