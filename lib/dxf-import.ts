@@ -76,12 +76,13 @@ export function parseDxfText(text:string,source:string):CadRow[]{
   if(!room){const candidates=texts.filter(p=>p!==t&&p.x>t.x&&p.x-t.x<t.size*20&&Math.abs(p.y-t.y)<Math.max(t.size,p.size)*.8).sort((a,b)=>a.x-b.x);room=candidates[0]?.text||'';}
   return room&&room.length<=50&&!/[:：/／]|电话|地址|日期|合同|项目名称/.test(room)?[{...t,room}]:[];
  });
- const cabinetName=(text:string)=>/^(?:[\u4e00-\u9fffA-Za-z0-9（）()_-]{0,25}柜|岛台|中岛|榻榻米|台面|床头|护墙)$/.test(text);
+ const unnumbered=(text:string)=>text.replace(/^\s*\d+\s*[.．、:：)）-]\s*/,'');
+ const cabinetName=(raw:string)=>{const text=unnumbered(raw);return /^(?:[\u4e00-\u9fffA-Za-z0-9（）()_-]{0,25}柜|岛台|中岛|榻榻米|台面|床头|护墙)$/.test(text);};
  const templateMode=roomFields.length>0&&texts.some(t=>t.red&&cabinetName(t.text));
- const anchors:(Point&{room:string;name:string})[]=[],dims:Dim[]=[],boxes:Box[]=[];
+ const anchors:(Point&{room:string;name:string;label?:string})[]=[],dims:Dim[]=[],boxes:Box[]=[];
  if(templateMode)for(const t of texts.filter(t=>t.red&&cabinetName(t.text))){
   const field=[...roomFields].sort((a,b)=>Math.hypot(a.x-t.x,a.y-t.y)-Math.hypot(b.x-t.x,b.y-t.y))[0];
-  if(!anchors.some(a=>a.name===t.text&&Math.hypot(a.x-t.x,a.y-t.y)<.01))anchors.push({x:t.x,y:t.y,room:field.room,name:t.text});
+  if(!anchors.some(a=>(a.label||a.name)===t.text&&Math.hypot(a.x-t.x,a.y-t.y)<.01))anchors.push({x:t.x,y:t.y,room:field.room,name:unnumbered(t.text),label:t.text});
  }
 
  const seen=new Set<string>();
@@ -168,7 +169,7 @@ export function parseDxfText(text:string,source:string):CadRow[]{
   }
   if(['TEXT','MTEXT','ATTRIB'].includes(e.type)){
    const text=clean((e.vals.get(3)||[]).join('')+v(e,1)).slice(0,500),p=point(m,n(e,10),n(e,20));
-   if(templateMode&&!anchors.some(a=>a.name===text&&Math.hypot(a.x-p.x,a.y-p.y)<.01))continue;
+   if(templateMode&&!anchors.some(a=>(a.label||a.name)===text&&Math.hypot(a.x-p.x,a.y-p.y)<.01))continue;
    const size=n(e,40,40)*Math.hypot(m[0],m[1]),angle=n(e,50,0)+Math.atan2(m[1],m[0])*180/Math.PI;
    if(text&&size>0&&Number.isFinite(size+p.x+p.y+angle))graphics.push({box:pad(bounds([p]),size*text.length),shape:false,svg:`<text x="${fmt(p.x)}" y="${fmt(-p.y)}" font-size="${fmt(size)}" transform="rotate(${fmt(-angle)} ${fmt(p.x)} ${fmt(-p.y)})" fill="${templateMode?'#bb3030':'#203449'}" stroke="none">${esc(text)}</text>`});
   }

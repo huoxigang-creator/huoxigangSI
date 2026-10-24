@@ -38,7 +38,7 @@ test('paste appends images, queues behind recognition, ignores repeat clipboard 
  paste(image('first'));tree=await app.flush();assert.equal(prevented,true);assert.equal(app.requests.length,1);assert.equal(cards(tree).length,1);
  paste(image('second'));paste(image('second'));tree=await app.flush();assert.equal(app.requests.length,1);assert.match(text(tree),/还有1张截图等待识别/);
  app.requests[0].resolve(result(app.requests[0].file,2000));tree=await app.flush();assert.equal(app.requests.length,2);assert.equal(cards(tree).length,2);
- app.requests[1].resolve(result(app.requests[1].file,3000));tree=await app.flush();assert.match(text(tree),/共2个图/);assert.match(text(tree),/5.00m/);
+ app.requests[1].resolve(result(app.requests[1].file,3000));tree=await app.flush();assert.match(text(tree),/共2个柜体/);assert.match(text(tree),/5.00m/);
  paste(image('third'));tree=await app.flush();assert.equal(app.requests.length,3);button(tree,'取消').props.onClick();tree=await app.flush();assert.equal(app.events.has('paste'),false);assert.equal(nodes(tree).some(n=>n.props.role==='dialog'),false);app.unmount();
 });
 
@@ -58,4 +58,12 @@ test('PDF export triggers a named download, retains manual link and shows failur
   else{assert.equal(app.downloads.length,1);assert.equal(app.downloads[0].name,'柜体图纸尺寸核对单.pdf');const link=nodes(tree).find(n=>n.type==='a'&&n.props.download==='柜体图纸尺寸核对单.pdf');assert.ok(link);assert.equal(link.props.href,app.downloads[0].href);assert.equal(app.revoked.includes(link.props.href),false);button(tree,'取消').props.onClick();await app.flush();assert.equal(app.revoked.includes(link.props.href),true);}
   app.unmount();
  }
+});
+
+test('one image expands into multiple cabinets and re-recognition replaces that file group without duplicates',async()=>{
+ const app=harness();let tree=app.render();button(tree,'AI智能识别报价').props.onClick();tree=await app.flush();const file=image('two cabinets');app.events.get('paste')({clipboardData:{items:[{kind:'file',type:file.type,getAsFile:()=>file}],files:[file]},preventDefault(){}});tree=await app.flush();
+ const first={...result(file,1313),room:'阳台',name:'洗衣机吊柜',height:'940'},second={...result(file,1312),room:'阳台',name:'洗衣机柜',height:'900'};
+ app.requests[0].resolve([first,second]);tree=await app.flush();assert.equal(cards(tree).length,2);assert.match(text(tree),/2.41㎡/);
+ const thumbnails=nodes(tree).filter(n=>n.type==='img'&&n.props.alt?.startsWith('图纸'));assert.ok(thumbnails.length===0||thumbnails[0].props.src===thumbnails[1].props.src);
+ button(tree,'重新识别').props.onClick();tree=await app.flush();app.requests[1].resolve([first,second]);tree=await app.flush();assert.equal(cards(tree).length,2);assert.match(text(tree),/2.41㎡/);app.unmount();
 });

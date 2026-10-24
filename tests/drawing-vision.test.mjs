@@ -17,3 +17,11 @@ const linear=drawingVisionRow(JSON.stringify({room:'餐厅',name:'橱柜',width_
 test('screenshot instruction prioritizes project field, red cabinet name and excludes title-block configuration',async()=>{
  await recognizeDrawing(image,'test',config,undefined,async(endpoint,args)=>{const body=JSON.parse(args.body),prompt=body.messages[0].content;assert.match(prompt,/项目名称.*南次卧/);assert.match(prompt,/红色柜体名称/);assert.match(prompt,/config_note 必须为空字符串/);assert.match(prompt,/此规则优先于后面的配置提取/);return Response.json({choices:[{message:{content:'{"room":"南次卧","name":"衣柜","width_mm":"1576","height_mm":"2340","config_note":""}'}}]});});
 });
+
+test('multi-cabinet screenshot returns separate dimensions and order-independent verification',async()=>{
+ const {recognizeDrawingCabinets,drawingVisionRows}=await import(visionUrl);const cabinet=[{room:'阳台',name:'2.洗衣机吊柜',width_mm:'1313',height_mm:'940',warning:'1313*940'},{room:'阳台',name:'1.洗衣机柜',width_mm:'1312',height_mm:'900',warning:'1312*900'}];let calls=0;
+ const rows=await recognizeDrawingCabinets(image,'whole.png',config,undefined,async(_url,args)=>{const body=JSON.parse(args.body);assert.match(body.messages[0].content,/不要只返回一个/);return Response.json({choices:[{message:{content:JSON.stringify({cabinets:++calls===1?cabinet:[...cabinet].reverse()})}}]});});
+ assert.equal(rows.length,2);assert.deepEqual(rows.map(r=>[r.room,r.name,r.width,r.height,r.selected]),[['阳台','洗衣机吊柜','1313','940',true],['阳台','洗衣机柜','1312','900',true]]);
+ assert.equal(drawingVisionRows(JSON.stringify(cabinet[0]),'old.png').length,1);assert.throws(()=>drawingVisionRows('{"cabinets":[]}','x'),/无效/);
+ calls=0;const mismatch=await recognizeDrawingCabinets(image,'whole.png',config,undefined,async()=>Response.json({choices:[{message:{content:JSON.stringify({cabinets:++calls===1?cabinet:cabinet.slice(0,1)})}}]}));assert.ok(mismatch.every(r=>!r.selected&&r.note.includes('不一致')));
+});

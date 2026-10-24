@@ -137,3 +137,8 @@ test('multiple project title fields stay paired with their own red cabinet and d
  const body=titleText('项目名称：南卧',0,-500)+titleText('衣柜',500,500,1)+outline()+horizontal(2000)+vertical(2400)+titleText('项目名称：北卧',10000,-500)+titleText('衣柜',10500,500,1)+outline(10000,0,1800,2100)+horizontal(1800,10000)+vertical(2100,10000);
  assert.deepEqual(parseDxfText(doc(body),'two.dxf').map(r=>[r.room,r.name,r.width,r.height]),[['南卧','衣柜','2000','2400'],['北卧','衣柜','1800','2100']]);
 });
+
+test('numbered red labels in one title-block CAD become separate cabinets',()=>{
+ const body=titleText('项目名称：阳台',0,-500)+titleText('2.洗衣机吊柜',500,500,1)+outline(0,0,1313,940)+horizontal(1313)+vertical(940)+titleText('1.洗衣机柜',10500,500,1)+outline(10000,0,1312,900)+horizontal(1312,10000)+vertical(900,10000);
+ const rows=parseDxfText(doc(body),'multi.dxf');assert.deepEqual(rows.map(r=>[r.room,r.name,r.width,r.height]),[['阳台','洗衣机吊柜','1313','940'],['阳台','洗衣机柜','1312','900']]);assert.match(rows[0].previewSvg,/2.洗衣机吊柜/);
+});
