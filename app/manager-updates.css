@@ -4,3 +4,9 @@
 
 /* QwenWork 20261015 侧边栏品牌区居中（回灌自服务器 _qw1 补丁） */
 .brand,.brandHome{justify-content:center!important;text-align:center!important}
+
+/* Hide the entire navigation and release its reserved width at every viewport. */
+.appShell.sidebarCollapsed>.sidebar{display:none}
+.appShell.sidebarCollapsed>.main{margin-left:0}
+.companyTopbar .sidebarToggle{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:36px;height:36px;padding:0;border:1px solid #ffffff40;border-radius:6px}
+.companyTopbar .sidebarToggle:focus-visible{outline:2px solid #fff;outline-offset:2px}
