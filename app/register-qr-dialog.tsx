@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { Copy, QrCode, RefreshCw, X } from 'lucide-react';
+import { Copy, Download, QrCode, RefreshCw, X } from 'lucide-react';
 
 const SOURCE_OPTIONS = [
   { value: '', label: '通用（不区分来源）' },
@@ -48,6 +48,39 @@ export default function RegisterQrDialog({ onClose }: { onClose: () => void }) {
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { setError('复制失败，请手动长按选择复制'); }
   }
 
+  // 下载二维码卡片：样式与「客户签字确定」的二维码卡片统一（800x1080 白色卡片 + 顶部品牌色条 + 公司名 + 副标题 + 二维码 + 底部平台名）。
+  async function downloadQrCard() {
+    if (!url) return;
+    setError('');
+    try {
+      const qr = await QRCode.toDataURL(url, { width: 480, margin: 2, errorCorrectionLevel: 'M', color: { dark: '#111827', light: '#ffffff' } });
+      const canvas = document.createElement('canvas');
+      canvas.width = 800; canvas.height = 1080;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('无法生成图片');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 800, 1080);
+      ctx.fillStyle = '#1769aa'; ctx.fillRect(0, 0, 800, 14);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#172033'; ctx.font = 'bold 46px "Microsoft YaHei", sans-serif';
+      ctx.fillText('固美格全屋定制', 400, 100);
+      ctx.fillStyle = '#64748b'; ctx.font = '26px "Microsoft YaHei", sans-serif';
+      ctx.fillText('客户扫码建档', 400, 148);
+      const img = new globalThis.Image();
+      img.onload = () => {
+        ctx.drawImage(img, 160, 230, 480, 480);
+        ctx.fillStyle = '#475569'; ctx.font = '26px "Microsoft YaHei", sans-serif';
+        ctx.fillText('固美格SI超级智能平台', 400, 770);
+        const a = document.createElement('a');
+        a.download = `客户扫码建档${source ? '-' + source.replace(/[\\/:*?"<>|]/g, '_') : ''}.png`;
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+      };
+      img.src = qr;
+    } catch {
+      setError('下载失败，请重试');
+    }
+  }
+
   return (
     <div className="overlay" onClick={e => { if (e.target === e.currentTarget && !busy) onClose(); }}>
       <section className="modal" role="dialog" aria-modal="true" aria-label="客户扫码建档">
@@ -77,6 +110,11 @@ export default function RegisterQrDialog({ onClose }: { onClose: () => void }) {
               ? <img src={qrDataUrl} alt="客户扫码建档二维码" style={{ width: 260, height: 260, border: '1px solid #e5e7eb', borderRadius: 12 }} />
               : <div style={{ width: 260, height: 260, borderRadius: 12, border: '1px dashed #d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 14 }}>{busy ? '正在生成…' : '生成失败'}</div>}
           </div>
+          {url && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+              <button type="button" className="primary" disabled={busy} onClick={() => void downloadQrCard()}><Download size={15} /> 下载二维码</button>
+            </div>
+          )}
           {url && (
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
               <input readOnly value={url} onFocus={e => e.currentTarget.select()} style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, color: '#6b7280', background: '#f9fafb' }} />
