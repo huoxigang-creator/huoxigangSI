@@ -70,6 +70,15 @@ export function parseDxfText(text:string,source:string):CadRow[]{
  // Title-block drawings use only the project-name field and red cabinet labels.
  // Read placed text (including transformed blocks), never unused definitions.
  const texts=placed.filter(({e})=>['TEXT','MTEXT','ATTRIB'].includes(e.type)).map(({e,m,red})=>({e,red,...point(m,n(e,10),n(e,20)),size:n(e,40,40)*Math.hypot(m[0],m[1]),text:clean((e.vals.get(3)||[]).join('')+v(e,1))})).filter(t=>t.text&&Number.isFinite(t.x+t.y));
+ const addressEntities=new Set<Ent>();
+ const addressFields=texts.flatMap(t=>{
+  const match=t.text.match(/^(?:安装地址|项目地址|工程地址|地址)\s*[:：]?\s*(.*)$/);if(!match)return [];
+  let address=match[1].trim(),value:typeof t|undefined;
+  if(!address){value=texts.filter(p=>p!==t&&p.x>t.x&&p.x-t.x<t.size*35&&Math.abs(p.y-t.y)<Math.max(t.size,p.size)*.8).sort((a,b)=>a.x-b.x)[0];address=value?.text||'';}
+  addressEntities.add(t.e);if(value)addressEntities.add(value.e);
+  return address&&address.length<=180&&!/^(?:电话|项目名称|订单空间|日期|合同|审图|安装地址)/.test(address)?[{...t,address}]:[];
+ });
+ const addressFor=(p:Point)=>[...addressFields].sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0]?.address||'';
  const roomFields=texts.flatMap(t=>{
   const match=t.text.match(/^项目名称\s*[:：]?\s*(.*)$/);if(!match)return [];
   let room=match[1].trim();
@@ -79,10 +88,10 @@ export function parseDxfText(text:string,source:string):CadRow[]{
  const unnumbered=(text:string)=>text.replace(/^\s*\d+\s*[.．、:：)）-]\s*/,'');
  const cabinetName=(raw:string)=>{const text=unnumbered(raw);return /^(?:[\u4e00-\u9fffA-Za-z0-9（）()_-]{0,25}柜|岛台|中岛|榻榻米|台面|床头|护墙)$/.test(text);};
  const templateMode=roomFields.length>0&&texts.some(t=>t.red&&cabinetName(t.text));
- const anchors:(Point&{room:string;name:string;label?:string})[]=[],dims:Dim[]=[],boxes:Box[]=[];
+ const anchors:(Point&{room:string;name:string;label?:string;address?:string})[]=[],dims:Dim[]=[],boxes:Box[]=[];
  if(templateMode)for(const t of texts.filter(t=>t.red&&cabinetName(t.text))){
   const field=[...roomFields].sort((a,b)=>Math.hypot(a.x-t.x,a.y-t.y)-Math.hypot(b.x-t.x,b.y-t.y))[0];
-  if(!anchors.some(a=>(a.label||a.name)===t.text&&Math.hypot(a.x-t.x,a.y-t.y)<.01))anchors.push({x:t.x,y:t.y,room:field.room,name:unnumbered(t.text),label:t.text});
+  if(!anchors.some(a=>(a.label||a.name)===t.text&&Math.hypot(a.x-t.x,a.y-t.y)<.01))anchors.push({x:t.x,y:t.y,room:field.room,name:unnumbered(t.text),label:t.text,address:addressFor(field)});
  }
 
  const seen=new Set<string>();
@@ -93,7 +102,7 @@ export function parseDxfText(text:string,source:string):CadRow[]{
    const match=raw.match(/^(.{1,50}?)\s*[/／]\s*(.{1,100})$/);if(!match||!/柜|岛台|榻榻米|中岛|台面|床头|护墙/.test(match[2]))continue;
    const p=point(m,n(e,10),n(e,20));if(!Number.isFinite(p.x+p.y))continue;
    const key=`${raw}|${p.x.toFixed(2)}|${p.y.toFixed(2)}`;if(seen.has(key))continue;seen.add(key);
-   anchors.push({...p,room:match[1].trim(),name:match[2].trim()});
+   anchors.push({...p,room:match[1].trim(),name:match[2].trim(),address:addressFor(p)});
   }else if(e.type==='DIMENSION'){
    // Radius, angle and diameter dimensions do not measure cabinet projection.
    if(![0,1].includes(n(e,70,0)&7))continue;
@@ -169,6 +178,7 @@ export function parseDxfText(text:string,source:string):CadRow[]{
   }
   if(['TEXT','MTEXT','ATTRIB'].includes(e.type)){
    const text=clean((e.vals.get(3)||[]).join('')+v(e,1)).slice(0,500),p=point(m,n(e,10),n(e,20));
+   if(addressEntities.has(e))continue;
    if(templateMode&&!anchors.some(a=>(a.label||a.name)===text&&Math.hypot(a.x-p.x,a.y-p.y)<.01))continue;
    const size=n(e,40,40)*Math.hypot(m[0],m[1]),angle=n(e,50,0)+Math.atan2(m[1],m[0])*180/Math.PI;
    if(text&&size>0&&Number.isFinite(size+p.x+p.y+angle))graphics.push({box:pad(bounds([p]),size*text.length),shape:false,svg:`<text x="${fmt(p.x)}" y="${fmt(-p.y)}" font-size="${fmt(size)}" transform="rotate(${fmt(-angle)} ${fmt(p.x)} ${fmt(-p.y)})" fill="${templateMode?'#bb3030':'#203449'}" stroke="none">${esc(text)}</text>`});
@@ -209,6 +219,6 @@ export function parseDxfText(text:string,source:string):CadRow[]{
   const width=kitchen?total:w?.value??0,height=kitchen?0:h?.value??0;
   const complete=width>0&&width<=30000&&(height<=30000&&(height>0||!a.name.includes('冰箱柜')));
   const formula=kitchen?`${ds.map(d=>d.value).join('+')}=${total}mm`:height>0?`${w?.formula||'?'} × ${h?.formula||'?'} mm`:`${w?.formula||'?'} mm 延米`;
-  return {...preview(i),source,room:a.room,name:a.name,width:width>0&&width<=30000?String(width):'',height:height>0&&height<=30000?String(height):'',price:'',selected:complete,config:'',note:complete?formula:`尺寸未识别完整，请核对宽高：${formula}`};
+  return {...preview(i),source,address:a.address||'',room:a.room,name:a.name,width:width>0&&width<=30000?String(width):'',height:height>0&&height<=30000?String(height):'',price:'',selected:complete,config:'',note:complete?formula:`尺寸未识别完整，请核对宽高：${formula}`};
  });
 }

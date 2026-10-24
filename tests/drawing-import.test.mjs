@@ -45,3 +45,9 @@ test('local OCR uses project field as room and flags color ambiguity without imp
  const words=[word('项目名称',0,500,100,520),word('南次卧',120,500,200,520),word('联系电话',0,540),word('19000000000',120,540),word('衣柜',500,200),word('2340',100,100),word('1576',500,400),word('材质及五金说明',800,500)];
  const row=drawingFromWords(words,'截图.png');assert.equal(row.room,'南次卧');assert.equal(row.name,'衣柜');assert.match(row.note,/核对红色柜名/);assert.equal(row.config,undefined);assert.equal(drawingFromWords([...words,word('鞋柜',700,200)],'截图.png').name,'');
 });
+
+test('duplicate cropped drawing gains hidden address without mutation; different addresses are distinct',()=>{
+ const row=Object.freeze({source:'crop.png',room:'阳台',name:'衣柜',width:'1000',height:'2000',price:'',selected:true}),first=Object.freeze({row,image:'first'}),full={row:{...row,source:'full.dxf',address:'云顶12-1-201'},image:'second'};
+ const result=uniqueDrawingEntries([first,full]);assert.equal(result.length,1);assert.equal(result[0].row.address,'云顶12-1-201');assert.equal(result[0].image,'first');assert.equal(first.row.address,undefined);
+ assert.equal(uniqueDrawingEntries([full,{...full,row:{...full.row,address:'另一个测试地址'}}]).length,2);
+});

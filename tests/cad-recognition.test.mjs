@@ -142,3 +142,8 @@ test('numbered red labels in one title-block CAD become separate cabinets',()=>{
  const body=titleText('项目名称：阳台',0,-500)+titleText('2.洗衣机吊柜',500,500,1)+outline(0,0,1313,940)+horizontal(1313)+vertical(940)+titleText('1.洗衣机柜',10500,500,1)+outline(10000,0,1312,900)+horizontal(1312,10000)+vertical(900,10000);
  const rows=parseDxfText(doc(body),'multi.dxf');assert.deepEqual(rows.map(r=>[r.room,r.name,r.width,r.height]),[['阳台','洗衣机吊柜','1313','940'],['阳台','洗衣机柜','1312','900']]);assert.match(rows[0].previewSvg,/2.洗衣机吊柜/);
 });
+
+test('CAD installation address metadata remains separate from room and is not rendered in preview',()=>{
+ const body=titleText('项目名称：阳台',0,-500)+titleText('安装地址',500,-500)+titleText('云顶12-1-201',800,-500)+titleText('衣柜',500,500,1)+outline()+horizontal(2000)+vertical(2400);
+ const [r]=parseDxfText(doc(body),'address.dxf');assert.equal(r.address,'云顶12-1-201');assert.equal(r.room,'阳台');assert.doesNotMatch(r.previewSvg,/云顶12-1-201|安装地址/);
+});

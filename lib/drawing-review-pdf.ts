@@ -4,6 +4,13 @@ import {CONTRACT_CJK_FONT_BASE64} from '../assets/fonts/contract-cjk-font';
 import {drawingMeasure,type DrawingRow} from './drawing-import';
 
 export type ReviewEntry={row:DrawingRow;image?:string};
+const reviewTitle='柜体图纸尺寸核对单';
+export function drawingReviewPdfName(entries:ReviewEntry[]){
+ const addresses=[...new Set(entries.map(e=>e.row.address?.trim()||'').filter(Boolean))];
+ const address=addresses.length===1?addresses[0]:addresses.length>1?'多地址':'';
+ const prefix=address.replace(/[<>:"/\\|?*\x00-\x1f\x7f]/g,'-').replace(/\s+/g,' ').replace(/[. ]+$/,'').slice(0,140);
+ return prefix+reviewTitle+'.pdf';
+}
 /** Each drawing is followed by its complete editable-row information; totals occur once at the end. */
 export async function generateDrawingReviewPdf(entries:ReviewEntry[],loadImage:(src:string)=>Promise<Uint8Array>){
  if(!entries.length)throw new Error('请先勾选需要导出的柜体');
@@ -19,12 +26,13 @@ export async function generateDrawingReviewPdf(entries:ReviewEntry[],loadImage:(
   const lines:string[]=[];for(const paragraph of text.split('\n')){let line='';for(const c of paragraph){if(line&&font.widthOfTextAtSize(line+c,size)>width){lines.push(line);line=c;}else line+=c;}lines.push(line);}return lines;
  };
  let area=0,meters=0,pending=0;for(const {row} of entries){const m=drawingMeasure(row);if(m.area!==null)area+=m.area;else if(m.meters!==null)meters+=m.meters;else pending++;}
- pdf.setTitle('柜体图纸尺寸核对单');pdf.setCreator('固美格图纸识别');
+ pdf.setTitle(drawingReviewPdfName(entries).replace(/\.pdf$/,''));pdf.setCreator('固美格图纸识别');
  let page!:PDFPage,y=0,current=0;
  const addPage=(continued=false)=>{
   page=pdf.addPage([595.28,841.89]);
-  page.drawText('柜体图纸尺寸核对单',{x:44,y:796,size:20,font,color:blue});
-  page.drawText(`柜体 ${current+1} / ${entries.length}${continued?'（信息续页）':''}`,{x:44,y:772,size:10,font,color:muted});y=748;
+  const title=(entries[current].row.address?.trim()||'')+reviewTitle;let size=20;while(size>14&&font.widthOfTextAtSize(title,size)>1014)size--;
+  let top=796;for(const line of wrap(title,size,507)){page.drawText(line,{x:44,y:top,size,font,color:blue});top-=size*1.3;}
+  page.drawText(`柜体 ${current+1} / ${entries.length}${continued?'（信息续页）':''}`,{x:44,y:top-6,size:10,font,color:muted});y=top-30;
  };
  const ensure=(height:number)=>{if(y-height<140)addPage(true);};
  const info=(value:string,size=10,color=ink)=>{
@@ -47,7 +55,8 @@ export async function generateDrawingReviewPdf(entries:ReviewEntry[],loadImage:(
   info('计算公式（原图识别参考）：'+(row.note||'未提供'),10);
   const m=drawingMeasure(row),unit=m.area!==null?'㎡':m.meters!==null?'延米':'待核对';
   const measure=m.area!==null?m.area.toFixed(2):m.meters!==null?m.meters.toFixed(2):'待补充尺寸';
-  info(`当前数量：${measure}${unit==='待核对'?'':` ${unit}`}    单价：${row.price.trim()||'未填写'}${row.price.trim()?` 元/${unit}`:''}`,12,m.area===null&&m.meters===null?red:blue);
+  info(`当前数量：${measure}${unit==='待核对'?'':` ${unit}`}`,18,m.area===null&&m.meters===null?red:blue);
+  if(row.price.trim())info(`单价：${row.price.trim()} 元/${unit}`,11);
   info('识别方式：'+(/\.(dxf|dwg)(?:[（(]|$)/i.test(row.source)?'CAD解析':'截图识别'),9,muted);
   if(row.config?.trim())info('配置说明：'+row.config,10);
   info('图形及公式保留原图标注；手动修改以本图下方的当前尺寸、名称和数量为准。',8,muted);

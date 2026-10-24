@@ -9,7 +9,7 @@ import {PDFDocument} from 'pdf-lib';
 const compile=p=>ts.transpileModule(fs.readFileSync(p,'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
 const url=s=>'data:text/javascript;base64,'+Buffer.from(s).toString('base64');
 const source=compile('lib/drawing-review-pdf.ts').replace("from 'pdf-lib'",`from '${import.meta.resolve('pdf-lib')}'`).replace("from '@pdf-lib/fontkit'",`from '${import.meta.resolve('@pdf-lib/fontkit')}'`).replace("from '../assets/fonts/contract-cjk-font'",`from '${url(compile('assets/fonts/contract-cjk-font.ts'))}'`).replace("from './drawing-import'",`from '${url(compile('lib/drawing-import.ts'))}'`);
-const {generateDrawingReviewPdf}=await import(url(source));
+const {generateDrawingReviewPdf,drawingReviewPdfName}=await import(url(source));
 const python=process.env.PDF_TEST_PYTHON||join(homedir(),'.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe');
 test('customer review PDF preserves edited area and meters, page-image pairing and includes unit price below each drawing',async()=>{
  const base={source:'合成测试.dxf',room:'厨房',name:'地柜',width:'5000',height:'',price:'1987654321',selected:true,note:'原标注4780mm'};
@@ -37,4 +37,20 @@ test('long cabinet information continues without truncation and totals remain on
 with pdfplumber.open(sys.argv[1]) as pdf:
  print(json.dumps([{'text':p.extract_text(),'within':all(15<=c['top'] and c['bottom']<=825 for c in p.chars)} for p in pdf.pages],ensure_ascii=False))`,path],{encoding:'utf8'}));
  assert.ok(pages.length>1);assert.ok(pages.every(p=>p.within));assert.ok(pages.at(-1).text.includes('末尾核验标记'));assert.ok(pages.slice(0,-1).every(p=>!p.text.includes('柜体合计')));assert.match(pages.at(-1).text,/4.80/);
+});
+
+test('address heads PDF and filename; quantity is large and blank unit price is absent',async()=>{
+ const row={source:'sample.png',address:'云顶12-1-201',room:'阳台',name:'洗衣机柜',width:'1312',height:'900',price:'',selected:true};
+ const entries=[{row}];assert.equal(drawingReviewPdfName(entries),'云顶12-1-201柜体图纸尺寸核对单.pdf');assert.ok(!drawingReviewPdfName([{row:{...row,address:'测试/地址:*?'}}]).includes('/'));
+ const bytes=await generateDrawingReviewPdf(entries,async()=>new Uint8Array());const path='outputs/drawing-review-test/address.pdf';fs.writeFileSync(path,bytes);
+ const pages=JSON.parse(execFileSync(python,['-X','utf8','-c',`import pdfplumber,json,sys
+with pdfplumber.open(sys.argv[1]) as pdf:
+ print(json.dumps([{'text':p.extract_text(),'large_quantity':any(c['text']=='当' and c['size']>=17.9 for c in p.chars)} for p in pdf.pages],ensure_ascii=False))`,path],{encoding:'utf8'}));
+ assert.match(pages[0].text,/云顶12-1-201柜体图纸尺寸核对单/);assert.ok(pages[0].large_quantity);assert.ok(!pages[0].text.includes('单价'));assert.ok(!pages[0].text.includes('未填写'));
+ assert.equal(drawingReviewPdfName([entries[0],{row:{...row,address:'另一个测试地址'}}]),'多地址柜体图纸尺寸核对单.pdf');
+ const long=await generateDrawingReviewPdf([{row:{...row,address:'超长地址'.repeat(35)}}],async()=>new Uint8Array());fs.writeFileSync('outputs/drawing-review-test/long-address.pdf',long);
+ const within=execFileSync(python,['-X','utf8','-c',`import pdfplumber,sys
+with pdfplumber.open(sys.argv[1]) as pdf:
+ assert all(15<=c['top'] and c['bottom']<=825 and c['x0']>=40 and c['x1']<=555 for p in pdf.pages for c in p.chars)
+ print('ok')`,'outputs/drawing-review-test/long-address.pdf'],{encoding:'utf8'});assert.match(within,/ok/);
 });

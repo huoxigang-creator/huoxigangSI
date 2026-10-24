@@ -25,3 +25,8 @@ test('multi-cabinet screenshot returns separate dimensions and order-independent
  assert.equal(drawingVisionRows(JSON.stringify(cabinet[0]),'old.png').length,1);assert.throws(()=>drawingVisionRows('{"cabinets":[]}','x'),/无效/);
  calls=0;const mismatch=await recognizeDrawingCabinets(image,'whole.png',config,undefined,async()=>Response.json({choices:[{message:{content:JSON.stringify({cabinets:++calls===1?cabinet:cabinet.slice(0,1)})}}]}));assert.ok(mismatch.every(r=>!r.selected&&r.note.includes('不一致')));
 });
+
+test('recognized address is hidden metadata and shared multi-cabinet address is inherited',async()=>{
+ const row=drawingVisionRow('{"room":"阳台","name":"衣柜","width_mm":"1000","address":"云顶12-1-201"}','x.png');assert.equal(row.address,'云顶12-1-201');assert.equal(row.room,'阳台');
+ const {drawingVisionRows}=await import(visionUrl);const rows=drawingVisionRows(JSON.stringify({address:'云顶12-1-201',cabinets:[{name:'吊柜'},{name:'地柜'}]}),'x.png');assert.ok(rows.every(r=>r.address==='云顶12-1-201'));
+});

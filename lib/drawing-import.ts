@@ -1,4 +1,4 @@
-export type DrawingRow={source:string;room:string;name:string;width:string;height:string;price:string;selected:boolean;config?:string;note?:string;previewSvg?:string;previewWarning?:string};
+export type DrawingRow={source:string;room:string;name:string;width:string;height:string;price:string;selected:boolean;address?:string;config?:string;note?:string;previewSvg?:string;previewWarning?:string};
 type Word={text:string;bbox:{x0:number;y0:number;x1:number;y1:number}};
 /** 把 "1800+1500+700"、"1800 1500 700" 或 "1800、1500" 这类多段宽度求和为一个数字（毫米）。 */
 export function sumWidthMm(width:string):number{if(!width.trim())return NaN;const direct=Number(width);if(Number.isFinite(direct))return direct;const nums=width.match(/\d+(?:\.\d+)?/g);if(!nums||!nums.length)return NaN;return nums.reduce((s,n)=>s+Number(n),0);}
@@ -36,15 +36,19 @@ export function drawingMeasure(row:DrawingRow){
 /** Duplicate recognition requires the same room, cabinet name AND both dimensions.
  * Keep the first result and its image/file together; incomplete failures remain editable. */
 export function uniqueDrawingEntries<T extends {row:DrawingRow}>(entries:T[]):T[]{
- const seen=new Set<string>();
+ const seen=new Map<string,number[]>(),result:T[]=[];
  const dimension=(value:string,width=false)=>{
   const text=value.trim();if(!text)return '';
   const number=width&&/^[\d.\s+、,，]+$/.test(text)?sumWidthMm(text):Number(text);
   return Number.isFinite(number)&&number>0?String(number):text;
  };
- return entries.filter(({row})=>{
-  const room=row.room.trim(),name=row.name.trim();if(!room||!name||!row.width.trim())return true;
+ for(const entry of entries){
+  const {row}=entry,room=row.room.trim(),name=row.name.trim();
+  if(!room||!name||!row.width.trim()){result.push(entry);continue;}
   const key=JSON.stringify([room.toLowerCase(),name.toLowerCase(),dimension(row.width,true),dimension(row.height)]);
-  if(seen.has(key))return false;seen.add(key);return true;
- });
+  const address=row.address?.trim()||'',indexes=seen.get(key)||[],index=indexes.find(i=>!address||!result[i].row.address?.trim()||result[i].row.address?.trim()===address);
+  if(index!==undefined){if(address&&!result[index].row.address?.trim())result[index]={...result[index],row:{...result[index].row,address}};continue;}
+  seen.set(key,[...indexes,result.length]);result.push(entry);
+ }
+ return result;
 }
