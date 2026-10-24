@@ -11,3 +11,7 @@
 .diOverlay>.diRecognitionStatus>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .diOverlay>.diRecognitionStatus strong{font-size:12px;font-weight:500}.diOverlay>.diRecognitionStatus small{display:inline;margin:0;font-size:11px}
 .diOverlay>.diRecognitionStatus .diProgressSpinner{width:13px;height:13px;flex-basis:13px}
+
+.drawingImportDialog>.diDrawingClose{position:sticky;top:0;align-self:flex-end;z-index:10012;width:36px;height:36px;min-height:36px;flex-shrink:0;padding:0;margin-bottom:-36px;background:#fff;color:#244c7a;font-size:25px;line-height:1;box-shadow:0 1px 5px #10294020}
+.drawingImportDialog>h2{padding-right:44px}
+.drawingImportDialog>.diDrawingActions{position:sticky;bottom:0;z-index:10012;background:#fff;border-top:1px solid #e3ebf5;padding:12px 0;box-shadow:0 -5px 12px #ffffffed}

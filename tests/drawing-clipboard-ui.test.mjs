@@ -39,7 +39,7 @@ test('paste appends images, queues behind recognition, ignores repeat clipboard 
  paste(image('second'));paste(image('second'));tree=await app.flush();assert.equal(app.requests.length,1);assert.match(text(tree),/还有1张截图等待识别/);
  app.requests[0].resolve(result(app.requests[0].file,2000));tree=await app.flush();assert.equal(app.requests.length,2);assert.equal(cards(tree).length,2);
  app.requests[1].resolve(result(app.requests[1].file,3000));tree=await app.flush();assert.match(text(tree),/共2个柜体/);assert.match(text(tree),/5.00m/);
- paste(image('third'));tree=await app.flush();assert.equal(app.requests.length,3);button(tree,'取消').props.onClick();tree=await app.flush();assert.equal(app.events.has('paste'),false);assert.equal(nodes(tree).some(n=>n.props.role==='dialog'),false);app.unmount();
+ paste(image('third'));tree=await app.flush();assert.equal(app.requests.length,3);button(tree,'返回').props.onClick();tree=await app.flush();assert.equal(app.events.has('paste'),false);assert.equal(nodes(tree).some(n=>n.props.role==='dialog'),false);app.unmount();
 });
 
 
@@ -48,14 +48,14 @@ test('enabling auto intake skips old clipboard, waits for focus and stops pollin
  button(tree,'开启截图自动接收').props.onClick();tree=await app.flush();assert.equal(app.clipboardReads,1);assert.equal(app.requests.length,0);assert.equal(app.timerCount,1);
  app.focus(false);app.setClipboard([image('new snip')]);app.poll();tree=await app.flush();assert.equal(app.clipboardReads,1);assert.equal(app.requests.length,0);
  app.focus(true);app.poll();tree=await app.flush();assert.equal(app.requests.length,1);assert.equal(cards(tree).length,1);
- button(tree,'取消').props.onClick();tree=await app.flush();assert.equal(app.timerCount,0);const reads=app.clipboardReads;app.poll();await app.flush();assert.equal(app.clipboardReads,reads);app.unmount();
+ button(tree,'返回').props.onClick();tree=await app.flush();assert.equal(app.timerCount,0);const reads=app.clipboardReads;app.poll();await app.flush();assert.equal(app.clipboardReads,reads);app.unmount();
 });
 
 test('PDF export triggers a named download, retains manual link and shows failures beside the button',async()=>{
  for(const fails of [false,true]){
   const app=harness(fails);let tree=app.render();button(tree,'AI智能识别报价').props.onClick();tree=await app.flush();const file=image('pdf');app.events.get('paste')({clipboardData:{items:[{kind:'file',type:file.type,getAsFile:()=>file}],files:[file]},preventDefault(){}});tree=await app.flush();app.requests[0].resolve(result(file,2000));tree=await app.flush();assert.equal(button(tree,'一键导出图纸核对PDF').props.disabled,true);button(tree,'一键导出图纸核对PDF').props.onClick();tree=await app.flush();assert.equal(app.downloads.length,0);assert.ok(text(tree).includes('确认后才能生成PDF'));button(tree,'请核对').props.onClick();tree=await app.flush();assert.equal(button(tree,'一键导出图纸核对PDF').props.disabled,false);button(tree,'一键导出图纸核对PDF').props.onClick();tree=await app.flush();
   if(fails){assert.equal(app.downloads.length,0);assert.ok(nodes(tree).some(n=>n.props.role==='alert'&&text(n).includes('Synthetic PDF failure')));}
-  else{assert.equal(app.downloads.length,1);assert.equal(app.downloads[0].name,'柜体图纸尺寸核对单.pdf');const link=nodes(tree).find(n=>n.type==='a'&&n.props.download==='柜体图纸尺寸核对单.pdf');assert.ok(link);assert.equal(link.props.href,app.downloads[0].href);assert.equal(app.revoked.includes(link.props.href),false);button(tree,'已核对').props.onClick();tree=await app.flush();assert.equal(button(tree,'一键导出图纸核对PDF').props.disabled,true);assert.ok(!nodes(tree).some(n=>n.type==='a'&&n.props.download==='柜体图纸尺寸核对单.pdf'));button(tree,'取消').props.onClick();await app.flush();assert.equal(app.revoked.includes(link.props.href),true);}
+  else{assert.equal(app.downloads.length,1);assert.equal(app.downloads[0].name,'柜体图纸尺寸核对单.pdf');const link=nodes(tree).find(n=>n.type==='a'&&n.props.download==='柜体图纸尺寸核对单.pdf');assert.ok(link);assert.equal(link.props.href,app.downloads[0].href);assert.equal(app.revoked.includes(link.props.href),false);button(tree,'已核对').props.onClick();tree=await app.flush();assert.equal(button(tree,'一键导出图纸核对PDF').props.disabled,true);assert.ok(!nodes(tree).some(n=>n.type==='a'&&n.props.download==='柜体图纸尺寸核对单.pdf'));button(tree,'返回').props.onClick();await app.flush();assert.equal(app.revoked.includes(link.props.href),true);}
   app.unmount();
  }
 });
@@ -91,5 +91,11 @@ test('one picker accepts mixed files in order, appends existing rows and filters
 test('mixed upload validates before requests, continues after a failed CAD and stops on close',async()=>{
  const app=harness();let tree=app.render();button(tree,'AI智能识别报价').props.onClick();tree=await app.flush();upload(tree,[image('valid'),new File(['bad'],'unsupported.pdf')]);tree=await app.flush();assert.equal(app.requests.length,0);assert.equal(cards(tree).length,0);assert.match(text(tree),/图片请选择/);
  const cad=new File(['synthetic'],'bad.dxf'),photo=image('after-failure');upload(tree,[cad,photo]);tree=await app.flush();app.requests[0].reject(Error('Synthetic CAD failure'));tree=await app.flush();assert.equal(app.requests.length,2);app.requests[1].resolve(result(photo,2000));tree=await app.flush();assert.equal(cards(tree).length,1);assert.match(text(tree),/Synthetic CAD failure/);assert.equal(nodes(tree).some(n=>n.type?.name==='RecognitionStatus'),false);
- upload(tree,[new File(['x'],'cancel.dxf'),image('must-not-upload')]);tree=await app.flush();assert.equal(app.requests.length,3);button(tree,'取消').props.onClick();tree=await app.flush();assert.equal(app.requests.length,3);assert.equal(nodes(tree).some(n=>n.props.role==='dialog'),false);app.unmount();
+ upload(tree,[new File(['x'],'cancel.dxf'),image('must-not-upload')]);tree=await app.flush();assert.equal(app.requests.length,3);button(tree,'返回').props.onClick();tree=await app.flush();assert.equal(app.requests.length,3);assert.equal(nodes(tree).some(n=>n.props.role==='dialog'),false);app.unmount();
+});
+
+test('top close exits recognition and aborts pending work, while return is present in the footer',async()=>{
+ const app=harness();let tree=app.render();button(tree,'AI智能识别报价').props.onClick();tree=await app.flush();assert.ok(button(tree,'返回'));
+ const file=image('close-control');app.events.get('paste')({clipboardData:{items:[{kind:'file',type:file.type,getAsFile:()=>file}],files:[file]},preventDefault(){}});tree=await app.flush();assert.equal(app.requests.length,1);
+ const close=nodes(tree).find(n=>n.type==='button'&&n.props['aria-label']==='关闭智能识别');assert.ok(close);close.props.onClick();tree=await app.flush();assert.equal(nodes(tree).some(n=>n.props.role==='dialog'),false);assert.equal(app.events.has('paste'),false);app.unmount();
 });
